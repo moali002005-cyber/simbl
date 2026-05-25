@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --cream: #F7F3EC;
@@ -572,6 +573,7 @@ textarea {
   </div>
 </main>
 
+<script src="/supabase-config.js"></script>
 <script>
 function selectRole(role) {
   document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
@@ -585,24 +587,54 @@ function selectRole(role) {
   }, 100);
 }
 
-function submitForm(event, role) {
+async function submitForm(event, role) {
   event.preventDefault();
   const form = event.target;
-  const data = {};
-  new FormData(form).forEach((value, key) => { data[key] = value; });
-  data.role = role;
-  data.createdAt = new Date().toISOString();
-  data.id = 'u_' + Date.now();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'جاري الإنشاء...';
 
-  const users = JSON.parse(localStorage.getItem('simbl_users') || '[]');
-  users.push(data);
-  localStorage.setItem('simbl_users', JSON.stringify(users));
+  const fd = new FormData(form);
+  const userData = { role };
 
-  localStorage.setItem('simbl_current_user', JSON.stringify(data));
+  if (role === 'creator') {
+    userData.name = fd.get('name');
+    userData.email = fd.get('email');
+    userData.whatsapp = fd.get('whatsapp');
+    userData.platform = fd.get('platform');
+    userData.handle = fd.get('handle');
+    userData.followers = parseInt(fd.get('followers')) || 0;
+    userData.category = fd.get('category');
+    userData.price = parseInt(fd.get('price')) || 0;
+    userData.bio = fd.get('bio') || null;
+  } else {
+    userData.company_name = fd.get('company_name');
+    userData.industry = fd.get('industry');
+    userData.size = fd.get('size');
+    userData.name = fd.get('contact_name');
+    userData.position = fd.get('position');
+    userData.phone = fd.get('phone');
+    userData.email = fd.get('email');
+    userData.website = fd.get('website') || null;
+  }
 
-  document.getElementById('role-selection').style.display = 'none';
-  document.getElementById('success-' + role).classList.add('active');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  try {
+    const savedUser = await dbSignup(userData);
+    saveCurrentUser(savedUser);
+    document.getElementById('role-selection').style.display = 'none';
+    document.getElementById('success-' + role).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+    if (err.message && err.message.includes('duplicate')) {
+      alert('هذا البريد الإلكتروني مسجل مسبقاً. استخدم بريداً آخر.');
+    } else {
+      alert('حصل خطأ أثناء التسجيل: ' + (err.message || 'يرجى المحاولة مرة أخرى'));
+      console.error(err);
+    }
+  }
 }
 
 function goToDashboard(role) {

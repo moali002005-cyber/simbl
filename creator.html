@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --cream: #F7F3EC;
@@ -581,100 +582,21 @@ input:focus, textarea:focus {
   </div>
 </div>
 
+<script src="/supabase-config.js"></script>
 <script>
-const SAMPLE_CAMPAIGNS = [
-  {
-    id: 'c1',
-    title: 'حملة عيد الفطر للعطور النسائية',
-    brand: 'ليل الرياض',
-    brandIndustry: 'perfumes',
-    description: 'نبحث عن مؤثرات لإطلاق عطر "ليل الرياض" الجديد. عطر نسائي شرقي عصري بنوتات العود والورد.',
-    budget: '800 - 1500',
-    duration: 'خلال 30 يوم',
-    package: 'ريل + 3 ستوريز',
-    tags: ['عطور', 'لايف ستايل', 'جمال'],
-    requirements: '50K+ متابع',
-    createdAt: '2026-05-23'
-  },
-  {
-    id: 'c2',
-    title: 'إطلاق مجموعة شنط صيف 2026',
-    brand: 'لين كولكشن',
-    brandIndustry: 'fashion',
-    description: 'حملة لإطلاق مجموعة شنط جلدية فاخرة. نبحث عن مؤثرات موضة بأسلوب راقي.',
-    budget: '1200 - 2500',
-    duration: 'أسبوعين',
-    package: 'ريل + بوست + 2 ستوري',
-    tags: ['موضة', 'لايف ستايل'],
-    requirements: '100K+ متابع',
-    createdAt: '2026-05-22'
-  },
-  {
-    id: 'c3',
-    title: 'كريم البشرة الطبيعي الجديد',
-    brand: 'نور بيوتي',
-    brandIndustry: 'beauty',
-    description: 'مراجعة كريم بشرة طبيعي مع تتبع النتائج خلال أسبوعين. مناسب لجميع أنواع البشرة.',
-    budget: '500 - 1000',
-    duration: '3 أسابيع',
-    package: '2 ريل + 5 ستوريز',
-    tags: ['جمال', 'عناية'],
-    requirements: '30K+ متابع',
-    createdAt: '2026-05-21'
-  },
-  {
-    id: 'c4',
-    title: 'مطعم مأكولات شامية بالرياض',
-    brand: 'بيت الياسمين',
-    brandIndustry: 'food',
-    description: 'افتتاح فرع جديد، نريد تغطية شاملة للقائمة والأجواء. وجبة مجانية + مكافأة نقدية.',
-    budget: '600 - 1200',
-    duration: 'أسبوع',
-    package: 'ريل + ستوريز',
-    tags: ['طعام', 'لايف ستايل'],
-    requirements: '20K+ متابع · مقيمة في الرياض',
-    createdAt: '2026-05-20'
-  },
-  {
-    id: 'c5',
-    title: 'إطلاق سماعات لاسلكية ذكية',
-    brand: 'TechSAR',
-    brandIndustry: 'tech',
-    description: 'سماعات بلوتوث جديدة بتقنية إلغاء الضوضاء. نبحث عن مؤثرات تقنية أو لايف ستايل.',
-    budget: '900 - 1800',
-    duration: '10 أيام',
-    package: 'ريل + بوست',
-    tags: ['تقنية', 'لايف ستايل'],
-    requirements: '40K+ متابع',
-    createdAt: '2026-05-19'
-  },
-  {
-    id: 'c6',
-    title: 'مجموعة عبايات رمضانية',
-    brand: 'دار الفخامة',
-    brandIndustry: 'fashion',
-    description: 'مجموعة عبايات بتصاميم عصرية. مناسبة لمؤثرات الموضة المحتشمة.',
-    budget: '700 - 1400',
-    duration: '20 يوم',
-    package: 'ريل + 4 ستوريز',
-    tags: ['موضة', 'محتشم'],
-    requirements: '60K+ متابع',
-    createdAt: '2026-05-18'
-  }
-];
-
 let currentUser = null;
+let allCampaigns = [];
+let myApplications = [];
 let currentFilter = 'all';
 let currentCampaignId = null;
 
-function init() {
-  const userJson = localStorage.getItem('simbl_current_user');
-  if (!userJson) {
+async function init() {
+  currentUser = getCurrentUser();
+  if (!currentUser) {
     alert('يرجى تسجيل الدخول أولاً');
     window.location.href = '/signup.html';
     return;
   }
-  currentUser = JSON.parse(userJson);
 
   if (currentUser.role !== 'creator') {
     alert('هذه الصفحة مخصصة للمؤثرات. سيتم تحويلك للوحة الشركة.');
@@ -687,32 +609,30 @@ function init() {
   document.getElementById('user-initial').textContent = firstName[0];
   document.getElementById('welcome-name').textContent = firstName;
 
-  if (!localStorage.getItem('simbl_campaigns')) {
-    localStorage.setItem('simbl_campaigns', JSON.stringify(SAMPLE_CAMPAIGNS));
+  await loadData();
+}
+
+async function loadData() {
+  try {
+    document.getElementById('campaigns-list').innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--ink-muted)">جاري تحميل الحملات...</div>';
+    [allCampaigns, myApplications] = await Promise.all([
+      dbGetCampaigns(),
+      dbGetMyApplications(currentUser.id)
+    ]);
+    renderCampaigns();
+    renderApplications();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('campaigns-list').innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--accent)">حصل خطأ في تحميل البيانات. حدّث الصفحة وحاول مرة أخرى.</div>';
   }
-
-  renderCampaigns();
-  renderApplications();
-}
-
-function getCampaigns() {
-  const stored = localStorage.getItem('simbl_campaigns');
-  return stored ? JSON.parse(stored) : SAMPLE_CAMPAIGNS;
-}
-
-function getApplications() {
-  return JSON.parse(localStorage.getItem('simbl_applications') || '[]');
 }
 
 function renderCampaigns() {
-  const campaigns = getCampaigns();
-  const applications = getApplications();
   const filtered = currentFilter === 'all'
-    ? campaigns
-    : campaigns.filter(c => c.brandIndustry === currentFilter);
+    ? allCampaigns
+    : allCampaigns.filter(c => c.brand_industry === currentFilter);
 
   document.getElementById('count-browse').textContent = filtered.length;
-
   const list = document.getElementById('campaigns-list');
 
   if (filtered.length === 0) {
@@ -726,26 +646,28 @@ function renderCampaigns() {
   }
 
   list.innerHTML = filtered.map(c => {
-    const applied = applications.some(a => a.campaignId === c.id && a.creatorId === currentUser.id);
-    const brandInitial = c.brand[0];
+    const applied = myApplications.some(a => a.campaign_id === c.id);
+    const brandName = c.brand || 'شركة';
+    const brandInitial = brandName[0];
+    const tags = c.tags || [];
     return `
       <div class="campaign-card">
         <div class="top">
           <div class="brand-badge">
             <div class="brand-avatar">${brandInitial}</div>
-            <span>${c.brand}</span>
+            <span>${brandName}</span>
           </div>
           <div class="budget-tag">${c.budget} ر.س</div>
         </div>
         <h3>${c.title}</h3>
         <p class="desc">${c.description}</p>
         <div class="meta-row">
-          <div class="meta-item">⏱ ${c.duration}</div>
-          <div class="meta-item">◇ ${c.package}</div>
+          ${c.duration ? `<div class="meta-item">⏱ ${c.duration}</div>` : ''}
+          ${c.package ? `<div class="meta-item">◇ ${c.package}</div>` : ''}
         </div>
         <div class="card-footer">
           <div class="tags-row">
-            ${c.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+            ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
           </div>
           <button class="btn-apply ${applied ? 'applied' : ''}"
                   onclick="${applied ? '' : `openApplyModal('${c.id}')`}"
@@ -759,14 +681,10 @@ function renderCampaigns() {
 }
 
 function renderApplications() {
-  const applications = getApplications().filter(a => a.creatorId === currentUser.id);
-  const campaigns = getCampaigns();
-
-  document.getElementById('count-applications').textContent = applications.length;
-
+  document.getElementById('count-applications').textContent = myApplications.length;
   const list = document.getElementById('applications-list');
 
-  if (applications.length === 0) {
+  if (myApplications.length === 0) {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">◌</div>
@@ -783,14 +701,14 @@ function renderApplications() {
     rejected: 'مرفوضة'
   };
 
-  list.innerHTML = applications.map(a => {
-    const campaign = campaigns.find(c => c.id === a.campaignId);
-    if (!campaign) return '';
+  list.innerHTML = myApplications.map(a => {
+    const campaignTitle = a.campaigns?.title || 'حملة';
+    const brandName = a.campaigns?.users?.company_name || '';
     return `
       <div class="application-card">
         <div class="app-info">
-          <h4>${campaign.title}</h4>
-          <div class="meta">${campaign.brand} · عرضك: ${a.price.toLocaleString('ar-SA')} ر.س · ${new Date(a.createdAt).toLocaleDateString('ar-SA')}</div>
+          <h4>${campaignTitle}</h4>
+          <div class="meta">${brandName} · عرضك: ${a.price.toLocaleString('ar-SA')} ر.س · ${new Date(a.created_at).toLocaleDateString('ar-SA')}</div>
         </div>
         <span class="app-status status-${a.status}">${statusLabels[a.status]}</span>
       </div>
@@ -814,7 +732,8 @@ function filterCampaigns(filter, btn) {
 
 function openApplyModal(campaignId) {
   currentCampaignId = campaignId;
-  const campaign = getCampaigns().find(c => c.id === campaignId);
+  const campaign = allCampaigns.find(c => c.id === campaignId);
+  if (!campaign) return;
   document.getElementById('modal-title').textContent = 'تقديم على: ' + campaign.title;
   document.getElementById('modal-sub').textContent = `${campaign.brand} · الميزانية: ${campaign.budget} ر.س`;
   document.getElementById('apply-modal').classList.add('show');
@@ -824,40 +743,40 @@ function closeModal() {
   document.getElementById('apply-modal').classList.remove('show');
 }
 
-function submitApplication(event) {
+async function submitApplication(event) {
   event.preventDefault();
   const form = event.target;
-  const formData = new FormData(form);
-  const application = {
-    id: 'a_' + Date.now(),
-    campaignId: currentCampaignId,
-    creatorId: currentUser.id,
-    creatorName: currentUser.name,
-    creatorPlatform: currentUser.platform,
-    creatorHandle: currentUser.handle,
-    creatorFollowers: currentUser.followers,
-    creatorCategory: currentUser.category,
-    price: parseInt(formData.get('price')),
-    note: formData.get('note'),
-    status: 'pending',
-    createdAt: new Date().toISOString()
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const original = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'جاري الإرسال...';
+
+  const fd = new FormData(form);
+  const applicationData = {
+    campaign_id: currentCampaignId,
+    creator_id: currentUser.id,
+    price: parseInt(fd.get('price')),
+    note: fd.get('note') || null,
+    status: 'pending'
   };
 
-  const applications = getApplications();
-  applications.push(application);
-  localStorage.setItem('simbl_applications', JSON.stringify(applications));
-
-  closeModal();
-  form.reset();
-  renderCampaigns();
-  renderApplications();
-
-  setTimeout(() => alert('تم إرسال عرضك بنجاح! سيتواصل معك الوكيل الذكي قريباً.'), 100);
+  try {
+    await dbApply(applicationData);
+    closeModal();
+    form.reset();
+    await loadData();
+    setTimeout(() => alert('تم إرسال عرضك بنجاح! الشركة سترى عرضك الآن.'), 100);
+  } catch (err) {
+    console.error(err);
+    submitBtn.disabled = false;
+    submitBtn.textContent = original;
+    alert('حصل خطأ أثناء إرسال العرض. حاولي مرة أخرى.');
+  }
 }
 
 function logout() {
   if (confirm('متأكدة من تسجيل الخروج؟')) {
-    localStorage.removeItem('simbl_current_user');
+    clearCurrentUser();
     window.location.href = '/';
   }
 }

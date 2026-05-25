@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --cream: #F7F3EC;
@@ -558,17 +559,19 @@ textarea { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
+<script src="/supabase-config.js"></script>
 <script>
 let currentUser = null;
+let myCampaigns = [];
+let campaignApps = {};
 
-function init() {
-  const userJson = localStorage.getItem('simbl_current_user');
-  if (!userJson) {
+async function init() {
+  currentUser = getCurrentUser();
+  if (!currentUser) {
     alert('يرجى تسجيل الدخول أولاً');
     window.location.href = '/signup.html';
     return;
   }
-  currentUser = JSON.parse(userJson);
 
   if (currentUser.role !== 'brand') {
     alert('هذه الصفحة مخصصة للشركات. سيتم تحويلك للوحة المؤثرة.');
@@ -581,30 +584,33 @@ function init() {
   document.getElementById('user-initial').textContent = companyName[0];
   document.getElementById('welcome-name').textContent = companyName;
 
-  renderStats();
-  renderCampaigns();
+  await loadData();
 }
 
-function getMyCampaigns() {
-  const all = JSON.parse(localStorage.getItem('simbl_campaigns') || '[]');
-  return all.filter(c => c.brandId === currentUser.id);
-}
+async function loadData() {
+  try {
+    document.getElementById('campaigns-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--ink-muted)">جاري التحميل...</div>';
+    myCampaigns = await dbGetMyCampaigns(currentUser.id);
 
-function getCampaignApplications(campaignId) {
-  const all = JSON.parse(localStorage.getItem('simbl_applications') || '[]');
-  return all.filter(a => a.campaignId === campaignId);
+    campaignApps = {};
+    await Promise.all(myCampaigns.map(async c => {
+      campaignApps[c.id] = await dbGetCampaignApplications(c.id);
+    }));
+
+    renderStats();
+    renderCampaigns();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('campaigns-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--accent)">حصل خطأ في التحميل. حدّث الصفحة.</div>';
+  }
 }
 
 function renderStats() {
-  const campaigns = getMyCampaigns();
-  const allApps = JSON.parse(localStorage.getItem('simbl_applications') || '[]');
-  const myCampaignIds = campaigns.map(c => c.id);
-  const myApps = allApps.filter(a => myCampaignIds.includes(a.campaignId));
-
-  const activeCount = campaigns.filter(c => c.status !== 'closed').length;
-  const totalApps = myApps.length;
-  const pendingApps = myApps.filter(a => a.status === 'pending').length;
-  const closedDeals = myApps.filter(a => a.status === 'closed').length;
+  const allApps = Object.values(campaignApps).flat();
+  const activeCount = myCampaigns.filter(c => c.status !== 'closed').length;
+  const totalApps = allApps.length;
+  const pendingApps = allApps.filter(a => a.status === 'pending').length;
+  const closedDeals = allApps.filter(a => a.status === 'closed').length;
 
   document.getElementById('stats-row').innerHTML = `
     <div class="stat-card">
@@ -627,10 +633,9 @@ function renderStats() {
 }
 
 function renderCampaigns() {
-  const campaigns = getMyCampaigns();
   const list = document.getElementById('campaigns-list');
 
-  if (campaigns.length === 0) {
+  if (myCampaigns.length === 0) {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">◌</div>
@@ -641,8 +646,8 @@ function renderCampaigns() {
     return;
   }
 
-  list.innerHTML = campaigns.map(c => {
-    const apps = getCampaignApplications(c.id);
+  list.innerHTML = myCampaigns.map(c => {
+    const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
 
     return `
@@ -653,9 +658,9 @@ function renderCampaigns() {
             <p class="desc">${c.description}</p>
             <div class="campaign-meta">
               <span><strong>الميزانية:</strong> ${c.budget} ر.س</span>
-              <span><strong>السقف:</strong> ${c.maxBudget.toLocaleString('ar-SA')} ر.س</span>
-              <span><strong>المدة:</strong> ${c.duration}</span>
-              <span><strong>الباقة:</strong> ${c.package}</span>
+              <span><strong>السقف:</strong> ${c.max_budget.toLocaleString('ar-SA')} ر.س</span>
+              ${c.duration ? `<span><strong>المدة:</strong> ${c.duration}</span>` : ''}
+              ${c.package ? `<span><strong>الباقة:</strong> ${c.package}</span>` : ''}
             </div>
           </div>
         </div>
@@ -671,21 +676,24 @@ function renderCampaigns() {
             </button>
           </div>
           <div class="applications-detail" id="apps-${c.id}">
-            ${apps.map(a => `
-              <div class="app-row">
-                <div class="app-creator">
-                  <h4>${a.creatorName}</h4>
-                  <div class="meta">
-                    <span>${a.creatorHandle || ''}</span>
-                    <span>${a.creatorFollowers ? (a.creatorFollowers / 1000).toFixed(0) + 'K متابع' : ''}</span>
-                    <span>${a.creatorPlatform || ''}</span>
+            ${apps.map(a => {
+              const creator = a.users || {};
+              return `
+                <div class="app-row">
+                  <div class="app-creator">
+                    <h4>${creator.name || 'مؤثرة'}</h4>
+                    <div class="meta">
+                      <span>${creator.handle || ''}</span>
+                      <span>${creator.followers ? (creator.followers / 1000).toFixed(0) + 'K متابع' : ''}</span>
+                      <span>${creator.platform || ''}</span>
+                    </div>
+                    ${a.note ? `<div style="font-size:13px; color:var(--ink-soft); margin-top:6px">"${a.note}"</div>` : ''}
                   </div>
-                  ${a.note ? `<div style="font-size:13px; color:var(--ink-soft); margin-top:6px">"${a.note}"</div>` : ''}
+                  <div class="app-price">${a.price.toLocaleString('ar-SA')} ر.س</div>
+                  <button class="btn-view" onclick="startNegotiation('${a.id}')">بدء التفاوض</button>
                 </div>
-                <div class="app-price">${a.price.toLocaleString('ar-SA')} ر.س</div>
-                <button class="btn-view" onclick="startNegotiation('${a.id}')">بدء التفاوض</button>
-              </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         ` : `
           <div class="applications-summary">
@@ -716,43 +724,47 @@ function closeModal() {
   document.getElementById('campaign-modal').classList.remove('show');
 }
 
-function submitCampaign(event) {
+async function submitCampaign(event) {
   event.preventDefault();
   const form = event.target;
-  const formData = new FormData(form);
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const original = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'جاري النشر...';
 
+  const fd = new FormData(form);
+  const industry = fd.get('industry');
   const campaign = {
-    id: 'c_' + Date.now(),
-    title: formData.get('title'),
-    description: formData.get('description'),
-    brand: currentUser.company_name,
-    brandId: currentUser.id,
-    brandIndustry: formData.get('industry'),
-    budget: formData.get('budget'),
-    maxBudget: parseInt(formData.get('maxBudget')),
-    duration: formData.get('duration'),
-    package: formData.get('package'),
-    requirements: formData.get('requirements'),
-    tags: [formData.get('industry')],
-    status: 'active',
-    createdAt: new Date().toISOString()
+    brand_id: currentUser.id,
+    title: fd.get('title'),
+    description: fd.get('description'),
+    brand_industry: industry,
+    budget: fd.get('budget'),
+    max_budget: parseInt(fd.get('maxBudget')),
+    duration: fd.get('duration'),
+    package: fd.get('package'),
+    requirements: fd.get('requirements') || null,
+    tags: [industry],
+    status: 'active'
   };
 
-  const all = JSON.parse(localStorage.getItem('simbl_campaigns') || '[]');
-  all.push(campaign);
-  localStorage.setItem('simbl_campaigns', JSON.stringify(all));
-
-  closeModal();
-  form.reset();
-  renderStats();
-  renderCampaigns();
-
-  setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرات المسجلات الآن.'), 100);
+  try {
+    await dbCreateCampaign(campaign);
+    closeModal();
+    form.reset();
+    await loadData();
+    setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرات الآن.'), 100);
+  } catch (err) {
+    console.error(err);
+    submitBtn.disabled = false;
+    submitBtn.textContent = original;
+    alert('حصل خطأ أثناء نشر الحملة. حاول مرة أخرى.');
+  }
 }
 
 function logout() {
   if (confirm('متأكد من تسجيل الخروج؟')) {
-    localStorage.removeItem('simbl_current_user');
+    clearCurrentUser();
     window.location.href = '/';
   }
 }
