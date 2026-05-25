@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل دخول - سيمبل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --cream: #F7F3EC;
+  --cream-darker: #EFE9DD;
+  --ink: #1A1714;
+  --ink-soft: #3D3833;
+  --ink-muted: #6B645B;
+  --ink-faint: #A8A095;
+  --accent: #D4523A;
+  --accent-soft: #E8917E;
+  --olive: #5B6042;
+  --gold: #B8915E;
+  --line: rgba(26, 23, 20, 0.1);
+  --line-strong: rgba(26, 23, 20, 0.2);
+  --font-display: 'Reem Kufi', sans-serif;
+  --font-serif: 'Noto Naskh Arabic', serif;
+  --font-body: 'Tajawal', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; width: 100%; position: relative; z-index: 2; }
+
+.nav {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.logo-mark {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  position: relative;
+}
+.logo-mark::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  inset-inline-end: -8px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.back-link {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 14px;
+}
+.back-link:hover { color: var(--accent); }
+
+.main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.login-card {
+  background: white;
+  border-radius: 24px;
+  padding: 48px;
+  max-width: 480px;
+  width: 100%;
+  border: 1px solid var(--line);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+.eyebrow::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--accent);
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+h1 .italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--accent);
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--ink-soft);
+  margin-bottom: 32px;
+}
+
+.field { margin-bottom: 20px; }
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  background: white;
+  color: var(--ink);
+  transition: all 0.2s;
+}
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(212, 82, 58, 0.1);
+}
+input::placeholder { color: var(--ink-faint); }
+
+.btn-submit {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+.btn-submit:hover {
+  background: var(--accent);
+  transform: translateY(-1px);
+}
+.btn-submit:disabled {
+  background: var(--ink-faint);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.error-box {
+  display: none;
+  padding: 14px 16px;
+  background: rgba(212, 82, 58, 0.08);
+  border: 1px solid rgba(212, 82, 58, 0.2);
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+.error-box.show { display: block; }
+.error-box a {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.bottom-link {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+.bottom-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.info-note {
+  font-size: 13px;
+  color: var(--ink-muted);
+  background: var(--cream-darker);
+  padding: 14px 16px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+@media (max-width: 540px) {
+  .login-card { padding: 32px 24px; }
+  h1 { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo">
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <a href="/" class="back-link">← العودة للرئيسية</a>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="login-card">
+    <div class="eyebrow">تسجيل دخول</div>
+    <h1>أهلاً بعودتك <span class="italic">إلى سيمبل</span></h1>
+    <p class="subtitle">أدخل بريدك الإلكتروني للدخول إلى حسابك.</p>
+
+    <div class="info-note">
+      🔐 حالياً نستخدم تسجيل دخول مبسط بالبريد الإلكتروني فقط. سيتم إضافة كلمات السر قريباً.
+    </div>
+
+    <div class="error-box" id="error-box"></div>
+
+    <form onsubmit="handleLogin(event)">
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="email-input" required placeholder="example@email.com" autocomplete="email">
+      </div>
+
+      <button type="submit" class="btn-submit" id="submit-btn">دخول</button>
+    </form>
+
+    <p class="bottom-link">ما عندك حساب بعد؟ <a href="/signup.html">سجل الآن</a></p>
+  </div>
+</main>
+
+<script src="supabase-config.js"></script>
+<script>
+async function handleLogin(event) {
+  event.preventDefault();
+  const email = document.getElementById('email-input').value.trim().toLowerCase();
+  const submitBtn = document.getElementById('submit-btn');
+  const errorBox = document.getElementById('error-box');
+
+  errorBox.classList.remove('show');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'جاري التحقق...';
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      errorBox.innerHTML = 'لا يوجد حساب بهذا البريد الإلكتروني. <a href="/signup.html">سجل حساب جديد</a>';
+      errorBox.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'دخول';
+      return;
+    }
+
+    saveCurrentUser(data);
+
+    if (data.role === 'creator') {
+      window.location.href = '/creator.html';
+    } else if (data.role === 'brand') {
+      window.location.href = '/brand.html';
+    } else {
+      throw new Error('نوع الحساب غير معروف');
+    }
+  } catch (err) {
+    console.error(err);
+    errorBox.textContent = 'حصل خطأ. حاول مرة أخرى.';
+    errorBox.classList.add('show');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'دخول';
+  }
+}
+</script>
+
+</body>
+</html>
