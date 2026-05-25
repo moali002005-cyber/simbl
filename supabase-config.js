@@ -1,17 +1,15 @@
-// إعدادات الاتصال بـ Supabase
-// هذا الملف يحتوي على رابط ومفتاح قاعدة البيانات
-// المفتاح "anon" آمن للاستخدام في المتصفح (محمي بـ Row Level Security)
-
+// إعدادات Supabase لسيمبل
 const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkenp6YXNieXp1Z3hvZ2Jnd3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDI5NjMsImV4cCI6MjA5NTI3ODk2M30.aS9lOVt7VyfwTV7bmsxxDUanWfs5v-TMBlGbwcDNomM';
 
-// إنشاء عميل Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!window.supabase) {
+  console.error('Supabase library not loaded!');
+}
 
-// دوال مساعدة موحدة
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function dbSignup(userData) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('users')
     .insert([userData])
     .select()
@@ -21,7 +19,7 @@ async function dbSignup(userData) {
 }
 
 async function dbGetCampaigns() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('campaigns')
     .select('*, users!campaigns_brand_id_fkey(company_name)')
     .eq('status', 'active')
@@ -35,7 +33,7 @@ async function dbGetCampaigns() {
 }
 
 async function dbGetMyCampaigns(brandId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('campaigns')
     .select('*')
     .eq('brand_id', brandId)
@@ -45,7 +43,7 @@ async function dbGetMyCampaigns(brandId) {
 }
 
 async function dbCreateCampaign(campaignData) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('campaigns')
     .insert([campaignData])
     .select()
@@ -55,7 +53,7 @@ async function dbCreateCampaign(campaignData) {
 }
 
 async function dbApply(applicationData) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('applications')
     .insert([applicationData])
     .select()
@@ -65,7 +63,7 @@ async function dbApply(applicationData) {
 }
 
 async function dbGetMyApplications(creatorId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('applications')
     .select('*, campaigns(title, users!campaigns_brand_id_fkey(company_name))')
     .eq('creator_id', creatorId)
@@ -75,7 +73,7 @@ async function dbGetMyApplications(creatorId) {
 }
 
 async function dbGetCampaignApplications(campaignId) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('applications')
     .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category)')
     .eq('campaign_id', campaignId)
