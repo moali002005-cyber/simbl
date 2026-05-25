@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل في سيمبل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F7F3EC;
+  --cream-darker: #EFE9DD;
+  --ink: #1A1714;
+  --ink-soft: #3D3833;
+  --ink-muted: #6B645B;
+  --ink-faint: #A8A095;
+  --accent: #D4523A;
+  --accent-soft: #E8917E;
+  --olive: #5B6042;
+  --gold: #B8915E;
+  --line: rgba(26, 23, 20, 0.1);
+  --line-strong: rgba(26, 23, 20, 0.2);
+  --success: #5B6042;
+  --font-display: 'Reem Kufi', sans-serif;
+  --font-serif: 'Noto Naskh Arabic', serif;
+  --font-body: 'Tajawal', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 2; }
+
+.nav {
+  padding: 28px 0;
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.logo-mark {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  position: relative;
+}
+.logo-mark::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  inset-inline-end: -8px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.back-link {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+.back-link:hover { color: var(--accent); }
+
+.signup-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 80px 32px 60px;
+  position: relative;
+  z-index: 2;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.eyebrow::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--accent);
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 600;
+  letter-spacing: -1.5px;
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+h1 .italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--accent);
+}
+
+.subtitle {
+  font-size: 18px;
+  color: var(--ink-soft);
+  margin-bottom: 60px;
+  max-width: 540px;
+}
+
+.role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.role-card {
+  background: white;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  padding: 40px 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.role-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+}
+.role-card.selected {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, white 0%, #FCEDE8 100%);
+}
+.role-card .check {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 16px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+.role-card.selected .check { display: flex; }
+
+.role-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--cream-darker);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.role-card h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.role-card p {
+  font-size: 14px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.form {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  border: 1px solid var(--line);
+  display: none;
+}
+.form.active { display: block; }
+
+.form-section-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 24px;
+  color: var(--ink);
+}
+
+.field {
+  margin-bottom: 22px;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  background: white;
+  color: var(--ink);
+  transition: all 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(212, 82, 58, 0.1);
+}
+input::placeholder, textarea::placeholder { color: var(--ink-faint); }
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 24px 0;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+.checkbox-row label {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0;
+  cursor: pointer;
+  font-weight: 400;
+}
+.checkbox-row a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.btn-submit {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+.btn-submit:hover {
+  background: var(--accent);
+  transform: translateY(-1px);
+}
+.btn-submit:disabled {
+  background: var(--ink-faint);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bottom-link {
+  text-align: center;
+  margin-top: 32px;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+.bottom-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.success-screen {
+  display: none;
+  text-align: center;
+  padding: 60px 32px;
+}
+.success-screen.active { display: block; }
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 36px;
+}
+.success-screen h2 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.success-screen p {
+  font-size: 16px;
+  color: var(--ink-soft);
+  margin-bottom: 32px;
+}
+
+@media (max-width: 640px) {
+  .signup-wrap { padding: 40px 20px; }
+  .role-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+  .form { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo">
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <a href="/" class="back-link">← العودة للرئيسية</a>
+  </div>
+</nav>
+
+<main class="signup-wrap">
+  <div id="role-selection">
+    <div class="eyebrow">إنشاء حساب</div>
+    <h1>أهلاً بك في <span class="italic">سيمبل</span></h1>
+    <p class="subtitle">اختر نوع حسابك للبدء. التسجيل مجاني ولا يستغرق أكثر من دقيقتين.</p>
+
+    <div class="role-grid">
+      <div class="role-card" onclick="selectRole('creator')" id="card-creator">
+        <div class="check">✓</div>
+        <div class="role-icon">م</div>
+        <h3>مؤثرة</h3>
+        <p>أنشئ محتوى وأبحث عن تعاونات. سجلي عرضك على الحملات التي تناسبك.</p>
+      </div>
+      <div class="role-card" onclick="selectRole('brand')" id="card-brand">
+        <div class="check">✓</div>
+        <div class="role-icon">ش</div>
+        <h3>شركة</h3>
+        <p>أنشر حملات التسويق واستقبل عروض المؤثرات في مكان واحد.</p>
+      </div>
+    </div>
+
+    <form class="form" id="form-creator" onsubmit="submitForm(event, 'creator')">
+      <div class="form-section-title">بيانات المؤثرة</div>
+
+      <div class="field">
+        <label>الاسم الكامل</label>
+        <input type="text" name="name" required placeholder="مثل: ليان عبدالله">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>المنصة الأساسية</label>
+          <select name="platform" required>
+            <option value="">اختاري المنصة</option>
+            <option value="tiktok">تيك توك</option>
+            <option value="instagram">انستغرام</option>
+            <option value="snapchat">سناب شات</option>
+            <option value="youtube">يوتيوب</option>
+            <option value="twitter">اكس (تويتر)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>اسم الحساب (اليوزر)</label>
+          <input type="text" name="handle" required placeholder="@username">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>عدد المتابعين</label>
+          <input type="number" name="followers" required placeholder="مثال: 100000">
+          <div class="hint">أدخلي الرقم بدون فواصل (مثل 100000 لـ 100 ألف)</div>
+        </div>
+        <div class="field">
+          <label>التصنيف</label>
+          <select name="category" required>
+            <option value="">اختاري التصنيف</option>
+            <option value="lifestyle">لايف ستايل</option>
+            <option value="beauty">جمال وعناية</option>
+            <option value="fashion">موضة</option>
+            <option value="food">طعام</option>
+            <option value="travel">سفر</option>
+            <option value="fitness">رياضة</option>
+            <option value="tech">تقنية</option>
+            <option value="parenting">أمومة وأطفال</option>
+            <option value="general">عام</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>السعر المرجعي (ر.س)</label>
+        <input type="number" name="price" required placeholder="مثال: 800">
+        <div class="hint">هذا سعرك التقريبي. تقدرين تتفاوضين على كل حملة بشكل منفصل.</div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>رقم الواتساب</label>
+          <input type="text" name="whatsapp" required placeholder="966501234567">
+        </div>
+        <div class="field">
+          <label>البريد الإلكتروني</label>
+          <input type="email" name="email" required placeholder="example@email.com">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>نبذة عنك (اختياري)</label>
+        <textarea name="bio" placeholder="عرفي عن نفسك ونوع المحتوى الذي تقدمينه..."></textarea>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="creator-terms" required>
+        <label for="creator-terms">أوافق على <a href="#">الشروط والأحكام</a> و<a href="#">سياسة الخصوصية</a> الخاصة بسيمبل</label>
+      </div>
+
+      <button type="submit" class="btn-submit">إنشاء حسابي</button>
+    </form>
+
+    <form class="form" id="form-brand" onsubmit="submitForm(event, 'brand')">
+      <div class="form-section-title">بيانات الشركة</div>
+
+      <div class="field">
+        <label>اسم الشركة</label>
+        <input type="text" name="company_name" required placeholder="مثل: ليل الرياض للعطور">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>القطاع</label>
+          <select name="industry" required>
+            <option value="">اختر القطاع</option>
+            <option value="perfumes">عطور</option>
+            <option value="fashion">أزياء</option>
+            <option value="beauty">جمال وعناية</option>
+            <option value="food">طعام ومشروبات</option>
+            <option value="tech">تقنية</option>
+            <option value="retail">تجزئة</option>
+            <option value="services">خدمات</option>
+            <option value="other">أخرى</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>حجم الشركة</label>
+          <select name="size" required>
+            <option value="">اختر الحجم</option>
+            <option value="startup">ناشئة (أقل من 10 موظفين)</option>
+            <option value="small">صغيرة (10-50)</option>
+            <option value="medium">متوسطة (50-200)</option>
+            <option value="large">كبيرة (200+)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title" style="margin-top:32px">بيانات المسؤول</div>
+
+      <div class="field">
+        <label>اسم المسؤول</label>
+        <input type="text" name="contact_name" required placeholder="اسمك الكامل">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>المنصب</label>
+          <input type="text" name="position" required placeholder="مثل: مدير التسويق">
+        </div>
+        <div class="field">
+          <label>رقم الجوال</label>
+          <input type="text" name="phone" required placeholder="966501234567">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <input type="email" name="email" required placeholder="example@company.com">
+      </div>
+
+      <div class="field">
+        <label>الموقع الإلكتروني (اختياري)</label>
+        <input type="text" name="website" placeholder="https://example.com">
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="brand-terms" required>
+        <label for="brand-terms">أوافق على <a href="#">الشروط والأحكام</a> و<a href="#">سياسة الخصوصية</a> الخاصة بسيمبل</label>
+      </div>
+
+      <button type="submit" class="btn-submit">إنشاء حساب الشركة</button>
+    </form>
+
+    <p class="bottom-link">عندك حساب بالفعل؟ <a href="#">سجل دخولك</a></p>
+  </div>
+
+  <div class="success-screen" id="success-creator">
+    <div class="success-icon">✓</div>
+    <h2>مرحباً بك في سيمبل!</h2>
+    <p>تم إنشاء حسابك بنجاح. اضغطي على الزر للدخول على لوحتك واستعراض الحملات المتاحة.</p>
+    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('creator')">دخول لوحة المؤثرة</button>
+  </div>
+
+  <div class="success-screen" id="success-brand">
+    <div class="success-icon">✓</div>
+    <h2>أهلاً بكم في سيمبل</h2>
+    <p>تم إنشاء حساب شركتكم بنجاح. ابدؤوا بإنشاء أول حملة لاستقطاب المؤثرات المناسبة.</p>
+    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('brand')">دخول لوحة الشركة</button>
+  </div>
+</main>
+
+<script>
+function selectRole(role) {
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-' + role).classList.add('selected');
+
+  document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
+  document.getElementById('form-' + role).classList.add('active');
+
+  setTimeout(() => {
+    document.getElementById('form-' + role).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+function submitForm(event, role) {
+  event.preventDefault();
+  const form = event.target;
+  const data = {};
+  new FormData(form).forEach((value, key) => { data[key] = value; });
+  data.role = role;
+  data.createdAt = new Date().toISOString();
+  data.id = 'u_' + Date.now();
+
+  const users = JSON.parse(localStorage.getItem('simbl_users') || '[]');
+  users.push(data);
+  localStorage.setItem('simbl_users', JSON.stringify(users));
+
+  localStorage.setItem('simbl_current_user', JSON.stringify(data));
+
+  document.getElementById('role-selection').style.display = 'none';
+  document.getElementById('success-' + role).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goToDashboard(role) {
+  if (role === 'creator') {
+    window.location.href = '/creator.html';
+  } else {
+    window.location.href = '/brand.html';
+  }
+}
+</script>
+
+</body>
+</html>

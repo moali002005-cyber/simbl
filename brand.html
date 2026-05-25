@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الشركة - سيمبل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F7F3EC;
+  --cream-darker: #EFE9DD;
+  --ink: #1A1714;
+  --ink-soft: #3D3833;
+  --ink-muted: #6B645B;
+  --ink-faint: #A8A095;
+  --accent: #D4523A;
+  --accent-soft: #E8917E;
+  --olive: #5B6042;
+  --gold: #B8915E;
+  --line: rgba(26, 23, 20, 0.1);
+  --line-strong: rgba(26, 23, 20, 0.2);
+  --success: #5B6042;
+  --font-display: 'Reem Kufi', sans-serif;
+  --font-serif: 'Noto Naskh Arabic', serif;
+  --font-body: 'Tajawal', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+
+.nav {
+  background: var(--cream);
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.logo-mark {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  position: relative;
+}
+.logo-mark::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  inset-inline-end: -8px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 8px 14px 8px 8px;
+  border-radius: 100px;
+  border: 1px solid var(--line);
+}
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+}
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-muted);
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-logout:hover { color: var(--accent); border-color: var(--accent); }
+
+.page-header {
+  padding: 48px 0 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.welcome {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+}
+.welcome .italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--accent);
+}
+.welcome-sub {
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+
+.btn-new {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-new:hover {
+  background: var(--ink);
+  transform: translateY(-1px);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.stat-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+}
+.stat-label {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  letter-spacing: -0.5px;
+}
+
+.campaigns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.campaign-row {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.2s;
+}
+.campaign-row:hover { border-color: var(--ink-soft); }
+.campaign-row .top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+.campaign-row h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+.campaign-row .desc {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.campaign-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.campaign-meta strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.applications-summary {
+  background: var(--cream-darker);
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.applications-summary .text {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.applications-summary strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-view {
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-view:hover { background: var(--accent); }
+
+.empty {
+  background: white;
+  border: 1px dashed var(--line-strong);
+  border-radius: 20px;
+  padding: 60px 32px;
+  text-align: center;
+  color: var(--ink-muted);
+}
+.empty .icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+.empty h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.empty p { margin-bottom: 24px; }
+
+.applications-detail {
+  display: none;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 16px;
+}
+.applications-detail.show { display: block; }
+
+.app-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.app-row:last-child { border-bottom: none; }
+.app-creator h4 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.app-creator .meta {
+  font-size: 12px;
+  color: var(--ink-muted);
+  display: flex;
+  gap: 12px;
+}
+.app-price {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 23, 20, 0.5);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-backdrop.show { display: flex; }
+.modal {
+  background: white;
+  border-radius: 24px;
+  padding: 36px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.modal .sub {
+  color: var(--ink-muted);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+.field { margin-bottom: 20px; }
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: white;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+textarea { resize: vertical; min-height: 80px; }
+.hint {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.btn-secondary {
+  flex: 1;
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-primary {
+  flex: 1;
+  padding: 12px;
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--accent); }
+
+@media (max-width: 740px) {
+  .container { padding: 0 16px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .modal { padding: 24px; }
+  .field-row { grid-template-columns: 1fr; }
+  .welcome { font-size: 26px; }
+  .app-row { grid-template-columns: 1fr; gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo">
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <div class="user-menu">
+      <div class="user-pill">
+        <div class="user-avatar" id="user-initial">ش</div>
+        <span class="user-name" id="user-name">شركة</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">خروج</button>
+    </div>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="welcome">أهلاً <span class="italic" id="welcome-name">بكم</span></h1>
+      <p class="welcome-sub">إدارة حملاتكم واستقبال عروض المؤثرات</p>
+    </div>
+    <button class="btn-new" onclick="openCampaignModal()">
+      <span>+</span>
+      <span>حملة جديدة</span>
+    </button>
+  </div>
+
+  <div class="stats" id="stats-row"></div>
+
+  <h2 class="section-title">حملاتنا</h2>
+  <div class="campaigns-list" id="campaigns-list"></div>
+</main>
+
+<div class="modal-backdrop" id="campaign-modal">
+  <div class="modal">
+    <h3>إنشاء حملة جديدة</h3>
+    <p class="sub">عبئي تفاصيل الحملة وراح تظهر للمؤثرات المسجلات في سيمبل.</p>
+
+    <form onsubmit="submitCampaign(event)">
+      <div class="field">
+        <label>عنوان الحملة</label>
+        <input type="text" name="title" required placeholder="مثل: إطلاق عطر العيد الجديد">
+      </div>
+
+      <div class="field">
+        <label>وصف الحملة</label>
+        <textarea name="description" required rows="3" placeholder="اشرح المنتج، الجمهور المستهدف، نوع المحتوى المطلوب..."></textarea>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>التصنيف</label>
+          <select name="industry" required>
+            <option value="">اختر التصنيف</option>
+            <option value="perfumes">عطور</option>
+            <option value="fashion">موضة</option>
+            <option value="beauty">جمال</option>
+            <option value="food">طعام</option>
+            <option value="tech">تقنية</option>
+            <option value="other">أخرى</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>الميزانية (نطاق)</label>
+          <input type="text" name="budget" required placeholder="مثل: 800 - 1500">
+          <div class="hint">بالريال السعودي</div>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>المدة</label>
+          <input type="text" name="duration" required placeholder="مثل: 30 يوم">
+        </div>
+        <div class="field">
+          <label>الباقة المطلوبة</label>
+          <input type="text" name="package" required placeholder="مثل: ريل + 3 ستوريز">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>متطلبات المؤثرة</label>
+        <input type="text" name="requirements" placeholder="مثل: 50K+ متابع، مقيمة بالرياض">
+      </div>
+
+      <div class="field">
+        <label>الحد الأقصى للسعر (سقف الميزانية)</label>
+        <input type="number" name="maxBudget" required placeholder="مثل: 2000">
+        <div class="hint">السقف اللي الوكيل الذكي ما يتجاوزه عند التفاوض</div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">إلغاء</button>
+        <button type="submit" class="btn-primary">نشر الحملة</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+
+function init() {
+  const userJson = localStorage.getItem('simbl_current_user');
+  if (!userJson) {
+    alert('يرجى تسجيل الدخول أولاً');
+    window.location.href = '/signup.html';
+    return;
+  }
+  currentUser = JSON.parse(userJson);
+
+  if (currentUser.role !== 'brand') {
+    alert('هذه الصفحة مخصصة للشركات. سيتم تحويلك للوحة المؤثرة.');
+    window.location.href = '/creator.html';
+    return;
+  }
+
+  const companyName = currentUser.company_name || 'الشركة';
+  document.getElementById('user-name').textContent = companyName;
+  document.getElementById('user-initial').textContent = companyName[0];
+  document.getElementById('welcome-name').textContent = companyName;
+
+  renderStats();
+  renderCampaigns();
+}
+
+function getMyCampaigns() {
+  const all = JSON.parse(localStorage.getItem('simbl_campaigns') || '[]');
+  return all.filter(c => c.brandId === currentUser.id);
+}
+
+function getCampaignApplications(campaignId) {
+  const all = JSON.parse(localStorage.getItem('simbl_applications') || '[]');
+  return all.filter(a => a.campaignId === campaignId);
+}
+
+function renderStats() {
+  const campaigns = getMyCampaigns();
+  const allApps = JSON.parse(localStorage.getItem('simbl_applications') || '[]');
+  const myCampaignIds = campaigns.map(c => c.id);
+  const myApps = allApps.filter(a => myCampaignIds.includes(a.campaignId));
+
+  const activeCount = campaigns.filter(c => c.status !== 'closed').length;
+  const totalApps = myApps.length;
+  const pendingApps = myApps.filter(a => a.status === 'pending').length;
+  const closedDeals = myApps.filter(a => a.status === 'closed').length;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">حملات نشطة</div>
+      <div class="stat-value">${activeCount}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">إجمالي العروض</div>
+      <div class="stat-value">${totalApps}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">قيد المراجعة</div>
+      <div class="stat-value" style="color: var(--gold)">${pendingApps}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">صفقات مقفلة</div>
+      <div class="stat-value" style="color: var(--olive)">${closedDeals}</div>
+    </div>
+  `;
+}
+
+function renderCampaigns() {
+  const campaigns = getMyCampaigns();
+  const list = document.getElementById('campaigns-list');
+
+  if (campaigns.length === 0) {
+    list.innerHTML = `
+      <div class="empty">
+        <div class="icon">◌</div>
+        <h3>لم تنشئ أي حملة بعد</h3>
+        <p>ابدأ بنشر أول حملة وستظهر فوراً للمؤثرات</p>
+        <button class="btn-new" onclick="openCampaignModal()">+ إنشاء حملة جديدة</button>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = campaigns.map(c => {
+    const apps = getCampaignApplications(c.id);
+    const pendingApps = apps.filter(a => a.status === 'pending');
+
+    return `
+      <div class="campaign-row">
+        <div class="top">
+          <div>
+            <h3>${c.title}</h3>
+            <p class="desc">${c.description}</p>
+            <div class="campaign-meta">
+              <span><strong>الميزانية:</strong> ${c.budget} ر.س</span>
+              <span><strong>السقف:</strong> ${c.maxBudget.toLocaleString('ar-SA')} ر.س</span>
+              <span><strong>المدة:</strong> ${c.duration}</span>
+              <span><strong>الباقة:</strong> ${c.package}</span>
+            </div>
+          </div>
+        </div>
+
+        ${apps.length > 0 ? `
+          <div class="applications-summary">
+            <div class="text">
+              تم استلام <strong>${apps.length}</strong> ${apps.length === 1 ? 'عرض' : 'عروض'}
+              ${pendingApps.length > 0 ? `· <strong>${pendingApps.length}</strong> قيد المراجعة` : ''}
+            </div>
+            <button class="btn-view" onclick="toggleApplications('${c.id}')">
+              <span id="toggle-text-${c.id}">عرض التقديمات</span>
+            </button>
+          </div>
+          <div class="applications-detail" id="apps-${c.id}">
+            ${apps.map(a => `
+              <div class="app-row">
+                <div class="app-creator">
+                  <h4>${a.creatorName}</h4>
+                  <div class="meta">
+                    <span>${a.creatorHandle || ''}</span>
+                    <span>${a.creatorFollowers ? (a.creatorFollowers / 1000).toFixed(0) + 'K متابع' : ''}</span>
+                    <span>${a.creatorPlatform || ''}</span>
+                  </div>
+                  ${a.note ? `<div style="font-size:13px; color:var(--ink-soft); margin-top:6px">"${a.note}"</div>` : ''}
+                </div>
+                <div class="app-price">${a.price.toLocaleString('ar-SA')} ر.س</div>
+                <button class="btn-view" onclick="startNegotiation('${a.id}')">بدء التفاوض</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div class="applications-summary">
+            <div class="text">لم يتم تلقي أي عروض بعد</div>
+          </div>
+        `}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleApplications(campaignId) {
+  const detail = document.getElementById('apps-' + campaignId);
+  const toggleText = document.getElementById('toggle-text-' + campaignId);
+  detail.classList.toggle('show');
+  toggleText.textContent = detail.classList.contains('show') ? 'إخفاء التقديمات' : 'عرض التقديمات';
+}
+
+function startNegotiation(applicationId) {
+  alert('سيتم فتح غرفة التفاوض في الإصدار القادم.\n\nالوكيل الذكي سيبدأ التفاوض تلقائياً مع المؤثرة عند تفعيل هذه الميزة.');
+}
+
+function openCampaignModal() {
+  document.getElementById('campaign-modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('campaign-modal').classList.remove('show');
+}
+
+function submitCampaign(event) {
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+
+  const campaign = {
+    id: 'c_' + Date.now(),
+    title: formData.get('title'),
+    description: formData.get('description'),
+    brand: currentUser.company_name,
+    brandId: currentUser.id,
+    brandIndustry: formData.get('industry'),
+    budget: formData.get('budget'),
+    maxBudget: parseInt(formData.get('maxBudget')),
+    duration: formData.get('duration'),
+    package: formData.get('package'),
+    requirements: formData.get('requirements'),
+    tags: [formData.get('industry')],
+    status: 'active',
+    createdAt: new Date().toISOString()
+  };
+
+  const all = JSON.parse(localStorage.getItem('simbl_campaigns') || '[]');
+  all.push(campaign);
+  localStorage.setItem('simbl_campaigns', JSON.stringify(all));
+
+  closeModal();
+  form.reset();
+  renderStats();
+  renderCampaigns();
+
+  setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرات المسجلات الآن.'), 100);
+}
+
+function logout() {
+  if (confirm('متأكد من تسجيل الخروج؟')) {
+    localStorage.removeItem('simbl_current_user');
+    window.location.href = '/';
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
