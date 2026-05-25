@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سيمبل — منصة التعاون مع المؤثرات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F7F3EC;
+  --cream-darker: #EFE9DD;
+  --ink: #1A1714;
+  --ink-soft: #3D3833;
+  --ink-muted: #6B645B;
+  --ink-faint: #A8A095;
+  --accent: #D4523A;
+  --accent-soft: #E8917E;
+  --olive: #5B6042;
+  --gold: #B8915E;
+  --line: rgba(26, 23, 20, 0.1);
+  --line-strong: rgba(26, 23, 20, 0.2);
+  --font-display: 'Reem Kufi', sans-serif;
+  --font-serif: 'Noto Naskh Arabic', serif;
+  --font-body: 'Tajawal', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* Grain texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 2; }
+
+/* ============ NAVIGATION ============ */
+.nav {
+  padding: 28px 0;
+  position: sticky;
+  top: 0;
+  background: rgba(247, 243, 236, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 50;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.nav.scrolled { border-bottom-color: var(--line); }
+
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.logo-mark {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  position: relative;
+}
+.logo-mark::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  inset-inline-end: -8px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.nav-links {
+  display: flex;
+  gap: 36px;
+  align-items: center;
+}
+.nav-links a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--accent); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--cream);
+}
+.btn-primary:hover { background: var(--accent); transform: translateY(-1px); }
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+}
+.btn-ghost:hover { border-color: var(--ink); }
+
+/* ============ HERO ============ */
+.hero {
+  padding: 100px 0 140px;
+  position: relative;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 32px;
+}
+.hero-eyebrow::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 7vw, 92px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin-bottom: 32px;
+  color: var(--ink);
+}
+.hero h1 .accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+  position: relative;
+}
+.hero h1 .underline {
+  position: relative;
+  display: inline-block;
+}
+.hero h1 .underline::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  inset-inline-start: 0;
+  width: 100%;
+  height: 14px;
+  background: var(--accent-soft);
+  opacity: 0.35;
+  z-index: -1;
+  transform: skewY(-1deg);
+}
+
+.hero-desc {
+  font-size: 19px;
+  color: var(--ink-soft);
+  max-width: 540px;
+  margin-bottom: 44px;
+  line-height: 1.65;
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.hero-cta-lg {
+  padding: 18px 32px;
+  font-size: 15px;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 48px;
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
+}
+.stat .num {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat .label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* Hero visual */
+.hero-visual {
+  position: relative;
+  height: 560px;
+}
+
+.hero-card {
+  position: absolute;
+  background: white;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow:
+    0 1px 2px rgba(26, 23, 20, 0.04),
+    0 8px 24px rgba(26, 23, 20, 0.08),
+    0 24px 48px rgba(26, 23, 20, 0.06);
+  width: 280px;
+  animation: float 8s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(var(--rot, 0deg)); }
+  50% { transform: translateY(-12px) rotate(var(--rot, 0deg)); }
+}
+
+.hero-card.card-1 {
+  --rot: -3deg;
+  top: 20px;
+  inset-inline-end: 20px;
+  z-index: 3;
+}
+.hero-card.card-2 {
+  --rot: 4deg;
+  top: 180px;
+  inset-inline-start: 0;
+  z-index: 2;
+  animation-delay: -2s;
+}
+.hero-card.card-3 {
+  --rot: -2deg;
+  bottom: 60px;
+  inset-inline-end: 40px;
+  z-index: 1;
+  animation-delay: -4s;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--cream-darker);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.card-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--ink);
+}
+.card-meta {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+.card-body {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  padding: 12px;
+  background: var(--cream);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.card-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.tag-campaign { background: rgba(184, 145, 94, 0.15); color: var(--gold); }
+.tag-offer { background: rgba(91, 96, 66, 0.12); color: var(--olive); }
+.tag-deal { background: rgba(212, 82, 58, 0.12); color: var(--accent); }
+
+/* ============ HOW IT WORKS ============ */
+.how {
+  padding: 140px 0;
+  background: var(--cream-darker);
+  position: relative;
+}
+
+.section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.section-eyebrow::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 600;
+  letter-spacing: -1.5px;
+  margin-bottom: 24px;
+  max-width: 720px;
+  line-height: 1.15;
+}
+
+.section-sub {
+  font-size: 18px;
+  color: var(--ink-soft);
+  max-width: 580px;
+  margin-bottom: 80px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  position: relative;
+}
+.steps::before {
+  content: '';
+  position: absolute;
+  top: 38px;
+  inset-inline-start: 16.67%;
+  inset-inline-end: 16.67%;
+  height: 1px;
+  background: repeating-linear-gradient(to right, var(--line-strong) 0, var(--line-strong) 4px, transparent 4px, transparent 12px);
+  z-index: 0;
+}
+
+.step {
+  position: relative;
+  z-index: 1;
+}
+.step-num {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 28px;
+}
+.step h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+.step p {
+  font-size: 15px;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+
+/* ============ FOR WHO ============ */
+.audiences {
+  padding: 140px 0;
+}
+
+.audience-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 60px;
+}
+
+.audience-card {
+  padding: 56px 48px;
+  border-radius: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+.audience-card:hover { transform: translateY(-4px); }
+
+.audience-card.brand {
+  background: var(--ink);
+  color: var(--cream);
+}
+.audience-card.creator {
+  background: var(--accent);
+  color: var(--cream);
+}
+
+.audience-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  inset-inline-start: -20%;
+  width: 80%;
+  height: 200%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.audience-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  opacity: 0.7;
+  margin-bottom: 24px;
+}
+
+.audience-card h3 {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin-bottom: 20px;
+  line-height: 1.15;
+  position: relative;
+}
+
+.audience-card p {
+  font-size: 16px;
+  opacity: 0.85;
+  margin-bottom: 32px;
+  line-height: 1.7;
+  position: relative;
+}
+
+.audience-features {
+  list-style: none;
+  margin-bottom: 40px;
+  position: relative;
+}
+.audience-features li {
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 14px;
+  opacity: 0.9;
+  display: flex;
+  gap: 12px;
+}
+.audience-features li::before {
+  content: '←';
+  opacity: 0.6;
+}
+
+.audience-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: var(--cream);
+  color: var(--ink);
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: gap 0.2s;
+  position: relative;
+}
+.audience-card.brand .audience-cta { background: var(--cream); color: var(--ink); }
+.audience-card.creator .audience-cta { background: var(--cream); color: var(--accent); }
+.audience-cta:hover { gap: 16px; }
+
+/* ============ AGENT FEATURE ============ */
+.agent {
+  padding: 140px 0;
+  background: var(--cream-darker);
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.agent-visual {
+  background: var(--ink);
+  border-radius: 24px;
+  padding: 40px;
+  color: var(--cream);
+  position: relative;
+  overflow: hidden;
+}
+
+.agent-chat-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: slideUp 0.6s forwards;
+}
+.agent-chat-row:nth-child(1) { animation-delay: 0.2s; }
+.agent-chat-row:nth-child(2) { animation-delay: 1.2s; justify-content: flex-end; }
+.agent-chat-row:nth-child(3) { animation-delay: 2.2s; }
+.agent-chat-row:nth-child(4) { animation-delay: 3.2s; justify-content: flex-end; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-bubble {
+  padding: 14px 18px;
+  border-radius: 18px;
+  max-width: 80%;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.chat-bubble.agent {
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.creator {
+  background: var(--accent);
+  border-bottom-left-radius: 4px;
+}
+
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 4px 10px;
+  background: rgba(212, 82, 58, 0.2);
+  color: var(--accent-soft);
+  border-radius: 100px;
+  margin-bottom: 20px;
+}
+.agent-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--accent-soft);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.agent-content h2 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 4.5vw, 52px);
+  font-weight: 600;
+  letter-spacing: -1.5px;
+  line-height: 1.15;
+  margin-bottom: 24px;
+}
+.agent-content .highlight {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--accent);
+}
+
+.agent-content p {
+  font-size: 17px;
+  color: var(--ink-soft);
+  margin-bottom: 28px;
+  line-height: 1.7;
+}
+
+.agent-points {
+  list-style: none;
+}
+.agent-points li {
+  display: flex;
+  gap: 16px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+.agent-points li:last-child { border-bottom: 1px solid var(--line); }
+
+.agent-points .point-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+.agent-points .point-content strong {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+.agent-points .point-content span {
+  font-size: 14px;
+  color: var(--ink-muted);
+  font-weight: 300;
+}
+
+/* ============ FAQ ============ */
+.faq {
+  padding: 140px 0;
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.faq-item {
+  border-top: 1px solid var(--line);
+  padding: 24px 0;
+  cursor: pointer;
+}
+.faq-item:last-child { border-bottom: 1px solid var(--line); }
+
+.faq-q {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.faq-q-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--ink-muted);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.faq-item.open .faq-q-toggle {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
+  transform: rotate(45deg);
+}
+.faq-a {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  font-size: 15px;
+  color: var(--ink-soft);
+  line-height: 1.75;
+}
+.faq-item.open .faq-a {
+  max-height: 300px;
+  padding-top: 16px;
+}
+
+/* ============ CTA FINAL ============ */
+.cta-final {
+  padding: 120px 0;
+  text-align: center;
+}
+
+.cta-box {
+  background: var(--ink);
+  color: var(--cream);
+  border-radius: 32px;
+  padding: 100px 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-box::before, .cta-box::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+.cta-box::before {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(212, 82, 58, 0.25), transparent 70%);
+  top: -150px;
+  inset-inline-start: -100px;
+}
+.cta-box::after {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(184, 145, 94, 0.15), transparent 70%);
+  bottom: -100px;
+  inset-inline-end: -50px;
+}
+
+.cta-box h2 {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 600;
+  letter-spacing: -1.5px;
+  margin-bottom: 24px;
+  line-height: 1.15;
+  position: relative;
+}
+.cta-box .italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--accent-soft);
+}
+.cta-box p {
+  font-size: 18px;
+  opacity: 0.8;
+  max-width: 540px;
+  margin: 0 auto 40px;
+  line-height: 1.7;
+  position: relative;
+}
+.cta-box .cta-buttons {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.btn-cream {
+  background: var(--cream);
+  color: var(--ink);
+  padding: 18px 36px;
+  font-size: 15px;
+}
+.btn-cream:hover { background: white; }
+.btn-outline-cream {
+  background: transparent;
+  color: var(--cream);
+  border: 1px solid rgba(247, 243, 236, 0.3);
+  padding: 18px 36px;
+  font-size: 15px;
+}
+.btn-outline-cream:hover { border-color: var(--cream); }
+
+/* ============ FOOTER ============ */
+.footer {
+  padding: 60px 0 40px;
+  border-top: 1px solid var(--line);
+}
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.footer-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.footer-links {
+  display: flex;
+  gap: 28px;
+}
+.footer-links a {
+  color: var(--ink-muted);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--ink); }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 980px) {
+  .hero-grid, .agent-grid, .faq-grid { grid-template-columns: 1fr; gap: 60px; }
+  .hero-visual { height: 480px; }
+  .steps { grid-template-columns: 1fr; gap: 60px; }
+  .steps::before { display: none; }
+  .audience-grid { grid-template-columns: 1fr; }
+  .nav-links a:not(.btn) { display: none; }
+  .hero-stats { gap: 28px; }
+  .hero { padding: 60px 0 100px; }
+  .how, .audiences, .agent, .faq { padding: 100px 0; }
+  .cta-box { padding: 60px 32px; }
+}
+
+@media (max-width: 600px) {
+  .container { padding: 0 20px; }
+  .hero-visual { display: none; }
+  .hero-grid { grid-template-columns: 1fr; }
+  .audience-card { padding: 40px 28px; }
+  .audience-card h3 { font-size: 30px; }
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s, transform 0.8s;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo">
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how">كيف تشتغل</a>
+      <a href="#audiences">لمن سيمبل</a>
+      <a href="#agent">الوكيل الذكي</a>
+      <a href="#faq">أسئلة شائعة</a>
+      <a href="#" class="btn btn-ghost">تسجيل دخول</a>
+      <a href="#cta" class="btn btn-primary">انضم الآن ←</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-eyebrow">منصة التعاون الذكي</div>
+        <h1>
+          <span class="underline">تعاون</span> بين الشركات والمؤثرات،
+          <br>
+          <span class="accent">بسيط</span> وسريع.
+        </h1>
+        <p class="hero-desc">
+          سيمبل تجمع الشركات اللي تبحث عن مؤثرات، والمؤثرات اللي تبحث عن تعاونات، في مكان واحد.
+          وكيل ذكي يفاوض نيابة عن الطرفين، يقفل الاتفاق، وانتم تركزون على الإبداع.
+        </p>
+        <div class="hero-ctas">
+          <a href="#cta" class="btn btn-primary hero-cta-lg">ابدأ كمؤثرة ←</a>
+          <a href="#cta" class="btn btn-ghost hero-cta-lg">ابدأ كشركة</a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="num">٠</div>
+            <div class="label">رسوم تسجيل</div>
+          </div>
+          <div class="stat">
+            <div class="num">٢٤/٧</div>
+            <div class="label">وكيل ذكي يتفاوض</div>
+          </div>
+          <div class="stat">
+            <div class="num">دقائق</div>
+            <div class="label">من الإعلان للاتفاق</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-card card-1">
+          <div class="card-header">
+            <div class="card-avatar">ل ع</div>
+            <div>
+              <div class="card-name">ليان عبدالله</div>
+              <div class="card-meta">٥٢٦K · تيك توك</div>
+            </div>
+          </div>
+          <div class="card-body">قدمت على حملة "باقة العيد"، عرضي ٨٠٠ ر.س مع ريل + ستوريين.</div>
+          <span class="card-tag tag-offer">عرض مقدّم</span>
+        </div>
+
+        <div class="hero-card card-2">
+          <div class="card-header">
+            <div class="card-avatar">ل ر</div>
+            <div>
+              <div class="card-name">ليل الرياض</div>
+              <div class="card-meta">عطور · شركة</div>
+            </div>
+          </div>
+          <div class="card-body">حملة "باقة العيد" مفتوحة الآن. سقف ١٥٠٠ ر.س للمؤثرة.</div>
+          <span class="card-tag tag-campaign">حملة نشطة</span>
+        </div>
+
+        <div class="hero-card card-3">
+          <div class="card-header">
+            <div class="card-avatar">✓</div>
+            <div>
+              <div class="card-name">اتفاق مقفل</div>
+              <div class="card-meta">قبل ٣ دقائق</div>
+            </div>
+          </div>
+          <div class="card-body">ليان × ليل الرياض. ١,٢٠٠ ر.س. تسليم خلال أسبوع.</div>
+          <span class="card-tag tag-deal">صفقة مكتملة</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="container">
+    <div class="section-eyebrow">كيف تشتغل سيمبل</div>
+    <h2 class="section-title">من التسجيل لإقفال الاتفاق <br>في ثلاث خطوات.</h2>
+    <p class="section-sub">
+      لا تعقيدات، لا فلوس مقدماً، لا مكالمات لا تنتهي.
+      سجّل، اعرض، اتفق.
+    </p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">١</div>
+        <h3>سجّل في دقيقة</h3>
+        <p>أنشئ حسابك كمؤثرة أو كشركة. اكتب بياناتك الأساسية. لا توثيقات معقدة، لا انتظار طويل.</p>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-num">٢</div>
+        <h3>أعلن أو قدّم</h3>
+        <p>الشركة تنشر حملتها بشروطها وميزانيتها. المؤثرة تتصفح الحملات المناسبة لها وتقدم عرضها.</p>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-num">٣</div>
+        <h3>الوكيل يقفل لك</h3>
+        <p>وكيل ذكي يفاوض بين الطرفين، يطرح بدائل، ويوصلكم لاتفاق مرضي. أنت تراجع وتوافق.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="audiences" id="audiences">
+  <div class="container">
+    <div class="section-eyebrow">لمن سيمبل</div>
+    <h2 class="section-title">نخدم طرفين، <br>بنفس الاهتمام.</h2>
+
+    <div class="audience-grid">
+      <div class="audience-card brand">
+        <div class="audience-label">للشركات</div>
+        <h3>أوجد المؤثرة المثالية لحملتك، بلا مطاردات.</h3>
+        <p>انشر حملتك مرة واحدة، وخلي المؤثرات يقدمون عليك. اختر اللي يناسبك، والوكيل يكمل التفاوض.</p>
+        <ul class="audience-features">
+          <li>نشر حملات بشروط واضحة</li>
+          <li>تقديمات منظمة في مكان واحد</li>
+          <li>تفاوض تلقائي ضمن ميزانيتك</li>
+          <li>تقارير وأرشيف للحملات</li>
+        </ul>
+        <a href="#cta" class="audience-cta">سجّل شركتك ←</a>
+      </div>
+
+      <div class="audience-card creator">
+        <div class="audience-label">للمؤثرات</div>
+        <h3>اشتغلي على تعاونات تليق فيك، بدون عناء البحث.</h3>
+        <p>سجّلي حسابك، تصفحي الحملات المتاحة، قدّمي عرضك بسعرك. ما تحتاجين تطاردين أحد.</p>
+        <ul class="audience-features">
+          <li>حملات تتناسب مع تصنيفك</li>
+          <li>أنتِ تحددين سعرك</li>
+          <li>محادثات منظمة بدل واتساب</li>
+          <li>أرشيف بكل تعاوناتك</li>
+        </ul>
+        <a href="#cta" class="audience-cta">سجّلي حسابك ←</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="agent" id="agent">
+  <div class="container">
+    <div class="agent-grid">
+      <div class="agent-visual">
+        <div class="agent-badge">الوكيل يفاوض الآن</div>
+        <div class="agent-chat-row">
+          <div class="chat-bubble agent">السلام عليكم ليان، شكراً على تقديمك. عرضك ٨٠٠ ر.س ضمن ميزانية الحملة. تقبلين إضافة ستوري ثالث مقابل تثبيت السعر؟</div>
+        </div>
+        <div class="agent-chat-row">
+          <div class="chat-bubble creator">إذا الستوري الثالث في نفس اليوم تمام، لو يوم منفصل أبي ٥٠ زيادة.</div>
+        </div>
+        <div class="agent-chat-row">
+          <div class="chat-bubble agent">عرض عادل. نخليها ٨٥٠ مع توزيع المحتوى على يومين. مناسب؟</div>
+        </div>
+        <div class="agent-chat-row">
+          <div class="chat-bubble creator">ماشي اتفقنا ✓</div>
+        </div>
+      </div>
+
+      <div class="agent-content">
+        <div class="section-eyebrow">الوكيل الذكي</div>
+        <h2>تفاوض <span class="highlight">احترافي</span> يقفل الصفقة، لا يطيلها.</h2>
+        <p>
+          ما تشتغل عبر القوالب الجاهزة. الوكيل يفهم سياق كل حملة، شخصية كل مؤثرة، ويتفاوض بأسلوب طبيعي.
+          يطرح بدائل، يقدم قيمة مضافة، ويعرف متى يتنازل ومتى يحافظ على موقفه.
+        </p>
+        <ul class="agent-points">
+          <li>
+            <div class="point-icon">١</div>
+            <div class="point-content">
+              <strong>ضمن الميزانية دائماً</strong>
+              <span>الشركة تحدد سقف، والوكيل ما يتجاوزه إلا بموافقتها.</span>
+            </div>
+          </li>
+          <li>
+            <div class="point-icon">٢</div>
+            <div class="point-content">
+              <strong>يحفظ كرامة الطرفين</strong>
+              <span>أسلوب محترم وحازم. يصل لاتفاق بدون ابتذال أو إذلال.</span>
+            </div>
+          </li>
+          <li>
+            <div class="point-icon">٣</div>
+            <div class="point-content">
+              <strong>يرفع للقرار البشري عند الحاجة</strong>
+              <span>القرارات الكبيرة ترجع للطرف المعني، الوكيل يقترح ولا يفرض.</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="faq" id="faq">
+  <div class="container">
+    <div class="faq-grid">
+      <div>
+        <div class="section-eyebrow">أسئلة شائعة</div>
+        <h2 class="section-title">جوابك <br>هنا.</h2>
+      </div>
+      <div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">
+            هل سيمبل مجانية فعلاً؟
+            <div class="faq-q-toggle">+</div>
+          </div>
+          <div class="faq-a">نعم، سيمبل حالياً مجانية بالكامل للطرفين. ما فيه رسوم تسجيل ولا اشتراك ولا عمولة على الصفقات. هدفنا الآن نوصل أكبر عدد من المؤثرات والشركات للمنصة.</div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">
+            كيف الوكيل الذكي يفاوض؟
+            <div class="faq-q-toggle">+</div>
+          </div>
+          <div class="faq-a">الوكيل يقرأ شروط الحملة وعرض المؤثرة، يطبق قواعد التفاوض اللي حددتها الشركة (السقف، المرونة، القيمة المضافة)، ويتحدث مع المؤثرة بأسلوب طبيعي. لا يقفل صفقة خارج الصلاحيات الممنوحة له.</div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">
+            ما الفرق بيني وبين سيمبل ومنصات ثانية؟
+            <div class="faq-q-toggle">+</div>
+          </div>
+          <div class="faq-a">المنصات الموجودة إما تكتفي بربط الطرفين وتركهم يفاوضون، أو ترسل لك مؤثرات بعمولة عالية. سيمبل تختلف: نقدم وكيل ذكي يدير التفاوض ويختصر الوقت، بدون رسوم.</div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">
+            هل المؤثرة تحدد سعرها؟
+            <div class="faq-q-toggle">+</div>
+          </div>
+          <div class="faq-a">نعم، المؤثرة تقدم عرضها بسعرها هي. الشركة تشوف العرض وإن وافقت يبدأ التفاوض. لا أحد يفرض على الطرفين سعراً.</div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">
+            هل بياناتي محمية؟
+            <div class="faq-q-toggle">+</div>
+          </div>
+          <div class="faq-a">نعم، نلتزم بمعايير حماية البيانات الشخصية في المملكة. لا نشارك معلوماتك مع أي طرف ثالث بدون إذنك، ومحادثاتك مع الشركات محمية.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-final" id="cta">
+  <div class="container">
+    <div class="cta-box">
+      <h2>ابدأ <span class="italic">رحلتك</span> مع سيمبل.</h2>
+      <p>سجّل اليوم، استفد من أول حملة خلال أيام. لا تكلفة، لا تعقيدات.</p>
+      <div class="cta-buttons">
+        <a href="#" class="btn btn-cream">سجّل كمؤثرة ←</a>
+        <a href="#" class="btn btn-outline-cream">سجّل شركتك</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-info">
+      <span class="logo-mark" style="font-size:20px">سيمبل</span>
+      <span>© ٢٠٢٦</span>
+    </div>
+    <div class="footer-links">
+      <a href="#">الشروط</a>
+      <a href="#">الخصوصية</a>
+      <a href="#">تواصل</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+function toggleFaq(el) {
+  document.querySelectorAll('.faq-item').forEach(item => {
+    if (item !== el) item.classList.remove('open');
+  });
+  el.classList.toggle('open');
+}
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
