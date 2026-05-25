@@ -713,7 +713,7 @@ function toggleApplications(campaignId) {
 }
 
 function startNegotiation(applicationId) {
-  alert('سيتم فتح غرفة التفاوض في الإصدار القادم.\n\nالوكيل الذكي سيبدأ التفاوض تلقائياً مع المؤثرة عند تفعيل هذه الميزة.');
+  window.location.href = '/campaign.html?app=' + applicationId;
 }
 
 function openCampaignModal() {

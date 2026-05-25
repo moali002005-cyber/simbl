@@ -705,7 +705,7 @@ function renderApplications() {
     const campaignTitle = a.campaigns?.title || 'حملة';
     const brandName = a.campaigns?.users?.company_name || '';
     return `
-      <div class="application-card">
+      <div class="application-card" onclick="window.location.href='/campaign.html?app=${a.id}'" style="cursor: pointer">
         <div class="app-info">
           <h4>${campaignTitle}</h4>
           <div class="meta">${brandName} · عرضك: ${a.price.toLocaleString('ar-SA')} ر.س · ${new Date(a.created_at).toLocaleDateString('ar-SA')}</div>
