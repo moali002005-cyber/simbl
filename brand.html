@@ -560,7 +560,7 @@ textarea { resize: vertical; min-height: 80px; }
 </div>
 
 <script src="supabase-config.js"></script>
-<script>
+  <script>
 let currentUser = null;
 let myCampaigns = [];
 let campaignApps = {};
@@ -669,7 +669,8 @@ function renderCampaigns() {
           <div class="applications-summary">
             <div class="text">
               تم استلام <strong>${apps.length}</strong> ${apps.length === 1 ? 'عرض' : 'عروض'}
-              ${pendingApps.length > 0 ? `· <strong>${pendingApps.length}</strong> قيد المراجعة` : ''}
+              ${apps.filter(a => a.status === 'closed').length > 0 ? `· <strong style="color:var(--olive)">${apps.filter(a => a.status === 'closed').length}</strong> صفقة مقفلة` : ''}
+              ${pendingApps.length > 0 ? `· <strong style="color:var(--gold)">${pendingApps.length}</strong> قيد المراجعة` : ''}
             </div>
             <button class="btn-view" onclick="toggleApplications('${c.id}')">
               <span id="toggle-text-${c.id}">عرض التقديمات</span>
@@ -678,19 +679,33 @@ function renderCampaigns() {
           <div class="applications-detail" id="apps-${c.id}">
             ${apps.map(a => {
               const creator = a.users || {};
+              const isClosed = a.status === 'closed';
+              const isActive = a.status === 'active';
+              const statusLabel = isClosed ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
+              const statusColor = isClosed ? 'var(--olive)' : isActive ? 'var(--accent)' : 'var(--gold)';
+              const statusBg = isClosed ? 'rgba(91, 96, 66, 0.15)' : isActive ? 'rgba(212, 82, 58, 0.12)' : 'rgba(184, 145, 94, 0.15)';
+              const buttonLabel = isClosed ? 'عرض الاتفاق' : isActive ? 'متابعة التفاوض' : 'بدء التفاوض';
+              const priceDisplay = isClosed && a.final_price
+                ? `<div style="font-family:var(--font-display); font-size:13px; color:var(--ink-muted); text-decoration:line-through; margin-bottom:2px">${a.price.toLocaleString('ar-SA')} ر.س</div>
+                   <div class="app-price" style="color:var(--olive)">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
+                : `<div class="app-price">${a.price.toLocaleString('ar-SA')} ر.س</div>`;
               return `
-                <div class="app-row">
+                <div class="app-row" style="${isClosed ? 'background: rgba(91, 96, 66, 0.04); border-radius: 12px; padding: 12px;' : ''}">
                   <div class="app-creator">
-                    <h4>${creator.name || 'مؤثرة'}</h4>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px">
+                      <h4>${creator.name || 'مؤثرة'}</h4>
+                      <span style="font-size:11px; font-weight:500; padding:3px 10px; border-radius:100px; background:${statusBg}; color:${statusColor}">${statusLabel}</span>
+                    </div>
                     <div class="meta">
                       <span>${creator.handle || ''}</span>
                       <span>${creator.followers ? (creator.followers / 1000).toFixed(0) + 'K متابع' : ''}</span>
                       <span>${creator.platform || ''}</span>
                     </div>
-                    ${a.note ? `<div style="font-size:13px; color:var(--ink-soft); margin-top:6px">"${a.note}"</div>` : ''}
+                    ${a.note && !isClosed ? `<div style="font-size:13px; color:var(--ink-soft); margin-top:6px">"${a.note}"</div>` : ''}
+                    ${isClosed && a.deal_details ? `<div style="font-size:13px; color:var(--olive); margin-top:6px; padding:8px 10px; background:rgba(91, 96, 66, 0.08); border-radius:8px"><strong>الاتفاق:</strong> ${a.deal_details}</div>` : ''}
                   </div>
-                  <div class="app-price">${a.price.toLocaleString('ar-SA')} ر.س</div>
-                  <button class="btn-view" onclick="startNegotiation('${a.id}')">بدء التفاوض</button>
+                  <div>${priceDisplay}</div>
+                  <button class="btn-view" onclick="startNegotiation('${a.id}')" style="${isClosed ? 'background:var(--olive)' : ''}">${buttonLabel}</button>
                 </div>
               `;
             }).join('')}
