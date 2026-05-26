@@ -1,6 +1,54 @@
 // Vercel Serverless Function: /api/negotiate
-// هذا الملف يشتغل على خادم Vercel (مو في متصفح المستخدم)
-// مفتاح Claude API محفوظ كـ Environment Variable، ما يظهر للعميل
+// يحفظ المحادثة في Supabase + يفاوض عبر Claude
+// عند [DEAL_CLOSED]: يقفل التقديم ويحفظ السعر النهائي
+
+const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkenp6YXNieXp1Z3hvZ2Jnd3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDI5NjMsImV4cCI6MjA5NTI3ODk2M30.aS9lOVt7VyfwTV7bmsxxDUanWfs5v-TMBlGbwcDNomM';
+
+async function supabaseInsert(table, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('Supabase insert error:', err);
+    throw new Error('Failed to insert');
+  }
+  return res.json();
+}
+
+async function supabaseUpdate(table, id, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('Supabase update error:', err);
+    throw new Error('Failed to update');
+  }
+  return true;
+}
+
+function extractFinalPrice(text) {
+  const match = text.match(/(\d[\d,]*)\s*ر\.?\s*س/);
+  if (match) {
+    return parseInt(match[1].replace(/,/g, ''));
+  }
+  return null;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,6 +64,18 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'API key not configured' });
+  }
+
+  if (creatorMessage) {
+    try {
+      await supabaseInsert('negotiations', {
+        application_id: application.id,
+        from_role: 'creator',
+        message: creatorMessage
+      });
+    } catch (err) {
+      console.error('Failed to save creator message:', err);
+    }
   }
 
   const systemPrompt = `أنت "وكيل سيمبل"، وكيل تفاوض ذكي يمثل شركة "${campaign.brand_name || 'الشركة'}" في التفاوض مع مؤثرة بشأن حملة تسويقية.
@@ -53,27 +113,24 @@ export default async function handler(req, res) {
 4. لو سعرها أعلى من السقف، اعرض السقف بأسلوب محترم وفسر السبب
 5. اقترح بدائل خلاقة (تمديد المدة، إضافة منتجات هدية، عمولة على المبيعات)
 6. لما تتفقون على نقطة، أكدها بوضوح
-7. لما الاتفاق يكتمل، اكتب في نهاية ردك: [DEAL_CLOSED] متبوعاً بالسعر النهائي والشروط
+7. لما الاتفاق يكتمل، اكتب في نهاية ردك: [DEAL_CLOSED] متبوعاً بالسعر النهائي والشروط (مثال: [DEAL_CLOSED] السعر النهائي: 1200 ر.س مقابل ريل + 4 ستوريز خلال أسبوع)
 
 ## ابدأ بترحيب ودي وتقديم نفسك كوكيل سيمبل، ثم اقترح نقطة بداية للنقاش.`;
 
   const messages = [];
 
-  // إضافة الترحيب الأول من الوكيل لو ما فيه تاريخ
   if (!history || history.length === 0) {
     messages.push({
       role: 'user',
       content: 'ابدأ التفاوض. قدم نفسك ورحب بالمؤثرة واقترح نقطة بداية.'
     });
   } else {
-    // إضافة التاريخ السابق
     for (const msg of history) {
       messages.push({
         role: msg.from === 'agent' ? 'assistant' : 'user',
         content: msg.text
       });
     }
-    // إضافة رسالة المؤثرة الجديدة
     if (creatorMessage) {
       messages.push({
         role: 'user',
@@ -91,7 +148,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-       model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-5',
         max_tokens: 500,
         system: systemPrompt,
         messages: messages
@@ -107,12 +164,35 @@ export default async function handler(req, res) {
     const data = await response.json();
     const agentReply = data.content[0].text;
 
-    // التحقق من إقفال الصفقة
     const dealClosed = agentReply.includes('[DEAL_CLOSED]');
     const cleanReply = agentReply.replace(/\[DEAL_CLOSED\][\s\S]*/, '').trim();
     const dealDetails = dealClosed
       ? agentReply.split('[DEAL_CLOSED]')[1]?.trim() || ''
       : null;
+
+    try {
+      await supabaseInsert('negotiations', {
+        application_id: application.id,
+        from_role: 'agent',
+        message: cleanReply || agentReply
+      });
+    } catch (err) {
+      console.error('Failed to save agent message:', err);
+    }
+
+    if (dealClosed && dealDetails) {
+      const finalPrice = extractFinalPrice(dealDetails) || application.price;
+      try {
+        await supabaseUpdate('applications', application.id, {
+          status: 'closed',
+          final_price: finalPrice,
+          deal_details: dealDetails,
+          closed_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('Failed to close deal:', err);
+      }
+    }
 
     return res.status(200).json({
       reply: cleanReply || agentReply,
