@@ -61,9 +61,7 @@ body::before {
 }
 .back-link { color: var(--ink-muted); text-decoration: none; font-size: 14px; }
 .back-link:hover { color: var(--accent); }
-
 .page { padding: 40px 0 80px; }
-
 .campaign-header {
   background: white;
   border: 1px solid var(--line);
@@ -100,7 +98,6 @@ h1 {
 .meta-item .val {
   font-family: var(--font-display); font-weight: 500; font-size: 15px;
 }
-
 .section-title {
   font-family: var(--font-display);
   font-size: 18px; font-weight: 600;
@@ -116,8 +113,12 @@ h1 {
   content: ''; width: 6px; height: 6px; background: var(--accent);
   border-radius: 50%; animation: pulse 1.5s infinite;
 }
+.badge-closed {
+  font-size: 11px; font-weight: 500; padding: 4px 10px;
+  background: rgba(91, 96, 66, 0.15); color: var(--olive);
+  border-radius: 100px;
+}
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
 .application-summary {
   background: var(--cream-darker);
   border-radius: 16px;
@@ -138,7 +139,6 @@ h1 {
   font-size: 24px; font-weight: 600; color: var(--accent);
   letter-spacing: -0.5px;
 }
-
 .chat {
   background: white;
   border: 1px solid var(--line);
@@ -164,7 +164,6 @@ h1 {
   font-family: var(--font-display); font-size: 15px; font-weight: 500;
 }
 .agent-info .status { font-size: 11px; opacity: 0.7; }
-
 .messages {
   flex: 1;
   padding: 24px;
@@ -196,7 +195,6 @@ h1 {
   text-align: end;
 }
 .msg.from-creator .msg-meta { text-align: start; }
-
 .typing {
   display: flex; gap: 4px;
   padding: 14px 18px;
@@ -216,7 +214,6 @@ h1 {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
   30% { transform: translateY(-8px); opacity: 1; }
 }
-
 .chat-input {
   padding: 16px 24px;
   border-top: 1px solid var(--line);
@@ -252,7 +249,6 @@ h1 {
 .chat-input button:disabled {
   background: var(--ink-faint); cursor: not-allowed;
 }
-
 .read-only-notice {
   background: var(--cream-darker);
   padding: 16px;
@@ -261,39 +257,59 @@ h1 {
   color: var(--ink-muted);
   border-top: 1px solid var(--line);
 }
-
-.deal-closed {
-  background: var(--success);
+.deal-closed-banner {
+  background: linear-gradient(135deg, var(--olive), #6E7550);
   color: white;
-  padding: 20px 24px;
-  border-radius: 16px;
+  padding: 24px 28px;
+  border-radius: 20px;
   margin-top: 20px;
-  text-align: center;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: center;
 }
-.deal-closed h3 {
+.deal-icon {
+  width: 56px; height: 56px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+}
+.deal-content h3 {
   font-family: var(--font-display);
   font-size: 20px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
-.deal-closed p { font-size: 14px; opacity: 0.9; }
-
+.deal-content p {
+  font-size: 14px;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+.deal-content .price {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  margin-top: 8px;
+}
 .loading {
   text-align: center;
   padding: 60px;
   color: var(--ink-muted);
 }
-
 @media (max-width: 640px) {
   .container { padding: 0 16px; }
   .campaign-header { padding: 24px; }
   h1 { font-size: 22px; }
   .application-summary { grid-template-columns: 1fr; }
   .offer-price { font-size: 20px; }
+  .deal-closed-banner { grid-template-columns: 1fr; text-align: center; }
+  .deal-icon { margin: 0 auto; }
 }
 </style>
 </head>
 <body>
-
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="logo">
@@ -302,13 +318,11 @@ h1 {
     <a href="javascript:history.back()" class="back-link">← العودة</a>
   </div>
 </nav>
-
 <main class="page">
   <div class="container" id="content">
     <div class="loading">جاري التحميل...</div>
   </div>
 </main>
-
 <script src="supabase-config.js"></script>
 <script>
 let currentUser = null;
@@ -317,6 +331,8 @@ let application = null;
 let messages = [];
 let isAgentThinking = false;
 let dealClosed = false;
+let dealDetails = null;
+let pollInterval = null;
 
 async function init() {
   currentUser = getCurrentUser();
@@ -324,28 +340,22 @@ async function init() {
     window.location.href = '/login.html';
     return;
   }
-
   const params = new URLSearchParams(window.location.search);
   const applicationId = params.get('app');
-
   if (!applicationId) {
     document.getElementById('content').innerHTML = '<div class="loading">رابط غير صحيح. <a href="/" style="color:var(--accent)">العودة للرئيسية</a></div>';
     return;
   }
-
   try {
-    // جلب التقديم والحملة
     const { data: appData, error: appErr } = await supabaseClient
       .from('applications')
       .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category), campaigns(*, users!campaigns_brand_id_fkey(company_name, name))')
       .eq('id', applicationId)
       .single();
-
     if (appErr || !appData) {
       document.getElementById('content').innerHTML = '<div class="loading">لم يتم العثور على الحملة</div>';
       return;
     }
-
     application = {
       ...appData,
       creator_name: appData.users?.name,
@@ -354,33 +364,25 @@ async function init() {
       followers: appData.users?.followers,
       category: appData.users?.category
     };
-
     campaign = {
       ...appData.campaigns,
       brand_name: appData.campaigns?.users?.company_name
     };
-
-    // التحقق من الصلاحية
     const isOwner = (currentUser.role === 'brand' && currentUser.id === campaign.brand_id) ||
                     (currentUser.role === 'creator' && currentUser.id === application.creator_id);
     if (!isOwner) {
       document.getElementById('content').innerHTML = '<div class="loading">ليس لديك صلاحية لمشاهدة هذه الصفحة</div>';
       return;
     }
-
-    // تحميل المحادثة من localStorage (نخزنها محلياً مؤقتاً)
-    const stored = localStorage.getItem('simbl_chat_' + applicationId);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      messages = parsed.messages || [];
-      dealClosed = parsed.dealClosed || false;
-    }
-
+    dealClosed = application.status === 'closed';
+    dealDetails = application.deal_details;
+    await loadMessagesFromDB();
     render();
-
-    // لو محادثة جديدة، ابدأ بالوكيل
-    if (messages.length === 0 && currentUser.role === 'brand') {
+    if (messages.length === 0 && currentUser.role === 'brand' && !dealClosed) {
       await startNegotiation();
+    }
+    if (!dealClosed) {
+      pollInterval = setInterval(checkNewMessages, 5000);
     }
   } catch (err) {
     console.error(err);
@@ -388,10 +390,49 @@ async function init() {
   }
 }
 
+async function loadMessagesFromDB() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('negotiations')
+      .select('*')
+      .eq('application_id', application.id)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    messages = (data || []).map(n => ({
+      from: n.from_role,
+      text: n.message,
+      time: n.created_at
+    }));
+  } catch (err) {
+    console.error('Failed to load messages:', err);
+    messages = [];
+  }
+}
+
+async function checkNewMessages() {
+  const previousCount = messages.length;
+  await loadMessagesFromDB();
+  try {
+    const { data } = await supabaseClient
+      .from('applications')
+      .select('status, deal_details, final_price')
+      .eq('id', application.id)
+      .single();
+    if (data && data.status === 'closed' && !dealClosed) {
+      dealClosed = true;
+      dealDetails = data.deal_details;
+      application.final_price = data.final_price;
+      if (pollInterval) clearInterval(pollInterval);
+    }
+  } catch (err) {}
+  if (messages.length > previousCount || dealClosed) {
+    render();
+  }
+}
+
 function render() {
   const brandInitial = campaign.brand_name ? campaign.brand_name[0] : 'ش';
   const isCreator = currentUser.role === 'creator';
-
   document.getElementById('content').innerHTML = `
     <div class="campaign-header">
       <div class="brand-line">
@@ -419,12 +460,12 @@ function render() {
         </div>
       </div>
     </div>
-
     <h2 class="section-title">
       غرفة التفاوض
-      <span class="badge-live">${dealClosed ? 'اتفاق مكتمل' : 'تفاوض نشط'}</span>
+      ${dealClosed
+        ? '<span class="badge-closed">✓ اتفاق مكتمل</span>'
+        : '<span class="badge-live">تفاوض نشط</span>'}
     </h2>
-
     <div class="application-summary">
       <div class="creator-info">
         <h3>${application.creator_name}</h3>
@@ -436,7 +477,6 @@ function render() {
       </div>
       <div class="offer-price">${application.price.toLocaleString('ar-SA')} ر.س</div>
     </div>
-
     <div class="chat">
       <div class="chat-header">
         <div class="agent-avatar">و</div>
@@ -450,7 +490,7 @@ function render() {
       </div>
       ${dealClosed ? `
         <div class="read-only-notice">
-          تم إقفال الاتفاق. لا يمكن إرسال رسائل إضافية.
+          ✓ تم إقفال الاتفاق بنجاح
         </div>
       ` : !isCreator ? `
         <div class="read-only-notice">
@@ -464,8 +504,17 @@ function render() {
         </div>
       `}
     </div>
+    ${dealClosed && dealDetails ? `
+      <div class="deal-closed-banner">
+        <div class="deal-icon">✓</div>
+        <div class="deal-content">
+          <h3>تم الاتفاق بنجاح</h3>
+          <p>${escapeHtml(dealDetails)}</p>
+          ${application.final_price ? `<div class="price">${application.final_price.toLocaleString('ar-SA')} ر.س</div>` : ''}
+        </div>
+      </div>
+    ` : ''}
   `;
-
   scrollToBottom();
 }
 
@@ -478,7 +527,6 @@ function renderMessages() {
       </div>
     </div>
   `).join('');
-
   if (isAgentThinking) {
     html += `
       <div class="msg from-agent">
@@ -486,13 +534,12 @@ function renderMessages() {
       </div>
     `;
   }
-
   return html;
 }
 
 function escapeHtml(text) {
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = text || '';
   return div.innerHTML;
 }
 
@@ -506,46 +553,30 @@ function scrollToBottom() {
   if (m) m.scrollTop = m.scrollHeight;
 }
 
-function saveChat(applicationId) {
-  localStorage.setItem('simbl_chat_' + applicationId, JSON.stringify({
-    messages, dealClosed
-  }));
-}
-
 async function startNegotiation() {
   isAgentThinking = true;
   render();
-
   try {
     const res = await fetch('/api/negotiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ campaign, application, history: [] })
     });
-
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed');
-
-    messages.push({
-      from: 'agent',
-      text: data.reply,
-      time: new Date().toISOString()
-    });
-
-    if (data.dealClosed) dealClosed = true;
-
     isAgentThinking = false;
-    saveChat(application.id);
+    await loadMessagesFromDB();
+    if (data.dealClosed) {
+      dealClosed = true;
+      dealDetails = data.dealDetails;
+      if (pollInterval) clearInterval(pollInterval);
+    }
     render();
   } catch (err) {
     console.error(err);
     isAgentThinking = false;
-    messages.push({
-      from: 'agent',
-      text: 'حصل خطأ في الاتصال بالوكيل. الرجاء تحديث الصفحة والمحاولة من جديد.',
-      time: new Date().toISOString()
-    });
     render();
+    alert('حصل خطأ في الاتصال بالوكيل. حدث الصفحة وحاول من جديد.');
   }
 }
 
@@ -553,57 +584,46 @@ async function sendCreatorMessage() {
   const input = document.getElementById('creator-input');
   const text = input.value.trim();
   if (!text || isAgentThinking || dealClosed) return;
-
-  messages.push({
-    from: 'creator',
-    text,
-    time: new Date().toISOString()
-  });
   input.value = '';
   isAgentThinking = true;
   render();
-  saveChat(application.id);
-
+  messages.push({ from: 'creator', text, time: new Date().toISOString() });
+  render();
   try {
+    const historyBeforeNew = messages.slice(0, -1);
     const res = await fetch('/api/negotiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         campaign,
         application,
-        history: messages.slice(0, -1),
+        history: historyBeforeNew,
         creatorMessage: text
       })
     });
-
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed');
-
-    messages.push({
-      from: 'agent',
-      text: data.reply,
-      time: new Date().toISOString()
-    });
-
-    if (data.dealClosed) dealClosed = true;
-
     isAgentThinking = false;
-    saveChat(application.id);
+    await loadMessagesFromDB();
+    if (data.dealClosed) {
+      dealClosed = true;
+      dealDetails = data.dealDetails;
+      if (pollInterval) clearInterval(pollInterval);
+    }
     render();
   } catch (err) {
     console.error(err);
     isAgentThinking = false;
-    messages.push({
-      from: 'agent',
-      text: 'حصل خطأ في الاتصال. حاولي مرة أخرى.',
-      time: new Date().toISOString()
-    });
     render();
+    alert('حصل خطأ. حاولي مرة أخرى.');
   }
 }
 
+window.addEventListener('beforeunload', () => {
+  if (pollInterval) clearInterval(pollInterval);
+});
+
 init();
 </script>
-
 </body>
 </html>
