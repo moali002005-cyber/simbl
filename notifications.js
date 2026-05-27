@@ -273,13 +273,30 @@ async function loadNotifications() {
 
   // DEBUG: نعرض رسالة على الشاشة
   showDebug('User: ' + (user ? user.name + ' (id: ' + user.id.substring(0,8) + ')' : 'NONE'));
+  showDebug('Supabase ready: ' + (window.supabaseClient ? 'YES' : 'NO'));
 
-  if (!user || !window.supabaseClient) {
+  if (!user) {
     notifLoaded = true;
     renderNotifList();
-    showDebug('STOPPED: no user or no supabase');
+    showDebug('STOPPED: no user');
     return;
   }
+
+  // ننتظر supabase يكون جاهز (حتى 5 ثواني)
+  let waitCount = 0;
+  while (!window.supabaseClient && waitCount < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    waitCount++;
+  }
+
+  if (!window.supabaseClient) {
+    showDebug('STOPPED: supabase not ready after wait');
+    notifLoaded = true;
+    renderNotifList();
+    return;
+  }
+
+  showDebug('Supabase ready, fetching...');
 
   try {
     const { data, error } = await supabaseClient
