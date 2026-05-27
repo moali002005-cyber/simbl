@@ -270,9 +270,14 @@ function mountBell(containerId) {
 // جلب الإشعارات
 async function loadNotifications() {
   const user = getCurrentUser();
+
+  // DEBUG: نعرض رسالة على الشاشة
+  showDebug('User: ' + (user ? user.name + ' (id: ' + user.id.substring(0,8) + ')' : 'NONE'));
+
   if (!user || !window.supabaseClient) {
     notifLoaded = true;
     renderNotifList();
+    showDebug('STOPPED: no user or no supabase');
     return;
   }
 
@@ -284,7 +289,12 @@ async function loadNotifications() {
       .order('created_at', { ascending: false })
       .limit(20);
 
-    if (error) throw error;
+    if (error) {
+      showDebug('ERROR: ' + JSON.stringify(error));
+      throw error;
+    }
+
+    showDebug('Found: ' + (data?.length || 0) + ' notifications');
 
     notifData = data || [];
     unreadCount = notifData.filter(n => !n.is_read).length;
@@ -293,9 +303,22 @@ async function loadNotifications() {
     renderNotifList();
   } catch (err) {
     console.error('Failed to load notifications:', err);
+    showDebug('CATCH: ' + err.message);
     notifLoaded = true;
     renderNotifList();
   }
+}
+
+function showDebug(msg) {
+  let debugEl = document.getElementById('notif-debug');
+  if (!debugEl) {
+    debugEl = document.createElement('div');
+    debugEl.id = 'notif-debug';
+    debugEl.style.cssText = 'position:fixed; top:80px; left:10px; right:10px; background:#1A1714; color:#F7F3EC; padding:10px; border-radius:8px; font-size:11px; font-family:monospace; z-index:9999; max-height:200px; overflow:auto; direction:ltr; text-align:left;';
+    document.body.appendChild(debugEl);
+  }
+  const time = new Date().toLocaleTimeString();
+  debugEl.innerHTML += `<div>[${time}] ${msg}</div>`;
 }
 
 function renderBell() {
