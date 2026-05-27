@@ -531,11 +531,16 @@ if (isIOS() && !isStandalone() && !localStorage.getItem('simbl_ios_dismissed')) 
 }
 
 // تشغيل تلقائي
-function initNotifications(bellContainerId) {
+async function initNotifications(bellContainerId) {
   if (bellContainerId) {
     mountBell(bellContainerId);
   }
-  loadNotifications();
+  // ننتظر استعادة الجلسة أولاً قبل تحميل الإشعارات
+  if (typeof tryRestoreSession === 'function') {
+    await tryRestoreSession();
+  }
+  // تحميل الإشعارات بعد ما نتأكد من المستخدم
+  await loadNotifications();
   // تحديث كل دقيقة
   if (notifPollInterval) clearInterval(notifPollInterval);
   notifPollInterval = setInterval(loadNotifications, 60000);
