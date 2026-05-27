@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مساحة العمل - سيمبل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --cream: #F7F3EC;
+  --cream-darker: #EFE9DD;
+  --ink: #1A1714;
+  --ink-soft: #3D3833;
+  --ink-muted: #6B645B;
+  --ink-faint: #A8A095;
+  --accent: #D4523A;
+  --accent-soft: #E8917E;
+  --olive: #5B6042;
+  --gold: #B8915E;
+  --line: rgba(26, 23, 20, 0.1);
+  --line-strong: rgba(26, 23, 20, 0.2);
+  --success: #5B6042;
+  --font-display: 'Reem Kufi', sans-serif;
+  --font-serif: 'Noto Naskh Arabic', serif;
+  --font-body: 'Tajawal', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  opacity: 0.3; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+.nav {
+  background: var(--cream);
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner { display: flex; justify-content: space-between; align-items: center; }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.logo-mark {
+  font-family: var(--font-display);
+  font-size: 24px; font-weight: 700; letter-spacing: -1px;
+  position: relative;
+}
+.logo-mark::after {
+  content: ''; position: absolute; bottom: 4px; inset-inline-end: -8px;
+  width: 6px; height: 6px; background: var(--accent); border-radius: 50%;
+}
+.back-link { color: var(--ink-muted); text-decoration: none; font-size: 14px; }
+.back-link:hover { color: var(--accent); }
+
+.page { padding: 40px 0 80px; }
+
+.deal-summary {
+  background: linear-gradient(135deg, var(--olive), #6E7550);
+  color: white;
+  padding: 24px 28px;
+  border-radius: 20px;
+  margin-bottom: 32px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+.deal-summary h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+.deal-summary .campaign-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.deal-summary .parties { font-size: 13px; opacity: 0.9; }
+.deal-price {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  text-align: end;
+}
+
+/* شريط المراحل */
+.stages-bar {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+.stages-track {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  position: relative;
+}
+.stage-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+.stage-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cream-darker);
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  border: 2px solid var(--line);
+  transition: all 0.3s;
+  position: relative;
+  z-index: 2;
+}
+.stage-item.done .stage-circle {
+  background: var(--olive);
+  color: white;
+  border-color: var(--olive);
+}
+.stage-item.active .stage-circle {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(212, 82, 58, 0.15);
+}
+.stage-label {
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-align: center;
+  font-weight: 500;
+}
+.stage-item.done .stage-label,
+.stage-item.active .stage-label {
+  color: var(--ink);
+}
+.stage-line {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+  z-index: 1;
+}
+.stage-item.done .stage-line {
+  background: var(--olive);
+}
+.stage-item:last-child .stage-line { display: none; }
+
+/* بطاقة المرحلة الحالية */
+.current-stage-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+.stage-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.stage-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+}
+.stage-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+}
+.stage-desc { font-size: 14px; color: var(--ink-soft); }
+
+.agent-message {
+  background: var(--cream-darker);
+  padding: 16px 20px;
+  border-radius: 14px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 12px;
+}
+.agent-bubble-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.agent-message-content {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+.agent-message-content strong { color: var(--ink); font-weight: 500; }
+
+.field { margin-bottom: 20px; }
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+input, textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: white;
+}
+textarea { resize: vertical; min-height: 100px; }
+input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+.hint {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.btn {
+  padding: 14px 28px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--cream);
+  flex: 1;
+}
+.btn-primary:hover { background: var(--accent); }
+.btn-primary:disabled { background: var(--ink-faint); cursor: not-allowed; }
+.btn-success {
+  background: var(--olive);
+  color: white;
+  flex: 1;
+}
+.btn-success:hover { background: #6E7550; }
+.btn-secondary {
+  background: white;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* عرض البيانات (للطرف اللي مو عليه دور) */
+.waiting-card {
+  text-align: center;
+  padding: 40px 24px;
+  color: var(--ink-muted);
+}
+.waiting-card .icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+.waiting-card h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+/* السجل (المراحل السابقة) */
+.history-section {
+  margin-top: 32px;
+}
+.history-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--ink-muted);
+}
+.history-item {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+.history-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(91, 96, 66, 0.12);
+  color: var(--olive);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+}
+.history-content h4 {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.history-content .meta {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.history-content .data {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 6px;
+  background: var(--cream-darker);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.history-time {
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* مكتمل */
+.completed-banner {
+  background: linear-gradient(135deg, var(--olive), var(--gold));
+  color: white;
+  padding: 40px;
+  border-radius: 24px;
+  text-align: center;
+}
+.completed-banner h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.completed-banner p {
+  font-size: 15px;
+  opacity: 0.95;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 740px) {
+  .container { padding: 0 16px; }
+  .deal-summary { grid-template-columns: 1fr; text-align: center; }
+  .deal-price { text-align: center; }
+  .stages-track { grid-template-columns: repeat(7, 1fr); gap: 0; }
+  .stage-label { font-size: 9px; }
+  .stage-circle { width: 28px; height: 28px; font-size: 11px; }
+  .current-stage-card { padding: 24px; }
+  .stage-title { font-size: 18px; }
+  .actions { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo">
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <a href="javascript:history.back()" class="back-link">← العودة</a>
+  </div>
+</nav>
+
+<main class="page">
+  <div class="container" id="content">
+    <div class="loading">جاري التحميل...</div>
+  </div>
+</main>
+
+<script src="supabase-config.js"></script>
+<script>
+let currentUser = null;
+let application = null;
+let campaign = null;
+let workflow = null;
+let pollInterval = null;
+
+const STAGES = [
+  { key: 'address', label: 'العنوان', num: '١', actor: 'creator' },
+  { key: 'shipping', label: 'الشحن', num: '٢', actor: 'brand' },
+  { key: 'received', label: 'الاستلام', num: '٣', actor: 'creator' },
+  { key: 'content_upload', label: 'المحتوى', num: '٤', actor: 'creator' },
+  { key: 'approval', label: 'الموافقة', num: '٥', actor: 'brand' },
+  { key: 'published', label: 'النشر', num: '٦', actor: 'creator' },
+  { key: 'completed', label: 'مكتمل', num: '✓', actor: null }
+];
+
+async function init() {
+  currentUser = getCurrentUser();
+  if (!currentUser) {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const applicationId = params.get('app');
+  if (!applicationId) {
+    document.getElementById('content').innerHTML = '<div class="loading">رابط غير صحيح</div>';
+    return;
+  }
+
+  try {
+    // جلب بيانات التقديم
+    const { data: appData, error: appErr } = await supabaseClient
+      .from('applications')
+      .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, whatsapp), campaigns(*, users!campaigns_brand_id_fkey(company_name, name, phone))')
+      .eq('id', applicationId)
+      .single();
+
+    if (appErr || !appData) {
+      document.getElementById('content').innerHTML = '<div class="loading">لم يتم العثور على الصفقة</div>';
+      return;
+    }
+
+    if (appData.status !== 'closed') {
+      document.getElementById('content').innerHTML = '<div class="loading">هذه الصفقة لم تكتمل بعد. <a href="/campaign.html?app=' + applicationId + '" style="color:var(--accent)">العودة للتفاوض</a></div>';
+      return;
+    }
+
+    application = {
+      ...appData,
+      creator_name: appData.users?.name,
+      creator_whatsapp: appData.users?.whatsapp,
+      platform: appData.users?.platform,
+      handle: appData.users?.handle
+    };
+    campaign = {
+      ...appData.campaigns,
+      brand_name: appData.campaigns?.users?.company_name,
+      brand_phone: appData.campaigns?.users?.phone
+    };
+
+    const isOwner = (currentUser.role === 'brand' && currentUser.id === campaign.brand_id) ||
+                    (currentUser.role === 'creator' && currentUser.id === application.creator_id);
+    if (!isOwner) {
+      document.getElementById('content').innerHTML = '<div class="loading">ليس لديك صلاحية</div>';
+      return;
+    }
+
+    // جلب أو إنشاء سجل المراحل
+    await loadOrCreateWorkflow();
+    render();
+
+    // تحديث تلقائي كل 8 ثواني
+    pollInterval = setInterval(loadAndRender, 8000);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('content').innerHTML = '<div class="loading">حصل خطأ. حدث الصفحة.</div>';
+  }
+}
+
+async function loadOrCreateWorkflow() {
+  const { data } = await supabaseClient
+    .from('workflow_stages')
+    .select('*')
+    .eq('application_id', application.id)
+    .maybeSingle();
+
+  if (data) {
+    workflow = data;
+  } else {
+    const { data: created } = await supabaseClient
+      .from('workflow_stages')
+      .insert([{ application_id: application.id, current_stage: 'address' }])
+      .select()
+      .single();
+    workflow = created;
+  }
+}
+
+async function loadAndRender() {
+  await loadOrCreateWorkflow();
+  render();
+}
+
+async function updateWorkflow(updates) {
+  const { data, error } = await supabaseClient
+    .from('workflow_stages')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', workflow.id)
+    .select()
+    .single();
+  if (error) throw error;
+  workflow = data;
+}
+
+function getCurrentStageIndex() {
+  return STAGES.findIndex(s => s.key === workflow.current_stage);
+}
+
+function isMyTurn() {
+  const stage = STAGES.find(s => s.key === workflow.current_stage);
+  if (!stage || !stage.actor) return false;
+  return currentUser.role === stage.actor;
+}
+
+function render() {
+  const currentStageIdx = getCurrentStageIndex();
+  const myTurn = isMyTurn();
+
+  document.getElementById('content').innerHTML = `
+    <div class="deal-summary">
+      <div>
+        <h2>صفقة مكتملة</h2>
+        <div class="campaign-name">${campaign.title}</div>
+        <div class="parties">${campaign.brand_name} × ${application.creator_name}</div>
+      </div>
+      <div class="deal-price">${(application.final_price || application.price).toLocaleString('ar-SA')} ر.س</div>
+    </div>
+
+    <div class="stages-bar">
+      <div class="stages-track">
+        ${STAGES.map((s, i) => {
+          const done = i < currentStageIdx;
+          const active = i === currentStageIdx;
+          return `
+            <div class="stage-item ${done ? 'done' : ''} ${active ? 'active' : ''}">
+              ${i < STAGES.length - 1 ? '<div class="stage-line"></div>' : ''}
+              <div class="stage-circle">${done ? '✓' : s.num}</div>
+              <div class="stage-label">${s.label}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    ${workflow.current_stage === 'completed' ? renderCompleted() : renderCurrentStage(myTurn)}
+
+    ${renderHistory()}
+  `;
+}
+
+function renderCurrentStage(myTurn) {
+  const stage = STAGES.find(s => s.key === workflow.current_stage);
+
+  const stageContent = {
+    address: {
+      icon: '○',
+      title: 'عنوان الشحن',
+      desc: 'المؤثرة تدخل عنوانها لاستلام المنتج',
+      agentMsg: myTurn
+        ? 'يا هلا! عشان نبدأ الصفقة، أحتاج <strong>عنوان الشحن</strong>. اكتبي عنوانك الكامل (المدينة، الحي، الشارع، رقم المبنى، رقم الجوال للمندوب).'
+        : `في انتظار <strong>${application.creator_name}</strong> ترسل عنوان الشحن. راح ننبهك لما تخلص.`,
+      form: myTurn ? `
+        <div class="field">
+          <label>العنوان الكامل</label>
+          <textarea id="address-input" placeholder="مثل: الرياض، حي الياسمين، شارع الأمير سلطان، مبنى 245، شقة 12. رقم الجوال: 0501234567"></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="submitAddress()">حفظ وإرسال العنوان</button>
+        </div>
+      ` : ''
+    },
+    shipping: {
+      icon: '↗',
+      title: 'الشحن',
+      desc: 'الشركة تشحن المنتج وتحدد رقم التتبع',
+      agentMsg: myTurn
+        ? `ممتاز! وصلنا عنوان ${application.creator_name}. <strong>اشحنوا المنتج الحين</strong>، وأدخلوا رقم التتبع لما يكون جاهز.`
+        : 'الشركة قاعدة تجهز الشحنة. راح نخبرك بمجرد ما يتم الشحن مع رقم التتبع.',
+      addressDisplay: `<div class="agent-message" style="background:rgba(91,96,66,0.08); border:1px solid rgba(91,96,66,0.2)">
+        <div class="agent-bubble-avatar" style="background:var(--olive)">📍</div>
+        <div class="agent-message-content">
+          <strong>عنوان الشحن:</strong><br>
+          ${escapeHtml(workflow.shipping_address || '')}
+        </div>
+      </div>`,
+      form: myTurn ? `
+        <div class="field">
+          <label>رقم التتبع <span style="color:var(--ink-faint)">(اختياري)</span></label>
+          <input type="text" id="tracking-input" placeholder="مثل: SP123456789SA">
+        </div>
+        <div class="field">
+          <label>ملاحظات إضافية <span style="color:var(--ink-faint)">(اختياري)</span></label>
+          <textarea id="shipping-note" placeholder="شركة الشحن، الوقت المتوقع، أي تفاصيل..."></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="submitShipping()">تم الشحن ✓</button>
+        </div>
+      ` : ''
+    },
+    received: {
+      icon: '◉',
+      title: 'استلام المنتج',
+      desc: 'تأكيد استلام المؤثرة للمنتج',
+      agentMsg: myTurn
+        ? 'تم الشحن! بمجرد ما يوصلك المنتج، اضغطي زر <strong>"تم الاستلام"</strong> عشان نكمل للمرحلة الجاية (التصوير).'
+        : `في انتظار <strong>${application.creator_name}</strong> تستلم المنتج وتأكد ذلك.`,
+      shippingInfo: workflow.tracking_number || workflow.shipping_note ? `<div class="agent-message" style="background:rgba(184, 145, 94, 0.1); border:1px solid rgba(184, 145, 94, 0.25)">
+        <div class="agent-bubble-avatar" style="background:var(--gold)">↗</div>
+        <div class="agent-message-content">
+          <strong>معلومات الشحن:</strong><br>
+          ${workflow.tracking_number ? `رقم التتبع: ${escapeHtml(workflow.tracking_number)}<br>` : ''}
+          ${workflow.shipping_note ? escapeHtml(workflow.shipping_note) : ''}
+        </div>
+      </div>` : '',
+      form: myTurn ? `
+        <div class="actions">
+          <button class="btn btn-success" onclick="confirmReceived()">تم الاستلام ✓</button>
+        </div>
+      ` : ''
+    },
+    content_upload: {
+      icon: '◇',
+      title: 'رفع المحتوى',
+      desc: 'المؤثرة ترفع المحتوى للمراجعة',
+      agentMsg: myTurn
+        ? 'حلو! استلمتي المنتج. الحين <strong>صوري المحتوى</strong> ولما تخلصين، ارفعي رابط الفيديو/الصور (Google Drive, Dropbox, أي رابط). الشركة راح تراجعه قبل النشر.'
+        : `في انتظار ${application.creator_name} تصور المحتوى وترفعه للمراجعة.`,
+      form: myTurn ? `
+        <div class="field">
+          <label>رابط المحتوى</label>
+          <input type="url" id="content-url" placeholder="https://drive.google.com/...">
+          <div class="hint">رابط Google Drive, Dropbox, أو أي خدمة مشاركة ملفات</div>
+        </div>
+        <div class="field">
+          <label>ملاحظات <span style="color:var(--ink-faint)">(اختياري)</span></label>
+          <textarea id="content-note" placeholder="وصف بسيط للمحتوى، أي معلومات تحبين تضيفينها..."></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="submitContent()">رفع المحتوى للمراجعة</button>
+        </div>
+      ` : ''
+    },
+    approval: {
+      icon: '✓',
+      title: 'مراجعة الشركة',
+      desc: 'الشركة تراجع المحتوى وتوافق أو تطلب تعديل',
+      agentMsg: myTurn
+        ? `${application.creator_name} رفعت المحتوى! <strong>راجعوه</strong>، ولو كل شي تمام وافقوا. أو اطلبوا تعديل لو فيه شي يحتاج تغيير.`
+        : 'الشركة قاعدة تراجع محتواك الحين. راح نخبرك بالرد قريباً.',
+      contentDisplay: `<div class="agent-message" style="background:rgba(212, 82, 58, 0.08); border:1px solid rgba(212, 82, 58, 0.2)">
+        <div class="agent-bubble-avatar">◇</div>
+        <div class="agent-message-content">
+          <strong>المحتوى المرفوع:</strong><br>
+          <a href="${escapeHtml(workflow.content_url || '#')}" target="_blank" style="color:var(--accent); text-decoration:underline; word-break:break-all">${escapeHtml(workflow.content_url || '')}</a>
+          ${workflow.content_note ? `<br><br><strong>ملاحظات:</strong><br>${escapeHtml(workflow.content_note)}` : ''}
+        </div>
+      </div>`,
+      form: myTurn ? `
+        <div class="actions">
+          <button class="btn btn-success" onclick="approveContent()">موافق على المحتوى ✓</button>
+          <button class="btn btn-secondary" onclick="requestRevision()">طلب تعديل</button>
+        </div>
+        <div id="revision-form" style="display:none; margin-top:20px">
+          <div class="field">
+            <label>وش تحبون يتعدل؟</label>
+            <textarea id="revision-note" placeholder="اشرح بالتفصيل وش يحتاج تعديل..."></textarea>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="submitRevision()">إرسال طلب التعديل</button>
+          </div>
+        </div>
+      ` : ''
+    },
+    published: {
+      icon: '✦',
+      title: 'النشر',
+      desc: 'المؤثرة تنشر المحتوى وترسل الرابط',
+      agentMsg: myTurn
+        ? 'الشركة وافقت على المحتوى! <strong>انشريه على حسابك</strong>، ولما تنشرينه أرسلي الرابط هنا.'
+        : `${application.creator_name} استلمت الموافقة وقاعدة تنشر المحتوى الحين.`,
+      form: myTurn ? `
+        <div class="field">
+          <label>رابط المنشور</label>
+          <input type="url" id="published-url" placeholder="https://www.tiktok.com/...">
+          <div class="hint">رابط الفيديو/المنشور بعد النشر</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-success" onclick="submitPublished()">تم النشر ✓</button>
+        </div>
+      ` : ''
+    }
+  };
+
+  const c = stageContent[workflow.current_stage] || {};
+
+  return `
+    <div class="current-stage-card">
+      <div class="stage-header">
+        <div class="stage-icon">${c.icon || '○'}</div>
+        <div>
+          <div class="stage-title">${c.title || ''}</div>
+          <div class="stage-desc">${c.desc || ''}</div>
+        </div>
+      </div>
+
+      <div class="agent-message">
+        <div class="agent-bubble-avatar">و</div>
+        <div class="agent-message-content">${c.agentMsg || ''}</div>
+      </div>
+
+      ${c.addressDisplay || ''}
+      ${c.shippingInfo || ''}
+      ${c.contentDisplay || ''}
+
+      ${myTurn ? c.form || '' : `
+        <div class="waiting-card">
+          <div class="icon">⏳</div>
+          <h3>في انتظار الطرف الآخر</h3>
+          <p>راح تتحدث الصفحة تلقائياً لما يتم الإجراء</p>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function renderCompleted() {
+  return `
+    <div class="completed-banner">
+      <h2>🎉 تمت الصفقة بنجاح!</h2>
+      <p>المحتوى منشور والصفقة مكتملة. شكراً للطرفين على التعاون.</p>
+    </div>
+  `;
+}
+
+function renderHistory() {
+  const items = [];
+  if (workflow.address_completed_at) {
+    items.push({
+      icon: '1',
+      title: 'تم إرسال العنوان',
+      time: workflow.address_completed_at,
+      data: workflow.shipping_address
+    });
+  }
+  if (workflow.shipped_at) {
+    items.push({
+      icon: '2',
+      title: 'تم الشحن',
+      time: workflow.shipped_at,
+      data: workflow.tracking_number ? 'رقم التتبع: ' + workflow.tracking_number : workflow.shipping_note
+    });
+  }
+  if (workflow.received_at) {
+    items.push({
+      icon: '3',
+      title: 'تم استلام المنتج',
+      time: workflow.received_at,
+      data: null
+    });
+  }
+  if (workflow.content_uploaded_at) {
+    items.push({
+      icon: '4',
+      title: 'تم رفع المحتوى',
+      time: workflow.content_uploaded_at,
+      data: workflow.content_url
+    });
+  }
+  if (workflow.approved_at) {
+    items.push({
+      icon: '5',
+      title: workflow.approval_status === 'approved' ? 'تمت الموافقة' : 'طلب تعديل',
+      time: workflow.approved_at,
+      data: workflow.revision_note
+    });
+  }
+  if (workflow.published_at) {
+    items.push({
+      icon: '6',
+      title: 'تم النشر',
+      time: workflow.published_at,
+      data: workflow.published_url
+    });
+  }
+
+  if (items.length === 0) return '';
+
+  return `
+    <div class="history-section">
+      <div class="history-title">سجل المراحل</div>
+      ${items.reverse().map(item => `
+        <div class="history-item">
+          <div class="history-icon">${item.icon}</div>
+          <div class="history-content">
+            <h4>${item.title}</h4>
+            ${item.data ? `<div class="data">${escapeHtml(item.data)}</div>` : ''}
+          </div>
+          <div class="history-time">${formatDate(item.time)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('ar-SA', {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// إجراءات المراحل
+async function submitAddress() {
+  const address = document.getElementById('address-input').value.trim();
+  if (!address || address.length < 20) {
+    alert('الرجاء كتابة عنوان كامل وواضح');
+    return;
+  }
+  try {
+    await updateWorkflow({
+      shipping_address: address,
+      address_completed_at: new Date().toISOString(),
+      current_stage: 'shipping'
+    });
+    render();
+  } catch (err) {
+    alert('حصل خطأ. حاولي مرة أخرى.');
+  }
+}
+
+async function submitShipping() {
+  const tracking = document.getElementById('tracking-input').value.trim();
+  const note = document.getElementById('shipping-note').value.trim();
+  try {
+    await updateWorkflow({
+      tracking_number: tracking || null,
+      shipping_note: note || null,
+      shipped_at: new Date().toISOString(),
+      current_stage: 'received'
+    });
+    render();
+  } catch (err) {
+    alert('حصل خطأ. حاول مرة أخرى.');
+  }
+}
+
+async function confirmReceived() {
+  if (!confirm('متأكدة من استلام المنتج؟')) return;
+  try {
+    await updateWorkflow({
+      received_at: new Date().toISOString(),
+      current_stage: 'content_upload'
+    });
+    render();
+  } catch (err) {
+    alert('حصل خطأ. حاولي مرة أخرى.');
+  }
+}
+
+async function submitContent() {
+  const url = document.getElementById('content-url').value.trim();
+  const note = document.getElementById('content-note').value.trim();
+  if (!url) {
+    alert('الرجاء إدخال رابط المحتوى');
+    return;
+  }
+  try {
+    await updateWorkflow({
+      content_url: url,
+      content_note: note || null,
+      content_uploaded_at: new Date().toISOString(),
+      current_stage: 'approval'
+    });
+    render();
+  } catch (err) {
+    alert('حصل خطأ. حاولي مرة أخرى.');
+  }
+}
+
+async function approveContent() {
+  if (!confirm('موافقون على المحتوى والمؤثرة تنشره؟')) return;
+  try {
+    await updateWorkflow({
+      approval_status: 'approved',
+      approved_at: new Date().toISOString(),
+      current_stage: 'published'
+    });
+    render();
+  } catch (err) {
+    alert('حصل خطأ. حاول مرة أخرى.');
+  }
+}
+
+function requestRevision() {
+  document.getElementById('revision-form').style.display = 'block';
+}
+
+async function submitRevision() {
+  const note = document.getElementById('revision-note').value.trim();
+  if (!note || note.length < 10) {
+    alert('الرجاء كتابة تفاصيل واضحة للتعديل المطلوب');
+    return;
+  }
+  try {
+    await updateWorkflow({
+      approval_status: 'revision_requested',
+      revision_note: note,
+      approved_at: new Date().toISOString(),
+      current_stage: 'content_upload'  // يرجع للمؤثرة ترفع نسخة جديدة
+    });
+    alert('تم إرسال طلب التعديل للمؤثرة');
+    render();
+  } catch (err) {
+    alert('حصل خطأ. حاول مرة أخرى.');
+  }
+}
+
+async function submitPublished() {
+  const url = document.getElementById('published-url').value.trim();
+  if (!url) {
+    alert('الرجاء إدخال رابط المنشور');
+    return;
+  }
+  try {
+    await updateWorkflow({
+      published_url: url,
+      published_at: new Date().toISOString(),
+      current_stage: 'completed'
+    });
+    render();
+  } catch (err) {
+    alert('حصل خطأ. حاولي مرة أخرى.');
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  if (pollInterval) clearInterval(pollInterval);
+});
+
+init();
+</script>
+
+</body>
+</html>
