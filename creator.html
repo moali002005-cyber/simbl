@@ -815,7 +815,7 @@ init();
   // طلب تفعيل الإشعارات بعد تسجيل الدخول
   (async function() {
     if (typeof tryRestoreSession === 'function') await tryRestoreSession();
-    const user = JSON.parse(localStorage.getItem('simbl_user') || 'null');
+    const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
     if (user && user.id && user.role === 'creator') {
       showPushPermissionPrompt(user.id);
     }
