@@ -235,6 +235,7 @@ if (!document.getElementById('notif-styles')) {
 let notifData = [];
 let unreadCount = 0;
 let notifPollInterval = null;
+let notifLoaded = false;
 
 // إنشاء جرس الإشعارات
 function createBellHTML() {
@@ -269,7 +270,11 @@ function mountBell(containerId) {
 // جلب الإشعارات
 async function loadNotifications() {
   const user = getCurrentUser();
-  if (!user || !window.supabaseClient) return;
+  if (!user || !window.supabaseClient) {
+    notifLoaded = true;
+    renderNotifList();
+    return;
+  }
 
   try {
     const { data, error } = await supabaseClient
@@ -283,10 +288,13 @@ async function loadNotifications() {
 
     notifData = data || [];
     unreadCount = notifData.filter(n => !n.is_read).length;
+    notifLoaded = true;
     renderBell();
     renderNotifList();
   } catch (err) {
     console.error('Failed to load notifications:', err);
+    notifLoaded = true;
+    renderNotifList();
   }
 }
 
@@ -304,6 +312,11 @@ function renderBell() {
 function renderNotifList() {
   const list = document.getElementById('notif-list');
   if (!list) return;
+
+  if (!notifLoaded) {
+    list.innerHTML = '<div class="notif-empty">جاري التحميل...</div>';
+    return;
+  }
 
   if (notifData.length === 0) {
     list.innerHTML = '<div class="notif-empty">ما عندك إشعارات بعد</div>';
@@ -352,6 +365,9 @@ function toggleNotifications(event) {
   if (!dropdown) return;
   dropdown.classList.toggle('show');
   if (dropdown.classList.contains('show')) {
+    // نعرض البيانات الحالية فوراً (لو موجودة)
+    renderNotifList();
+    // ثم نحدث في الخلفية
     loadNotifications();
   }
 }
