@@ -1,0 +1,27 @@
+{
+  "name": "سيمبل - Simbl",
+  "short_name": "سيمبل",
+  "description": "منصة سيمبل للتعاون بين الشركات والمؤثرات",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F3EC",
+  "theme_color": "#D4523A",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "social", "marketing"]
+}

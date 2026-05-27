@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المؤثرة - سيمبل</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#D4523A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="سيمبل">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
@@ -512,7 +518,7 @@ input:focus, textarea:focus {
     <a href="/" class="logo">
       <span class="logo-mark">سيمبل</span>
     </a>
-    <div class="user-menu">
+    <div class="user-menu" id="user-menu">
       <div class="user-pill">
         <div class="user-avatar" id="user-initial">م</div>
         <span class="user-name" id="user-name">مؤثرة</span>
@@ -583,6 +589,7 @@ input:focus, textarea:focus {
 </div>
 
 <script src="supabase-config.js"></script>
+<script src="notifications.js"></script>
 <script>
 let currentUser = null;
 let allCampaigns = [];
@@ -608,6 +615,9 @@ async function init() {
   document.getElementById('user-name').textContent = firstName;
   document.getElementById('user-initial').textContent = firstName[0];
   document.getElementById('welcome-name').textContent = firstName;
+
+  // تفعيل الإشعارات
+  initNotifications('user-menu');
 
   await loadData();
 }
@@ -762,6 +772,19 @@ async function submitApplication(event) {
 
   try {
     await dbApply(applicationData);
+
+    // إرسال إشعار للشركة
+    const campaign = allCampaigns.find(c => c.id === currentCampaignId);
+    if (campaign && campaign.brand_id) {
+      createNotification(
+        campaign.brand_id,
+        'new_application',
+        `📨 ${currentUser.name || 'مؤثرة'} قدّمت عرضاً`,
+        `على حملة: ${campaign.title} · بسعر ${applicationData.price} ر.س`,
+        '/brand.html'
+      ).catch(err => console.error(err));
+    }
+
     closeModal();
     form.reset();
     await loadData();
