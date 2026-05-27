@@ -810,5 +810,17 @@ function logout() {
 init();
 </script>
 
+<script src="push-subscribe.js"></script>
+<script>
+  // طلب تفعيل الإشعارات بعد تسجيل الدخول
+  (async function() {
+    if (typeof tryRestoreSession === 'function') await tryRestoreSession();
+    const user = JSON.parse(localStorage.getItem('simbl_user') || 'null');
+    if (user && user.id && user.role === 'creator') {
+      showPushPermissionPrompt(user.id);
+    }
+  })();
+</script>
+
 </body>
 </html>
