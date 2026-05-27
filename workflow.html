@@ -740,6 +740,11 @@ function renderCurrentStage(myTurn) {
           <input type="url" id="published-url" placeholder="https://www.tiktok.com/...">
           <div class="hint">رابط الفيديو/المنشور بعد النشر</div>
         </div>
+        <div class="field">
+          <label>كود الترويج الخاص بالفيديو</label>
+          <input type="text" id="promo-code" placeholder="مثل: RIF10">
+          <div class="hint">الكود اللي ذكرتيه في الفيديو للمشاهدين (للخصم أو العرض الخاص)</div>
+        </div>
         <div class="actions">
           <button class="btn btn-success" onclick="submitPublished()">تم النشر ✓</button>
         </div>
@@ -835,7 +840,7 @@ function renderHistory() {
       icon: '6',
       title: 'تم النشر',
       time: workflow.published_at,
-      data: workflow.published_url
+      data: workflow.published_url + (workflow.promo_code ? '\nكود الترويج: ' + workflow.promo_code : '')
     });
   }
 
@@ -981,6 +986,7 @@ async function submitRevision() {
 
 async function submitPublished() {
   const url = document.getElementById('published-url').value.trim();
+  const promoCode = document.getElementById('promo-code').value.trim();
   if (!url) {
     alert('الرجاء إدخال رابط المنشور');
     return;
@@ -988,6 +994,7 @@ async function submitPublished() {
   try {
     await updateWorkflow({
       published_url: url,
+      promo_code: promoCode || null,
       published_at: new Date().toISOString(),
       current_stage: 'completed'
     });
