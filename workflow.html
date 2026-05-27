@@ -573,6 +573,17 @@ function render() {
   const myTurn = isMyTurn();
 
   document.getElementById('content').innerHTML = `
+    ...
+    ${renderHistory()}
+  `;
+  
+  // إذا كانت الصفقة مكتملة، حمل بيانات الدفع
+  if (workflow.current_stage === 'completed') {
+    loadPaymentSection();
+  }
+}
+
+  document.getElementById('content').innerHTML = `
     <div class="deal-summary">
       <div>
         <h2>صفقة مكتملة</h2>
@@ -789,7 +800,403 @@ function renderCompleted() {
       <h2>🎉 تمت الصفقة بنجاح!</h2>
       <p>المحتوى منشور والصفقة مكتملة. شكراً للطرفين على التعاون.</p>
     </div>
+    
+    <div id="payment-section" style="margin-top: 24px;">
+      <div class="loading">جاري تحميل بيانات الدفع...</div>
+    </div>
   `;
+}
+
+async function loadPaymentSection() {
+  const section = document.getElementById('payment-section');
+  if (!section) return;
+  
+  try {
+    // اجلب بيانات الدفع
+    const { data: payment, error } = await supabaseClient
+      .from('payments')
+      .select('*')
+      .eq('campaign_id', campaign.id)
+      .eq('creator_id', application.creator_id)
+      .maybeSingle();
+    
+    if (!payment) {
+      section.innerHTML = '<div class="loading">لم يتم إنشاء سجل دفع</div>';
+      return;
+    }
+    
+    const isCreator = currentUser.role === 'creator';
+    const isBrand = currentUser.role === 'brand';
+    const dueDate = new Date(payment.due_date);
+    const today = new Date();
+    const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+    
+    let html = '';
+    
+    // حالة 1: في انتظار بيانات البنك من المؤثرة
+    if (payment.status === 'awaiting_bank_details') {
+      if (isCreator) {
+        html = renderBankDetailsForm(payment, daysLeft);
+      } else {
+        html = renderWaitingForBankDetails(payment, daysLeft);
+      }
+    }
+    // حالة 2: المؤثرة عبت البيانات، في انتظار دفع الشركة
+    else if (payment.status === 'awaiting_payment') {
+      if (isBrand) {
+        html = renderBrandPaymentView(payment, daysLeft);
+      } else {
+        html = renderCreatorWaitingPayment(payment, daysLeft);
+      }
+    }
+    // حالة 3: الشركة دفعت، في انتظار تأكيد المؤثرة
+    else if (payment.status === 'paid_by_brand') {
+      if (isCreator) {
+        html = renderConfirmReceiptForm(payment);
+      } else {
+        html = renderBrandPaidView(payment);
+      }
+    }
+    // حالة 4: مكتمل
+    else if (payment.status === 'completed') {
+      html = renderPaymentCompleted(payment);
+    }
+    
+    section.innerHTML = html;
+  } catch (err) {
+    console.error('Payment section error:', err);
+    section.innerHTML = '<div class="loading">حصل خطأ في تحميل بيانات الدفع</div>';
+  }
+}
+
+function renderBankDetailsForm(payment, daysLeft) {
+  return `
+    <div class="current-stage-card">
+      <div class="stage-header">
+        <div class="stage-icon" style="background:var(--gold)">💰</div>
+        <div>
+          <div class="stage-title">بيانات التحويل البنكي</div>
+          <div class="stage-desc">أدخلي بياناتك ليتم تحويل المبلغ خلال ${payment.payment_min_days}-${payment.payment_max_days} يوم</div>
+        </div>
+      </div>
+      
+      <div class="agent-message">
+        <div class="agent-bubble-avatar">و</div>
+        <div class="agent-message-content">
+          مبروك! 🎉 الصفقة اكتملت بنجاح. <strong>أدخلي بيانات حسابك البنكي</strong> عشان نرسلها للشركة ليحولوا لك المبلغ.
+          <br><br>
+          💰 <strong>المبلغ:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س<br>
+          📅 <strong>الموعد المتوقع للدفع:</strong> خلال ${payment.payment_min_days}-${payment.payment_max_days} يوم
+        </div>
+      </div>
+      
+      <div class="field">
+        <label>اسم البنك</label>
+        <input type="text" id="bank-name" placeholder="مثل: بنك الراجحي" required>
+      </div>
+      
+      <div class="field">
+        <label>رقم الآيبان (IBAN)</label>
+        <input type="text" id="iban" placeholder="SA00 0000 0000 0000 0000 0000" required maxlength="34">
+        <div class="hint">يبدأ بـ SA ويتكون من 24 رقم</div>
+      </div>
+      
+      <div class="field">
+        <label>اسم صاحب الحساب (كامل كما في البنك)</label>
+        <input type="text" id="account-holder" placeholder="الاسم الكامل" required>
+      </div>
+      
+      <div class="actions">
+        <button class="btn btn-primary" onclick="submitBankDetails('${payment.id}')">حفظ بيانات التحويل</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderWaitingForBankDetails(payment, daysLeft) {
+  return `
+    <div class="current-stage-card">
+      <div class="stage-header">
+        <div class="stage-icon" style="background:var(--gold)">💰</div>
+        <div>
+          <div class="stage-title">في انتظار بيانات التحويل</div>
+          <div class="stage-desc">المؤثرة تجهز بيانات حسابها البنكي</div>
+        </div>
+      </div>
+      
+      <div class="agent-message">
+        <div class="agent-bubble-avatar">و</div>
+        <div class="agent-message-content">
+          في انتظار <strong>${application.creator_name}</strong> ترسل بيانات حسابها البنكي. راح ننبهك لما تخلص.
+          <br><br>
+          💰 <strong>المبلغ:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س<br>
+          📅 <strong>مدة الدفع المتفق عليها:</strong> ${payment.payment_min_days}-${payment.payment_max_days} يوم
+        </div>
+      </div>
+      
+      <div class="waiting-card">
+        <div class="icon">⏳</div>
+        <h3>في انتظار المؤثرة</h3>
+        <p>راح تشاهد بيانات التحويل هنا بمجرد ما تكتمل</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderBrandPaymentView(payment, daysLeft) {
+  const statusColor = daysLeft < 0 ? 'var(--accent)' : daysLeft <= 7 ? 'var(--gold)' : 'var(--olive)';
+  const statusText = daysLeft < 0 ? `متأخر ${Math.abs(daysLeft)} يوم ⚠️` : `${daysLeft} يوم متبقي`;
+  
+  return `
+    <div class="current-stage-card">
+      <div class="stage-header">
+        <div class="stage-icon" style="background:var(--gold)">💰</div>
+        <div>
+          <div class="stage-title">دفع المؤثرة</div>
+          <div class="stage-desc">حولوا المبلغ للحساب أدناه</div>
+        </div>
+      </div>
+      
+      <div class="agent-message" style="background:rgba(184, 145, 94, 0.1); border:1px solid rgba(184, 145, 94, 0.25)">
+        <div class="agent-bubble-avatar" style="background:var(--gold)">💰</div>
+        <div class="agent-message-content">
+          <strong>بيانات التحويل:</strong><br><br>
+          🏦 <strong>البنك:</strong> ${escapeHtml(payment.bank_name)}<br>
+          💳 <strong>الآيبان:</strong> 
+          <span style="font-family:'Courier New', monospace; background:white; padding:4px 8px; border-radius:6px; display:inline-block; margin-top:4px">
+            ${escapeHtml(payment.iban)}
+          </span>
+          <button onclick="copyIban('${escapeHtmlAttr(payment.iban)}', this)" style="background:var(--ink); color:var(--cream); border:none; padding:4px 10px; border-radius:100px; font-family:var(--font-body); font-size:11px; cursor:pointer; margin-inline-start:6px">نسخ</button>
+          <br>
+          👤 <strong>اسم صاحب الحساب:</strong> ${escapeHtml(payment.account_holder_name)}<br>
+          💰 <strong>المبلغ:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س
+        </div>
+      </div>
+      
+      <div style="background:${statusColor}; color:white; padding:14px 20px; border-radius:14px; margin-bottom:20px; text-align:center;">
+        <div style="font-size:13px; opacity:0.9; margin-bottom:4px">⏰ موعد التحويل</div>
+        <div style="font-family:var(--font-display); font-size:20px; font-weight:600">${statusText}</div>
+        <div style="font-size:12px; opacity:0.9; margin-top:4px">الموعد الأقصى: ${new Date(payment.due_date).toLocaleDateString('ar-SA')}</div>
+      </div>
+      
+      <div class="actions">
+        <button class="btn btn-success" onclick="confirmBrandPaid('${payment.id}')">تم التحويل ✓</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderCreatorWaitingPayment(payment, daysLeft) {
+  const statusColor = daysLeft < 0 ? 'var(--accent)' : daysLeft <= 7 ? 'var(--gold)' : 'var(--olive)';
+  const statusText = daysLeft < 0 ? `متأخر ${Math.abs(daysLeft)} يوم` : `${daysLeft} يوم متبقي`;
+  
+  return `
+    <div class="current-stage-card">
+      <div class="stage-header">
+        <div class="stage-icon" style="background:var(--gold)">💰</div>
+        <div>
+          <div class="stage-title">في انتظار التحويل</div>
+          <div class="stage-desc">الشركة قاعدة تجهز التحويل</div>
+        </div>
+      </div>
+      
+      <div class="agent-message">
+        <div class="agent-bubble-avatar">و</div>
+        <div class="agent-message-content">
+          أرسلتي بياناتك البنكية بنجاح! ✅<br>
+          الشركة استلمتها وراح تحول لك المبلغ خلال المدة المتفق عليها.
+          <br><br>
+          💰 <strong>المبلغ المنتظر:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س
+        </div>
+      </div>
+      
+      <div style="background:${statusColor}; color:white; padding:20px; border-radius:14px; margin-bottom:20px; text-align:center;">
+        <div style="font-size:13px; opacity:0.9; margin-bottom:6px">⏰ الموعد المتوقع للتحويل</div>
+        <div style="font-family:var(--font-display); font-size:24px; font-weight:600">${statusText}</div>
+        <div style="font-size:12px; opacity:0.9; margin-top:6px">الموعد الأقصى: ${new Date(payment.due_date).toLocaleDateString('ar-SA')}</div>
+      </div>
+      
+      <div class="waiting-card">
+        <div class="icon">⏳</div>
+        <h3>في انتظار تحويل الشركة</h3>
+        <p>لما يتم التحويل، راح يطلع لك زر "استلمت المبلغ" لتأكيد العملية</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderConfirmReceiptForm(payment) {
+  return `
+    <div class="current-stage-card">
+      <div class="stage-header">
+        <div class="stage-icon" style="background:var(--olive)">✓</div>
+        <div>
+          <div class="stage-title">تأكيد استلام المبلغ</div>
+          <div class="stage-desc">الشركة أكدت التحويل، تأكدي من حسابك</div>
+        </div>
+      </div>
+      
+      <div class="agent-message">
+        <div class="agent-bubble-avatar">و</div>
+        <div class="agent-message-content">
+          الشركة أكدت تحويل <strong>${payment.amount.toLocaleString('ar-SA')} ر.س</strong> لحسابك.
+          <br><br>
+          ⏰ تاريخ التحويل: ${new Date(payment.brand_paid_at).toLocaleDateString('ar-SA')}<br><br>
+          <strong>تحققي من حسابك البنكي.</strong> لما يوصل المبلغ، اضغطي "استلمت" لإكمال الصفقة.
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button class="btn btn-success" onclick="confirmCreatorReceived('${payment.id}')">استلمت المبلغ ✓</button>
+        <button class="btn btn-secondary" onclick="reportPaymentIssue('${payment.id}')">لم يصل بعد</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderBrandPaidView(payment) {
+  return `
+    <div class="current-stage-card">
+      <div class="stage-header">
+        <div class="stage-icon" style="background:var(--olive)">✓</div>
+        <div>
+          <div class="stage-title">تم التحويل - في انتظار التأكيد</div>
+          <div class="stage-desc">المؤثرة راح تأكد الاستلام</div>
+        </div>
+      </div>
+      
+      <div class="agent-message" style="background:rgba(91,96,66,0.08); border:1px solid rgba(91,96,66,0.2)">
+        <div class="agent-bubble-avatar" style="background:var(--olive)">✓</div>
+        <div class="agent-message-content">
+          <strong>سجلت التحويل بنجاح!</strong><br><br>
+          📅 تاريخ التحويل: ${new Date(payment.brand_paid_at).toLocaleDateString('ar-SA')}<br>
+          💰 المبلغ: ${payment.amount.toLocaleString('ar-SA')} ر.س
+          <br><br>
+          في انتظار <strong>${application.creator_name}</strong> تأكد استلام المبلغ.
+        </div>
+      </div>
+      
+      <div class="waiting-card">
+        <div class="icon">⏳</div>
+        <h3>في انتظار تأكيد المؤثرة</h3>
+      </div>
+    </div>
+  `;
+}
+
+function renderPaymentCompleted(payment) {
+  return `
+    <div class="completed-banner" style="background:linear-gradient(135deg, var(--olive), var(--gold))">
+      <h2>💰 تم الدفع بنجاح!</h2>
+      <p>المبلغ ${payment.amount.toLocaleString('ar-SA')} ر.س تم تحويله واستلامه. الصفقة مكتملة 100%.</p>
+    </div>
+  `;
+}
+
+async function submitBankDetails(paymentId) {
+  const bankName = document.getElementById('bank-name').value.trim();
+  const iban = document.getElementById('iban').value.trim().replace(/\s/g, '').toUpperCase();
+  const accountHolder = document.getElementById('account-holder').value.trim();
+  
+  if (!bankName || !iban || !accountHolder) {
+    alert('الرجاء تعبئة جميع الحقول');
+    return;
+  }
+  
+  if (!iban.startsWith('SA') || iban.length !== 24) {
+    alert('الآيبان غير صحيح. يجب أن يبدأ بـ SA ويتكون من 24 رقم');
+    return;
+  }
+  
+  try {
+    const { error } = await supabaseClient
+      .from('payments')
+      .update({
+        bank_name: bankName,
+        iban: iban,
+        account_holder_name: accountHolder,
+        bank_details_submitted_at: new Date().toISOString(),
+        status: 'awaiting_payment'
+      })
+      .eq('id', paymentId);
+    
+    if (error) throw error;
+    
+    alert('تم حفظ بيانات التحويل بنجاح ✓');
+    loadPaymentSection();
+  } catch (err) {
+    console.error(err);
+    alert('حصل خطأ. حاولي مرة أخرى');
+  }
+}
+
+async function confirmBrandPaid(paymentId) {
+  if (!confirm('متأكدون من تحويل المبلغ للمؤثرة؟')) return;
+  
+  try {
+    const { error } = await supabaseClient
+      .from('payments')
+      .update({
+        brand_paid_at: new Date().toISOString(),
+        status: 'paid_by_brand'
+      })
+      .eq('id', paymentId);
+    
+    if (error) throw error;
+    
+    alert('تم تسجيل التحويل ✓');
+    loadPaymentSection();
+  } catch (err) {
+    console.error(err);
+    alert('حصل خطأ. حاول مرة أخرى');
+  }
+}
+
+async function confirmCreatorReceived(paymentId) {
+  if (!confirm('متأكدة من استلام المبلغ في حسابك؟')) return;
+  
+  try {
+    const { error } = await supabaseClient
+      .from('payments')
+      .update({
+        creator_received_at: new Date().toISOString(),
+        status: 'completed'
+      })
+      .eq('id', paymentId);
+    
+    if (error) throw error;
+    
+    alert('🎉 شكراً! الصفقة مكتملة 100%');
+    loadPaymentSection();
+  } catch (err) {
+    console.error(err);
+    alert('حصل خطأ. حاولي مرة أخرى');
+  }
+}
+
+async function reportPaymentIssue(paymentId) {
+  if (!confirm('سيتم إبلاغ الشركة إن المبلغ لم يصل بعد. متأكدة؟')) return;
+  
+  try {
+    await supabaseClient
+      .from('payments')
+      .update({
+        creator_notes: 'المؤثرة أبلغت أن المبلغ لم يصل بعد - ' + new Date().toLocaleString('ar-SA')
+      })
+      .eq('id', paymentId);
+    
+    alert('تم إبلاغ الشركة. تواصلي معاهم مباشرة إذا تأخر الأمر.');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function copyIban(iban, btn) {
+  navigator.clipboard.writeText(iban).then(() => {
+    const original = btn.textContent;
+    btn.textContent = 'تم النسخ ✓';
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  });
 }
 
 function renderHistory() {
