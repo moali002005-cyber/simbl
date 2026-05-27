@@ -4,26 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة المؤثرة - سيمبل</title>
-  <!-- OneSignal Web Push SDK -->
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.init({
-        appId: "67904a62-f4af-431b-84dd-800842d7a8b6",
-        safari_web_id: "web.onesignal.auto.simbl",
-        notifyButton: { enable: false },
-        allowLocalhostAsSecureOrigin: true
-      });
-
-      // ربط المؤثرة بحسابها في سيمبل
-      const user = JSON.parse(localStorage.getItem('simbl_user') || 'null');
-      if (user && user.id) {
-        await OneSignal.login(user.id);
-        console.log('OneSignal linked to user:', user.id);
-      }
-    });
-  </script>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#D4523A">
 <meta name="apple-mobile-web-app-capable" content="yes">
