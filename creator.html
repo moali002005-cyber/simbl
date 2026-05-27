@@ -598,6 +598,9 @@ let currentFilter = 'all';
 let currentCampaignId = null;
 
 async function init() {
+  // محاولة استعادة الجلسة من cookie لو localStorage فاضي
+  await tryRestoreSession();
+
   currentUser = getCurrentUser();
   if (!currentUser) {
     alert('يرجى تسجيل الدخول أولاً');

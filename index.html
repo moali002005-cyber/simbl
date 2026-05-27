@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="سيمبل">
 <link rel="apple-touch-icon" href="/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1217,6 +1218,7 @@ body::before {
   </div>
 </footer>
 
+<script src="supabase-config.js"></script>
 <script>
 window.addEventListener('scroll', () => {
   document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
@@ -1236,6 +1238,30 @@ const observer = new IntersectionObserver(entries => {
 }, { threshold: 0.15 });
 
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// تحديث الأزرار لو المستخدم مسجل دخول
+(async function checkLoggedIn() {
+  await tryRestoreSession();
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const dashboardUrl = user.role === 'creator' ? '/creator.html' : '/brand.html';
+  const dashboardLabel = user.role === 'creator' ? 'لوحة المؤثرة' : 'لوحة الشركة';
+
+  // تحديث زر "تسجيل دخول" في الأعلى ليصير "ادخلي لوحتك"
+  document.querySelectorAll('a[href="/login.html"]').forEach(link => {
+    link.href = dashboardUrl;
+    link.textContent = dashboardLabel;
+  });
+
+  // تحديث أزرار "ابدأ كشركة" و "ابدأ كمؤثرة"
+  document.querySelectorAll('a[href="/signup.html"]').forEach(link => {
+    link.href = dashboardUrl;
+    if (link.textContent.includes('ابدأ')) {
+      link.textContent = 'ادخلي ' + dashboardLabel;
+    }
+  });
+})();
 </script>
 
 </body>

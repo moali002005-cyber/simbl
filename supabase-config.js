@@ -83,14 +83,61 @@ async function dbGetCampaignApplications(campaignId) {
 }
 
 function getCurrentUser() {
-  const json = localStorage.getItem('simbl_current_user');
+  // أولاً نحاول من localStorage
+  let json = localStorage.getItem('simbl_current_user');
+
+  // لو ما لقينا، نحاول من cookie كنسخة احتياطية
+  if (!json) {
+    const cookieMatch = document.cookie.match(/simbl_user_id=([^;]+)/);
+    if (cookieMatch) {
+      // فيه cookie، لكن البيانات في localStorage راحت
+      // نرجع null عشان الصفحة تجلب البيانات من قاعدة البيانات
+      return null;
+    }
+  }
+
   return json ? JSON.parse(json) : null;
 }
 
 function saveCurrentUser(user) {
+  // نحفظ في localStorage (الأساسي)
   localStorage.setItem('simbl_current_user', JSON.stringify(user));
+
+  // نحفظ id في cookie لمدة سنة (احتياطي)
+  const expires = new Date();
+  expires.setFullYear(expires.getFullYear() + 1);
+  document.cookie = `simbl_user_id=${user.id}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
 }
 
 function clearCurrentUser() {
   localStorage.removeItem('simbl_current_user');
+  // نمسح الـ cookie
+  document.cookie = 'simbl_user_id=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+}
+
+// محاولة استعادة الجلسة من cookie لو localStorage راح
+async function tryRestoreSession() {
+  // لو الجلسة موجودة في localStorage، خلاص
+  if (localStorage.getItem('simbl_current_user')) return true;
+
+  // نشوف cookie
+  const cookieMatch = document.cookie.match(/simbl_user_id=([^;]+)/);
+  if (!cookieMatch) return false;
+
+  const userId = cookieMatch[1];
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (data) {
+      saveCurrentUser(data);
+      return true;
+    }
+  } catch (err) {
+    console.error('Failed to restore session:', err);
+  }
+  return false;
 }
