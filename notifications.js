@@ -327,6 +327,7 @@ async function loadNotifications() {
 }
 
 function showDebug(msg) {
+  return;
   let debugEl = document.getElementById('notif-debug');
   if (!debugEl) {
     debugEl = document.createElement('div');
