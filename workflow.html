@@ -799,7 +799,8 @@ function renderHistory() {
       icon: '1',
       title: 'تم إرسال العنوان',
       time: workflow.address_completed_at,
-      data: workflow.shipping_address
+      data: workflow.shipping_address,
+      type: 'text'
     });
   }
   if (workflow.shipped_at) {
@@ -807,7 +808,8 @@ function renderHistory() {
       icon: '2',
       title: 'تم الشحن',
       time: workflow.shipped_at,
-      data: workflow.tracking_number ? 'رقم التتبع: ' + workflow.tracking_number : workflow.shipping_note
+      data: workflow.tracking_number ? 'رقم التتبع: ' + workflow.tracking_number : workflow.shipping_note,
+      type: 'text'
     });
   }
   if (workflow.received_at) {
@@ -823,7 +825,9 @@ function renderHistory() {
       icon: '4',
       title: 'تم رفع المحتوى',
       time: workflow.content_uploaded_at,
-      data: workflow.content_url
+      data: workflow.content_url,
+      type: 'link',
+      label: 'فتح رابط المحتوى ↗'
     });
   }
   if (workflow.approved_at) {
@@ -831,7 +835,8 @@ function renderHistory() {
       icon: '5',
       title: workflow.approval_status === 'approved' ? 'تمت الموافقة' : 'طلب تعديل',
       time: workflow.approved_at,
-      data: workflow.revision_note
+      data: workflow.revision_note,
+      type: 'text'
     });
   }
   if (workflow.published_at) {
@@ -839,7 +844,9 @@ function renderHistory() {
       icon: '6',
       title: 'تم النشر',
       time: workflow.published_at,
-      data: workflow.published_url + (workflow.promo_code ? '\nكود الترويج: ' + workflow.promo_code : '')
+      type: 'published',
+      videoUrl: workflow.published_url,
+      promoCode: workflow.promo_code
     });
   }
 
@@ -848,18 +855,72 @@ function renderHistory() {
   return `
     <div class="history-section">
       <div class="history-title">سجل المراحل</div>
-      ${items.reverse().map(item => `
-        <div class="history-item">
-          <div class="history-icon">${item.icon}</div>
-          <div class="history-content">
-            <h4>${item.title}</h4>
-            ${item.data ? `<div class="data">${escapeHtml(item.data)}</div>` : ''}
+      ${items.reverse().map(item => {
+        let dataHtml = '';
+        if (item.type === 'published') {
+          // عرض خاص لمرحلة النشر
+          dataHtml = `
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px">
+              <a href="${escapeHtml(item.videoUrl)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; background:var(--accent); color:white; padding:10px 16px; border-radius:100px; text-decoration:none; font-weight:500; font-size:13px; font-family:var(--font-body)">
+                <span>🎬</span>
+                <span>مشاهدة الفيديو</span>
+              </a>
+              ${item.promoCode ? `
+                <div style="background:var(--cream-darker); padding:10px 14px; border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:10px">
+                  <div style="flex:1; min-width:0">
+                    <div style="font-size:11px; color:var(--ink-muted); margin-bottom:2px">كود الترويج</div>
+                    <div style="font-family:'Courier New', monospace; font-size:12px; word-break:break-all; color:var(--ink)">${escapeHtml(item.promoCode)}</div>
+                  </div>
+                  <button onclick="copyPromoCode(this, '${escapeHtmlAttr(item.promoCode)}')" style="background:var(--ink); color:var(--cream); border:none; padding:8px 14px; border-radius:100px; font-family:var(--font-body); font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0">نسخ</button>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        } else if (item.type === 'link' && item.data) {
+          dataHtml = `<a href="${escapeHtml(item.data)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:white; padding:8px 14px; border-radius:100px; text-decoration:none; font-weight:500; font-size:12px; font-family:var(--font-body); margin-top:6px">${item.label || 'فتح الرابط ↗'}</a>`;
+        } else if (item.data) {
+          dataHtml = `<div class="data">${escapeHtml(item.data)}</div>`;
+        }
+        return `
+          <div class="history-item">
+            <div class="history-icon">${item.icon}</div>
+            <div class="history-content">
+              <h4>${item.title}</h4>
+              ${dataHtml}
+            </div>
+            <div class="history-time">${formatDate(item.time)}</div>
           </div>
-          <div class="history-time">${formatDate(item.time)}</div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `;
+}
+
+function escapeHtmlAttr(text) {
+  return (text || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+
+function copyPromoCode(btn, code) {
+  navigator.clipboard.writeText(code).then(() => {
+    const original = btn.textContent;
+    btn.textContent = 'تم النسخ ✓';
+    btn.style.background = 'var(--olive)';
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.style.background = 'var(--ink)';
+    }, 2000);
+  }).catch(() => {
+    // fallback للمتصفحات اللي ما تدعم clipboard API
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    const original = btn.textContent;
+    btn.textContent = 'تم النسخ ✓';
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  });
 }
 
 function escapeHtml(text) {
