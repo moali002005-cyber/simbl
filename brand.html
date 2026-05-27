@@ -550,7 +550,18 @@ textarea { resize: vertical; min-height: 80px; }
         <label>متطلبات المؤثرة</label>
         <input type="text" name="requirements" placeholder="مثل: 50K+ متابع، مقيمة بالرياض">
       </div>
-
+<div class="field" style="grid-column: span 2;">
+        <label>مدة الدفع (إجباري) - بعد إكمال الحملة، الدفع خلال:</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="number" name="payment_min_days" placeholder="من" min="1" max="365" value="7" required style="flex:1;" />
+          <span>إلى</span>
+          <input type="number" name="payment_max_days" placeholder="إلى" min="1" max="365" value="30" required style="flex:1;" />
+          <span>يوم</span>
+        </div>
+        <small style="color: #6B645B; font-size: 12px; margin-top: 4px; display: block;">
+          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرات على حملتك.
+        </small>
+      </div>
       <div class="field">
         <label>الحد الأقصى للسعر (سقف الميزانية)</label>
         <input type="number" name="maxBudget" required placeholder="مثل: 2000">
@@ -772,6 +783,8 @@ async function submitCampaign(event) {
     duration: fd.get('duration'),
     package: fd.get('package'),
     requirements: fd.get('requirements') || null,
+    payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
+    payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
     tags: [industry],
     status: 'active'
   };
