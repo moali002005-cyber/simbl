@@ -502,8 +502,8 @@ async function init() {
     await loadOrCreateWorkflow();
     render();
 
-    // تحديث تلقائي كل 8 ثواني
-    pollInterval = setInterval(loadAndRender, 8000);
+    // تحديث تلقائي كل 30 ثانية
+    pollInterval = setInterval(loadAndRender, 30000);
   } catch (err) {
     console.error(err);
     document.getElementById('content').innerHTML = '<div class="loading">حصل خطأ. حدث الصفحة.</div>';
@@ -530,8 +530,21 @@ async function loadOrCreateWorkflow() {
 }
 
 async function loadAndRender() {
+  // لو المستخدم يكتب في حقل، لا نعيد الرسم (نحدث البيانات فقط)
+  const activeEl = document.activeElement;
+  const isTyping = activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT');
+
+  const previousStage = workflow ? workflow.current_stage : null;
   await loadOrCreateWorkflow();
-  render();
+
+  // نعيد الرسم فقط إذا:
+  // 1. تغيرت المرحلة (الطرف الآخر سوى إجراء)
+  // 2. المستخدم مو يكتب حالياً
+  const stageChanged = previousStage !== workflow.current_stage;
+
+  if (stageChanged || !isTyping) {
+    render();
+  }
 }
 
 async function updateWorkflow(updates) {
