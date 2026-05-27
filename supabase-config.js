@@ -6,7 +6,7 @@ if (!window.supabase) {
   console.error('Supabase library not loaded!');
 }
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function dbSignup(userData) {
   const { data, error } = await supabaseClient
