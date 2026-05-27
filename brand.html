@@ -783,6 +783,31 @@ async function submitCampaign(event) {
 
     // إرسال إشعار لكل المؤثرات
     notifyAllCreators(campaign.title, currentUser.company_name || 'الشركة', createdCampaign?.id).catch(err => console.error(err));
+    // إرسال Push Notification لكل المؤثرات
+      try {
+        const { data: creators } = await supabaseClient
+          .from('users')
+          .select('id')
+          .eq('role', 'creator');
+        
+        if (creators && creators.length > 0) {
+          fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + supabaseClient.supabaseKey
+            },
+            body: JSON.stringify({
+              title: '🎯 حملة جديدة!',
+              body: (currentUser.company_name || 'شركة') + ': ' + campaign.title,
+              url: '/creator.html',
+              target_users: creators.map(c => c.id)
+            })
+          }).then(r => r.json()).then(r => console.log('Push sent:', r));
+        }
+      } catch (pushErr) {
+        console.error('Push failed:', pushErr);
+      }
 
     await loadData();
     setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرات الآن.'), 100);
