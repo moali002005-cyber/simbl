@@ -1,18 +1,22 @@
 // Service Worker لسيمبل
 // يستقبل الإشعارات Push ويعرضها حتى لو المتصفح مقفول
 
-const CACHE_VERSION = 'simbl-v1';
+const CACHE_VERSION = 'simbl-v2';
 
 // التثبيت
 self.addEventListener('install', (event) => {
-  console.log('Simbl SW installed');
+  console.log('Simbl SW installed', CACHE_VERSION);
   self.skipWaiting();
 });
 
-// التفعيل
+// التفعيل — نحذف أي كاش قديم لضمان عدم ظهور نسخة قديمة
 self.addEventListener('activate', (event) => {
-  console.log('Simbl SW activated');
-  event.waitUntil(clients.claim());
+  console.log('Simbl SW activated', CACHE_VERSION);
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then(() => clients.claim())
+  );
 });
 
 // استقبال Push notification
@@ -73,7 +77,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// fetch event (للعمل بدون إنترنت لاحقاً)
+// fetch event (نترك المتصفح يتعامل عادي - لا تخزين للصفحات)
 self.addEventListener('fetch', (event) => {
-  // الحين ما نسوي شي خاص، نترك المتصفح يتعامل عادي
+  // لا نسوي كاش للصفحات، عشان دايم يطلع آخر تحديث
 });
