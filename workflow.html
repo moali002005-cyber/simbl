@@ -613,6 +613,10 @@ function render() {
 
     ${renderHistory()}
   `;
+  // إذا كانت الصفقة مكتملة، حمل بيانات الدفع
+  if (workflow.current_stage === 'completed') {
+    loadPaymentSection();
+  }
 }
 
 function renderCurrentStage(myTurn) {
