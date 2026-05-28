@@ -439,7 +439,7 @@ function render() {
         <h3>${application.creator_name}</h3>
         <div class="meta">
           ${application.handle || ''} ·
-          ${application.followers ? (application.followers / 1000).toFixed(0) + 'K متابع' : 'مؤثرة'} ·
+          ${application.followers ? (application.followers / 1000).toFixed(0) + 'K متابع' : 'معلن'} ·
           ${application.platform || ''}
         </div>
       </div>
@@ -463,11 +463,11 @@ function render() {
         </div>
       ` : !isCreator ? `
         <div class="read-only-notice">
-          أنت تشاهد المفاوضة كمراقب. المؤثرة هي اللي ترد على الوكيل.
+          أنت تشاهد المفاوضة كمراقب. المعلن هي اللي ترد على الوكيل.
         </div>
       ` : `
         <div class="chat-input">
-          <textarea id="creator-input" placeholder="اكتبي ردك هنا..." rows="1"
+          <textarea id="creator-input" placeholder="اكتب ردك هنا..." rows="1"
                     onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendCreatorMessage();}"></textarea>
           <button onclick="sendCreatorMessage()" id="send-btn">إرسال</button>
         </div>
@@ -601,7 +601,7 @@ async function sendCreatorMessage() {
     console.error(err);
     isAgentThinking = false;
     render();
-    alert('حصل خطأ. حاولي مرة أخرى.');
+    alert('حصل خطأ. حاول مرة أخرى.');
   }
 }
 

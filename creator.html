@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة المؤثرة - سيمبل</title>
+<title>لوحة المعلن - سيمبل</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -318,7 +318,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
     <div class="user-menu" id="user-menu">
       <div class="user-pill">
         <div class="user-avatar" id="user-initial">م</div>
-        <span class="user-name" id="user-name">مؤثرة</span>
+        <span class="user-name" id="user-name">معلن</span>
       </div>
       <button class="btn-logout" onclick="logout()">خروج</button>
     </div>
@@ -328,7 +328,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 <main class="container">
   <div class="page-header">
     <h1 class="welcome">أهلاً <span class="italic" id="welcome-name">بك</span></h1>
-    <p class="welcome-sub">تصفحي الحملات المتاحة وقدمي عروضك</p>
+    <p class="welcome-sub">تصفحي الحملات المتاحة وقدّم عروضك</p>
   </div>
 
   <div class="tabs">
@@ -364,7 +364,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 <div class="modal-backdrop" id="apply-modal">
   <div class="modal">
     <h3 id="modal-title">تقديم عرض</h3>
-    <p class="sub" id="modal-sub">قدمي عرضك على هذه الحملة. الوكيل الذكي راح يتفاوض معك بناءً على عرضك.</p>
+    <p class="sub" id="modal-sub">قدّم عرضك على هذه الحملة. الوكيل الذكي راح يتفاوض معك بناءً على عرضك.</p>
 
     <form onsubmit="submitApplication(event)">
       <div class="field">
@@ -405,12 +405,12 @@ async function init() {
   }
 
   if (currentUser.role !== 'creator') {
-    alert('هذه الصفحة مخصصة للمؤثرات. سيتم تحويلك للوحة الشركة.');
+    alert('هذه الصفحة مخصصة للمعلنين. سيتم تحويلك للوحة الشركة.');
     window.location.href = '/brand.html';
     return;
   }
 
-  const firstName = (currentUser.name || 'مؤثرة').split(' ')[0];
+  const firstName = (currentUser.name || 'معلن').split(' ')[0];
   document.getElementById('user-name').textContent = firstName;
   document.getElementById('user-initial').textContent = firstName[0];
   document.getElementById('welcome-name').textContent = firstName;
@@ -480,7 +480,7 @@ function renderCampaigns() {
           <button class="btn-apply ${applied ? 'applied' : ''}"
                   onclick="${applied ? '' : `openApplyModal('${c.id}')`}"
                   ${applied ? 'disabled' : ''}>
-            ${applied ? 'تم التقديم ✓' : 'قدمي عرضك'}
+            ${applied ? 'تم التقديم ✓' : 'قدّم عرضك'}
           </button>
         </div>
       </div>
@@ -496,8 +496,8 @@ function renderApplications() {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">◌</div>
-        <h3>لم تقدمي على أي حملة بعد</h3>
-        <p>تصفحي الحملات المتاحة وقدمي عرضك على ما يناسبك</p>
+        <h3>لم تقدّم على أي حملة بعد</h3>
+        <p>تصفحي الحملات المتاحة وقدّم عرضك على ما يناسبك</p>
       </div>`;
     return;
   }
@@ -580,7 +580,7 @@ async function submitApplication(event) {
       createNotification(
         campaign.brand_id,
         'new_application',
-        `📨 ${currentUser.name || 'مؤثرة'} قدّمت عرضاً`,
+        `📨 ${currentUser.name || 'معلن'} قدّمت عرضاً`,
         `على حملة: ${campaign.title} · بسعر ${price} ر.س`,
         '/brand.html'
       ).catch(err => console.error(err));
@@ -603,7 +603,7 @@ async function submitApplication(event) {
     console.error(err);
     submitBtn.disabled = false;
     submitBtn.textContent = original;
-    alert('حصل خطأ أثناء إرسال العرض. حاولي مرة أخرى.');
+    alert('حصل خطأ أثناء إرسال العرض. حاول مرة أخرى.');
   }
 }
 
@@ -638,7 +638,7 @@ async function startAutoNegotiation(application, campaign) {
     };
     const applicationPayload = {
       id: application.id,
-      creator_name: currentUser.name || 'مؤثرة',
+      creator_name: currentUser.name || 'معلن',
       price: application.price,
       platform: currentUser.platform,
       followers: currentUser.followers,
@@ -661,7 +661,7 @@ async function startAutoNegotiation(application, campaign) {
 }
 
 function logout() {
-  if (confirm('متأكدة من تسجيل الخروج؟')) {
+  if (confirm('متأكد من تسجيل الخروج؟')) {
     clearCurrentUser();
     window.location.href = '/';
   }

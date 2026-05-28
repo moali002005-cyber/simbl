@@ -417,10 +417,10 @@ function renderCurrentStage(myTurn) {
     address: {
       icon: '○',
       title: 'عنوان الشحن',
-      desc: 'المؤثرة تدخل عنوانها لاستلام المنتج',
+      desc: 'المعلن يدخل عنوانه لاستلام المنتج',
       agentMsg: myTurn
-        ? 'يا هلا! عشان نبدأ الصفقة، أحتاج <strong>عنوان الشحن</strong>. اكتبي عنوانك الكامل (المدينة، الحي، الشارع، رقم المبنى، رقم الجوال للمندوب).'
-        : `في انتظار <strong>${application.creator_name}</strong> ترسل عنوان الشحن. راح ننبهك لما تخلص.`,
+        ? 'يا هلا! عشان نبدأ الصفقة، أحتاج <strong>عنوان الشحن</strong>. اكتب عنوانك الكامل (المدينة، الحي، الشارع، رقم المبنى، رقم الجوال للمندوب).'
+        : `في انتظار <strong>${application.creator_name}</strong> يرسل عنوان الشحن. راح ننبهك لما يخلص.`,
       form: myTurn ? `
         <div class="field">
           <label>العنوان الكامل</label>
@@ -462,10 +462,10 @@ function renderCurrentStage(myTurn) {
     received: {
       icon: '◉',
       title: 'استلام المنتج',
-      desc: 'تأكيد استلام المؤثرة للمنتج',
+      desc: 'تأكيد استلام المعلن للمنتج',
       agentMsg: myTurn
-        ? 'تم الشحن! بمجرد ما يوصلك المنتج، اضغطي زر <strong>"تم الاستلام"</strong> عشان نكمل للمرحلة الجاية (التصوير).'
-        : `في انتظار <strong>${application.creator_name}</strong> تستلم المنتج وتأكد ذلك.`,
+        ? 'تم الشحن! بمجرد ما يوصلك المنتج، اضغط زر <strong>"تم الاستلام"</strong> عشان نكمل للمرحلة الجاية (التصوير).'
+        : `في انتظار <strong>${application.creator_name}</strong> يستلم المنتج ويأكد ذلك.`,
       shippingInfo: workflow.tracking_number || workflow.shipping_note ? `<div class="agent-message" style="background:rgba(10,10,10,0.04); border:1px solid rgba(10,10,10,0.12)">
         <div class="agent-bubble-avatar" style="background:var(--gold)">↗</div>
         <div class="agent-message-content">
@@ -483,10 +483,10 @@ function renderCurrentStage(myTurn) {
     content_upload: {
       icon: '◇',
       title: 'رفع المحتوى',
-      desc: 'المؤثرة ترفع المحتوى للمراجعة',
+      desc: 'المعلن يرفع المحتوى للمراجعة',
       agentMsg: myTurn
-        ? 'حلو! استلمتي المنتج. الحين <strong>صوري المحتوى</strong> ولما تخلصين، ارفعي رابط الفيديو/الصور (Google Drive, Dropbox, أي رابط). الشركة راح تراجعه قبل النشر.'
-        : `في انتظار ${application.creator_name} تصور المحتوى وترفعه للمراجعة.`,
+        ? 'حلو! استلمت المنتج. الحين <strong>صوّر المحتوى</strong> ولما تخلص، ارفع رابط الفيديو/الصور (Google Drive, Dropbox, أي رابط). الشركة راح تراجعه قبل النشر.'
+        : `في انتظار ${application.creator_name} يصوّر المحتوى ويرفعه للمراجعة.`,
       form: myTurn ? `
         <div class="field">
           <label>رابط المحتوى</label>
@@ -495,7 +495,7 @@ function renderCurrentStage(myTurn) {
         </div>
         <div class="field">
           <label>ملاحظات <span style="color:var(--ink-faint)">(اختياري)</span></label>
-          <textarea id="content-note" placeholder="وصف بسيط للمحتوى، أي معلومات تحبين تضيفينها..."></textarea>
+          <textarea id="content-note" placeholder="وصف بسيط للمحتوى، أي معلومات تحب تضيفها..."></textarea>
         </div>
         <div class="actions">
           <button class="btn btn-primary" onclick="submitContent()">رفع المحتوى للمراجعة</button>
@@ -536,10 +536,10 @@ function renderCurrentStage(myTurn) {
     published: {
       icon: '✦',
       title: 'النشر',
-      desc: 'المؤثرة تنشر المحتوى وترسل الرابط',
+      desc: 'المعلن ينشر المحتوى ويرسل الرابط',
       agentMsg: myTurn
-        ? 'الشركة وافقت على المحتوى! <strong>انشريه على حسابك</strong>، ولما تنشرينه أرسلي الرابط هنا.'
-        : `${application.creator_name} استلمت الموافقة وقاعدة تنشر المحتوى الحين.`,
+        ? 'الشركة وافقت على المحتوى! <strong>انشره على حسابك</strong>، ولما تنشره أرسل الرابط هنا.'
+        : `${application.creator_name} استلم الموافقة وقاعد ينشر المحتوى الحين.`,
       form: myTurn ? `
         <div class="field">
           <label>رابط المنشور</label>
@@ -653,13 +653,13 @@ function renderBankDetailsForm(payment) {
         <div class="stage-icon" style="background:var(--gold)">💰</div>
         <div>
           <div class="stage-title">بيانات التحويل البنكي</div>
-          <div class="stage-desc">أدخلي بياناتك ليتم تحويل المبلغ خلال ${payment.payment_min_days}-${payment.payment_max_days} يوم</div>
+          <div class="stage-desc">أدخل بياناتك ليتم تحويل المبلغ خلال ${payment.payment_min_days}-${payment.payment_max_days} يوم</div>
         </div>
       </div>
       <div class="agent-message">
         <div class="agent-bubble-avatar">و</div>
         <div class="agent-message-content">
-          مبروك! 🎉 الصفقة اكتملت بنجاح. <strong>أدخلي بيانات حسابك البنكي</strong> عشان نرسلها للشركة ليحولوا لك المبلغ.
+          مبروك! 🎉 الصفقة اكتملت بنجاح. <strong>أدخل بيانات حسابك البنكي</strong> عشان نرسلها للشركة ليحولوا لك المبلغ.
           <br><br>
           💰 <strong>المبلغ:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س<br>
           📅 <strong>الموعد المتوقع للدفع:</strong> خلال ${payment.payment_min_days}-${payment.payment_max_days} يوم
@@ -692,13 +692,13 @@ function renderWaitingForBankDetails(payment) {
         <div class="stage-icon" style="background:var(--gold)">💰</div>
         <div>
           <div class="stage-title">في انتظار بيانات التحويل</div>
-          <div class="stage-desc">المؤثرة تجهز بيانات حسابها البنكي</div>
+          <div class="stage-desc">المعلن يجهّز بيانات حسابه البنكي</div>
         </div>
       </div>
       <div class="agent-message">
         <div class="agent-bubble-avatar">و</div>
         <div class="agent-message-content">
-          في انتظار <strong>${application.creator_name}</strong> ترسل بيانات حسابها البنكي. راح ننبهك لما تخلص.
+          في انتظار <strong>${application.creator_name}</strong> يرسل بيانات حسابه البنكي. راح ننبهك لما يخلص.
           <br><br>
           💰 <strong>المبلغ:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س<br>
           📅 <strong>مدة الدفع المتفق عليها:</strong> ${payment.payment_min_days}-${payment.payment_max_days} يوم
@@ -706,7 +706,7 @@ function renderWaitingForBankDetails(payment) {
       </div>
       <div class="waiting-card">
         <div class="icon">⏳</div>
-        <h3>في انتظار المؤثرة</h3>
+        <h3>في انتظار المعلن</h3>
         <p>راح تشاهد بيانات التحويل هنا بمجرد ما تكتمل</p>
       </div>
     </div>
@@ -722,7 +722,7 @@ function renderBrandPaymentView(payment, daysLeft) {
       <div class="stage-header">
         <div class="stage-icon" style="background:var(--gold)">💰</div>
         <div>
-          <div class="stage-title">دفع المؤثرة</div>
+          <div class="stage-title">دفع المعلن</div>
           <div class="stage-desc">حولوا المبلغ للحساب أدناه</div>
         </div>
       </div>
@@ -767,7 +767,7 @@ function renderCreatorWaitingPayment(payment, daysLeft) {
       <div class="agent-message">
         <div class="agent-bubble-avatar">و</div>
         <div class="agent-message-content">
-          أرسلتي بياناتك البنكية بنجاح! ✅<br>
+          أرسلت بياناتك البنكية بنجاح! ✅<br>
           الشركة استلمتها وراح تحول لك المبلغ خلال المدة المتفق عليها.
           <br><br>
           💰 <strong>المبلغ المنتظر:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س
@@ -794,7 +794,7 @@ function renderConfirmReceiptForm(payment) {
         <div class="stage-icon" style="background:var(--olive)">✓</div>
         <div>
           <div class="stage-title">تأكيد استلام المبلغ</div>
-          <div class="stage-desc">الشركة أكدت التحويل، تأكدي من حسابك</div>
+          <div class="stage-desc">الشركة أكدت التحويل، تأكد من حسابك</div>
         </div>
       </div>
       <div class="agent-message">
@@ -803,7 +803,7 @@ function renderConfirmReceiptForm(payment) {
           الشركة أكدت تحويل <strong>${payment.amount.toLocaleString('ar-SA')} ر.س</strong> لحسابك.
           <br><br>
           ⏰ تاريخ التحويل: ${new Date(payment.brand_paid_at).toLocaleDateString('ar-SA')}<br><br>
-          <strong>تحققي من حسابك البنكي.</strong> لما يوصل المبلغ، اضغطي "استلمت" لإكمال الصفقة.
+          <strong>تحقق من حسابك البنكي.</strong> لما يوصل المبلغ، اضغط "استلمت" لإكمال الصفقة.
         </div>
       </div>
       <div class="actions">
@@ -821,7 +821,7 @@ function renderBrandPaidView(payment) {
         <div class="stage-icon" style="background:var(--olive)">✓</div>
         <div>
           <div class="stage-title">تم التحويل - في انتظار التأكيد</div>
-          <div class="stage-desc">المؤثرة راح تأكد الاستلام</div>
+          <div class="stage-desc">المعلن راح تأكد الاستلام</div>
         </div>
       </div>
       <div class="agent-message" style="background:rgba(19,185,178,0.08); border:1px solid rgba(19,185,178,0.2)">
@@ -836,7 +836,7 @@ function renderBrandPaidView(payment) {
       </div>
       <div class="waiting-card">
         <div class="icon">⏳</div>
-        <h3>في انتظار تأكيد المؤثرة</h3>
+        <h3>في انتظار تأكيد المعلن</h3>
       </div>
     </div>
   `;
@@ -880,12 +880,12 @@ async function submitBankDetails(paymentId) {
     loadPaymentSection();
   } catch (err) {
     console.error(err);
-    alert('حصل خطأ. حاولي مرة أخرى');
+    alert('حصل خطأ. حاول مرة أخرى');
   }
 }
 
 async function confirmBrandPaid(paymentId) {
-  if (!confirm('متأكدون من تحويل المبلغ للمؤثرة؟')) return;
+  if (!confirm('متأكدون من تحويل المبلغ للمعلن؟')) return;
   try {
     const { error } = await supabaseClient
       .from('payments')
@@ -904,7 +904,7 @@ async function confirmBrandPaid(paymentId) {
 }
 
 async function confirmCreatorReceived(paymentId) {
-  if (!confirm('متأكدة من استلام المبلغ في حسابك؟')) return;
+  if (!confirm('متأكد من استلام المبلغ في حسابك؟')) return;
   try {
     const { error } = await supabaseClient
       .from('payments')
@@ -918,20 +918,20 @@ async function confirmCreatorReceived(paymentId) {
     loadPaymentSection();
   } catch (err) {
     console.error(err);
-    alert('حصل خطأ. حاولي مرة أخرى');
+    alert('حصل خطأ. حاول مرة أخرى');
   }
 }
 
 async function reportPaymentIssue(paymentId) {
-  if (!confirm('سيتم إبلاغ الشركة إن المبلغ لم يصل بعد. متأكدة؟')) return;
+  if (!confirm('سيتم إبلاغ الشركة إن المبلغ لم يصل بعد. متأكد؟')) return;
   try {
     await supabaseClient
       .from('payments')
       .update({
-        creator_notes: 'المؤثرة أبلغت أن المبلغ لم يصل بعد - ' + new Date().toLocaleString('ar-SA')
+        creator_notes: 'المعلن أبلغت أن المبلغ لم يصل بعد - ' + new Date().toLocaleString('ar-SA')
       })
       .eq('id', paymentId);
-    alert('تم إبلاغ الشركة. تواصلي معاهم مباشرة إذا تأخر الأمر.');
+    alert('تم إبلاغ الشركة. تواصل معاهم مباشرة إذا تأخر الأمر.');
   } catch (err) {
     console.error(err);
   }
@@ -1103,7 +1103,7 @@ async function submitAddress() {
     });
     render();
   } catch (err) {
-    alert('حصل خطأ. حاولي مرة أخرى.');
+    alert('حصل خطأ. حاول مرة أخرى.');
   }
 }
 
@@ -1124,7 +1124,7 @@ async function submitShipping() {
 }
 
 async function confirmReceived() {
-  if (!confirm('متأكدة من استلام المنتج؟')) return;
+  if (!confirm('متأكد من استلام المنتج؟')) return;
   try {
     await updateWorkflow({
       received_at: new Date().toISOString(),
@@ -1132,7 +1132,7 @@ async function confirmReceived() {
     });
     render();
   } catch (err) {
-    alert('حصل خطأ. حاولي مرة أخرى.');
+    alert('حصل خطأ. حاول مرة أخرى.');
   }
 }
 
@@ -1152,12 +1152,12 @@ async function submitContent() {
     });
     render();
   } catch (err) {
-    alert('حصل خطأ. حاولي مرة أخرى.');
+    alert('حصل خطأ. حاول مرة أخرى.');
   }
 }
 
 async function approveContent() {
-  if (!confirm('موافقون على المحتوى والمؤثرة تنشره؟')) return;
+  if (!confirm('موافقون على المحتوى والمعلن ينشره؟')) return;
   try {
     await updateWorkflow({
       approval_status: 'approved',
@@ -1187,7 +1187,7 @@ async function submitRevision() {
       approved_at: new Date().toISOString(),
       current_stage: 'content_upload'
     });
-    alert('تم إرسال طلب التعديل للمؤثرة');
+    alert('تم إرسال طلب التعديل للمعلن');
     render();
   } catch (err) {
     alert('حصل خطأ. حاول مرة أخرى.');
@@ -1210,7 +1210,7 @@ async function submitPublished() {
     });
     render();
   } catch (err) {
-    alert('حصل خطأ. حاولي مرة أخرى.');
+    alert('حصل خطأ. حاول مرة أخرى.');
   }
 }
 
