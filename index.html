@@ -138,7 +138,11 @@ body {
 .btn-ghost:hover { border-color: var(--ink); }
 
 .hero {
-  padding: 90px 0 130px;
+  min-height: calc(100vh - 88px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0 56px;
   position: relative;
 }
 
@@ -151,27 +155,27 @@ body {
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: clamp(17px, 2.6vw, 23px);
   font-weight: 500;
   letter-spacing: 0;
   color: var(--accent-ink);
   background: #fff;
-  border: 1px solid rgba(19, 185, 178, 0.4);
-  padding: 9px 18px;
+  border: 1.5px solid rgba(19, 185, 178, 0.45);
+  padding: 12px 26px;
   border-radius: 999px;
-  margin-bottom: 30px;
+  margin-bottom: 64px;
 }
 .hero-eq {
   display: inline-flex;
-  gap: 3px;
+  gap: 4px;
   align-items: center;
-  height: 16px;
+  height: 22px;
 }
 .hero-eq i {
-  width: 3px;
-  height: 6px;
+  width: 4px;
+  height: 8px;
   background: var(--accent);
   border-radius: 2px;
   animation: eq 1s ease-in-out infinite;
@@ -179,13 +183,13 @@ body {
 .hero-eq i:nth-child(2) { animation-delay: 0.18s; }
 .hero-eq i:nth-child(3) { animation-delay: 0.36s; }
 .hero-eq i:nth-child(4) { animation-delay: 0.1s; }
-@keyframes eq { 0%, 100% { height: 5px; } 50% { height: 16px; } }
+@keyframes eq { 0%, 100% { height: 7px; } 50% { height: 22px; } }
 
 .hero h1 {
   font-family: var(--font-display);
-  font-size: clamp(46px, 7vw, 88px);
-  font-weight: 600;
-  line-height: 1.05;
+  font-size: clamp(44px, 6.5vw, 78px);
+  font-weight: 500;
+  line-height: 1.1;
   letter-spacing: -0.01em;
   margin-bottom: 28px;
   color: var(--ink);
@@ -193,7 +197,7 @@ body {
 .hero h1 .accent {
   font-family: var(--font-display);
   font-style: normal;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--accent);
   position: relative;
 }
@@ -214,10 +218,11 @@ body {
 }
 
 .hero-desc {
-  font-size: 19px;
+  font-size: 16px;
   color: var(--ink-soft);
-  max-width: 480px;
-  margin: 0 auto 40px;
+  font-weight: 400;
+  max-width: 440px;
+  margin: 0 auto 36px;
   line-height: 1.7;
 }
 
@@ -232,26 +237,49 @@ body {
   font-size: 15px;
 }
 
-.hero-stats {
+.hero-steps {
   display: flex;
-  gap: 48px;
-  margin-top: 60px;
-  padding-top: 32px;
-  border-top: 1px solid var(--line);
+  align-items: center;
   justify-content: center;
+  gap: 14px;
+  margin-top: 56px;
+  padding-top: 36px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
 }
-.stat .num {
-  font-family: var(--font-display);
-  font-size: 36px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-  line-height: 1;
-  margin-bottom: 6px;
+.hstep {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  animation: stepFlow 3s ease-in-out infinite;
 }
-.stat .label {
-  font-size: 13px;
-  color: var(--ink-muted);
+.hstep .ic {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(19, 185, 178, 0.12);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: stepIc 3s ease-in-out infinite;
+}
+.hstep .ic svg { width: 18px; height: 18px; display: block; }
+.hstep .t { font-size: 14px; font-weight: 600; color: var(--ink); }
+.hstep:nth-child(2), .hstep:nth-child(2) .ic { animation-delay: 1s; }
+.hstep:nth-child(3), .hstep:nth-child(3) .ic { animation-delay: 2s; }
+@keyframes stepFlow {
+  0%, 25%, 100% { border-color: var(--line); box-shadow: none; transform: translateY(0); }
+  8%, 17% { border-color: var(--accent); box-shadow: 0 8px 20px rgba(19, 185, 178, 0.18); transform: translateY(-4px); }
+}
+@keyframes stepIc {
+  0%, 25%, 100% { background: rgba(19, 185, 178, 0.12); color: var(--accent); }
+  8%, 17% { background: var(--accent); color: #fff; }
 }
 
 .hero-visual {
@@ -712,8 +740,8 @@ body {
   .steps::before { display: none; }
   .audience-grid { grid-template-columns: 1fr; }
   .nav-links a:not(.btn) { display: none; }
-  .hero-stats { gap: 28px; }
-  .hero { padding: 56px 0 100px; }
+  .hero-steps { gap: 24px; }
+  .hero { padding: 32px 0 48px; }
   .how, .audiences, .agent, .faq { padding: 100px 0; }
   .cta-box { padding: 60px 32px; }
 }
@@ -725,6 +753,7 @@ body {
   .audience-card { padding: 40px 28px; }
   .audience-card h3 { font-size: 30px; }
   .logo-eye { width: 38px; height: 38px; }
+  .hero-steps { gap: 12px; }
 }
 
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.8s, transform 0.8s; }
@@ -758,32 +787,27 @@ body {
     <div class="hero-grid">
       <div>
         <div class="hero-eyebrow"><span class="hero-eq"><i></i><i></i><i></i><i></i></span>وكيل تفاوض مدعوم بالذكاء الاصطناعي</div>
-        <h1>
-          وكيل التفاوض <span class="accent">الأذكى</span>
-          <br>
-          في العالم.
-        </h1>
         <p class="hero-desc">
-          وكيل ذكاء اصطناعي يربط الشركات بالمعلنين: تُطلق الحملات، تُقتنص
-          الفرص، وتُقفل أفضل الصفقات بأقل جهد.
+          الشركات تطلق حملاتها الإعلانية، والمعلنون يختارون ما يناسبهم،
+          ووكيل ذكاء اصطناعي يتفاوض ويقفل الصفقة لصالح الطرفين.
         </p>
         <div class="hero-ctas">
           <a href="/signup.html" class="btn btn-primary hero-cta-lg">ابدأ كمعلن ←</a>
           <a href="/signup.html" class="btn btn-ghost hero-cta-lg">ابدأ كشركة</a>
         </div>
 
-        <div class="hero-stats">
-          <div class="stat">
-            <div class="num">٠</div>
-            <div class="label">رسوم تسجيل</div>
+        <div class="hero-steps">
+          <div class="hstep">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg></span>
+            <span class="t">تُطلق الحملة</span>
           </div>
-          <div class="stat">
-            <div class="num">٢٤/٧</div>
-            <div class="label">وكيل ذكي يتفاوض</div>
+          <div class="hstep">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-4 4v-4H4z"/></svg></span>
+            <span class="t">يتفاوض الوكيل</span>
           </div>
-          <div class="stat">
-            <div class="num">دقائق</div>
-            <div class="label">من الإعلان للاتفاق</div>
+          <div class="hstep">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span>
+            <span class="t">تُقفل الصفقة</span>
           </div>
         </div>
       </div>
