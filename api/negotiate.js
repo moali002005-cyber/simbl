@@ -1,6 +1,7 @@
 // Vercel Serverless Function: /api/negotiate
 // يحفظ المحادثة في Supabase + يفاوض عبر Claude
 // عند [DEAL_CLOSED]: يقفل التقديم ويحفظ السعر النهائي
+// يدعم وضعين: نصي (chat) وصوتي (voice)
 
 const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkenp6YXNieXp1Z3hvZ2Jnd3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDI5NjMsImV4cCI6MjA5NTI3ODk2M30.aS9lOVt7VyfwTV7bmsxxDUanWfs5v-TMBlGbwcDNomM';
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { campaign, application, history, creatorMessage } = req.body || {};
+  const { campaign, application, history, creatorMessage, voiceMode } = req.body || {};
 
   if (!campaign || !application) {
     return res.status(400).json({ error: 'Missing campaign or application data' });
@@ -78,8 +79,21 @@ export default async function handler(req, res) {
     }
   }
 
-  const systemPrompt = `أنت "وكيل سيمبل"، وكيل تفاوض ذكي يمثل شركة "${campaign.brand_name || 'الشركة'}" في التفاوض مع مؤثرة بشأن حملة تسويقية.
+  // تعليمات خاصة بالوضع الصوتي
+  const voiceInstructions = voiceMode ? `
 
+## ⚠️ مهم جداً - أنت الآن في مكالمة صوتية:
+- المؤثرة تتحدث معك بالصوت، وكلامك راح يتحول لصوت تسمعه.
+- تكلم بشكل طبيعي وعفوي زي مكالمة هاتفية حقيقية.
+- **ردودك قصيرة جداً** (جملة إلى جملتين بحد أقصى) - عشان سهلة السمع.
+- لا تستخدم نقاط أو قوائم أو رموز - كلام متواصل طبيعي فقط.
+- لا تقل أبداً إنك "وكيل نصي" أو إنك "ما تقدر تتكلم بالصوت" - أنت في مكالمة صوتية طبيعية.
+- تجنب الأرقام الطويلة المعقدة، قل "ثمانمية ريال" بدل التفاصيل الكثيرة.
+- كن ودود وطبيعي، استخدم لهجة خليجية بسيطة.
+` : '';
+
+  const systemPrompt = `أنت "وكيل سيمبل"، وكيل تفاوض ذكي يمثل شركة "${campaign.brand_name || 'الشركة'}" في التفاوض مع مؤثرة بشأن حملة تسويقية.
+${voiceInstructions}
 ## تفاصيل الحملة:
 - العنوان: ${campaign.title}
 - الوصف: ${campaign.description}
@@ -103,8 +117,8 @@ export default async function handler(req, res) {
 - ودود ومحترم بأسلوب خليجي راقي
 - صريح ومباشر بدون مماطلة
 - تستخدم أسلوب المؤثرات في التحدث (لا رسمية مبالغ فيها)
-- ردودك قصيرة ومركزة (2-4 أسطر عادةً)
-- لا تستخدم الإيموجي إلا نادراً
+- ${voiceMode ? 'ردودك قصيرة جداً (جملة أو جملتين) لأنها مكالمة صوتية' : 'ردودك قصيرة ومركزة (2-4 أسطر عادةً)'}
+- لا تستخدم الإيموجي${voiceMode ? ' أبداً (لأنها مكالمة صوتية)' : ' إلا نادراً'}
 
 ## قواعد التفاوض:
 1. **لا تتجاوز السقف الأقصى أبداً** (${campaign.max_budget} ر.س)
@@ -149,7 +163,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 500,
+        max_tokens: voiceMode ? 200 : 500,
         system: systemPrompt,
         messages: messages
       })
