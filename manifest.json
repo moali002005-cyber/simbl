@@ -1,12 +1,11 @@
 {
-  "name": "سيمبل - Simbl",
+  "name": "سيمبل",
   "short_name": "سيمبل",
-  "description": "منصة سيمبل للتعاون بين الشركات والمؤثرات",
+  "description": "وكيل التفاوض الأذكى في العالم، مدعوم بالذكاء الاصطناعي",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#F7F3EC",
-  "theme_color": "#D4523A",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "lang": "ar",
   "dir": "rtl",
   "icons": [
@@ -22,6 +21,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "categories": ["business", "social", "marketing"]
+  ]
 }
