@@ -102,14 +102,14 @@ body {
   gap: 32px;
   align-items: center;
 }
-.nav-links a {
+.nav-links a:not(.btn) {
   color: var(--ink-soft);
   text-decoration: none;
   font-size: 14px;
   font-weight: 400;
   transition: color 0.2s;
 }
-.nav-links a:hover { color: var(--accent); }
+.nav-links a:not(.btn):hover { color: var(--accent); }
 
 .btn {
   display: inline-flex;
@@ -131,9 +131,9 @@ body {
 }
 .btn-primary:hover { background: #262626; transform: translateY(-1px); }
 .btn-ghost {
-  background: transparent;
+  background: #fff;
   color: var(--ink);
-  border: 1px solid var(--line-strong);
+  border: 1.5px solid rgba(10, 10, 10, 0.28);
 }
 .btn-ghost:hover { border-color: var(--ink); }
 
