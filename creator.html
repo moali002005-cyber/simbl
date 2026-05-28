@@ -502,6 +502,7 @@ input:focus, textarea:focus {
   cursor: pointer;
 }
 .btn-primary:hover { background: var(--accent); }
+.btn-primary:disabled { background: var(--ink-faint); cursor: not-allowed; }
 
 @media (max-width: 640px) {
   .container { padding: 0 16px; }
@@ -598,7 +599,6 @@ let currentFilter = 'all';
 let currentCampaignId = null;
 
 async function init() {
-  // محاولة استعادة الجلسة من cookie لو localStorage فاضي
   await tryRestoreSession();
 
   currentUser = getCurrentUser();
@@ -619,7 +619,6 @@ async function init() {
   document.getElementById('user-initial').textContent = firstName[0];
   document.getElementById('welcome-name').textContent = firstName;
 
-  // تفعيل الإشعارات
   initNotifications('user-menu');
 
   await loadData();
@@ -765,38 +764,103 @@ async function submitApplication(event) {
   submitBtn.textContent = 'جاري الإرسال...';
 
   const fd = new FormData(form);
+  const price = parseInt(fd.get('price'));
+  const note = fd.get('note') || null;
   const applicationData = {
     campaign_id: currentCampaignId,
     creator_id: currentUser.id,
-    price: parseInt(fd.get('price')),
-    note: fd.get('note') || null,
+    price: price,
+    note: note,
     status: 'pending'
   };
 
+  const campaign = allCampaigns.find(c => c.id === currentCampaignId);
+
   try {
-    await dbApply(applicationData);
+    const savedApplication = await dbApply(applicationData);
 
     // إرسال إشعار للشركة
-    const campaign = allCampaigns.find(c => c.id === currentCampaignId);
     if (campaign && campaign.brand_id) {
       createNotification(
         campaign.brand_id,
         'new_application',
         `📨 ${currentUser.name || 'مؤثرة'} قدّمت عرضاً`,
-        `على حملة: ${campaign.title} · بسعر ${applicationData.price} ر.س`,
+        `على حملة: ${campaign.title} · بسعر ${price} ر.س`,
         '/brand.html'
       ).catch(err => console.error(err));
     }
 
     closeModal();
     form.reset();
+
+    // بدء التفاوض التلقائي مع الوكيل فوراً (نستخدم التقديم المحفوظ مباشرة)
+    startAutoNegotiation(savedApplication, campaign);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = original;
+
+    // إعادة تحميل البيانات لتحديث القائمة
     await loadData();
-    setTimeout(() => alert('تم إرسال عرضك بنجاح! الشركة سترى عرضك الآن.'), 100);
+
+    setTimeout(() => alert('تم إرسال عرضك بنجاح! الوكيل الذكي بدأ التفاوض. افتحي "تقديماتي" لمتابعة المحادثة.'), 100);
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
     submitBtn.textContent = original;
     alert('حصل خطأ أثناء إرسال العرض. حاولي مرة أخرى.');
+  }
+}
+
+// بدء التفاوض التلقائي: الوكيل يكتب أول رسالة ترحيب وعرض
+async function startAutoNegotiation(application, campaign) {
+  try {
+    if (!application || !application.id || !campaign) {
+      console.warn('Missing data for auto-negotiation');
+      return;
+    }
+
+    // نتأكد ما فيه محادثة سابقة (عشان ما نكرر)
+    const { data: existing } = await supabaseClient
+      .from('negotiations')
+      .select('id')
+      .eq('application_id', application.id)
+      .limit(1);
+    if (existing && existing.length > 0) return;
+
+    // نجهّز بيانات الحملة والتقديم للوكيل
+    const campaignData = {
+      id: campaign.id,
+      title: campaign.title,
+      description: campaign.description,
+      budget: campaign.budget,
+      max_budget: campaign.max_budget || campaign.budget,
+      duration: campaign.duration,
+      package: campaign.package,
+      requirements: campaign.requirements,
+      brand_name: campaign.brand || '',
+      brand_id: campaign.brand_id
+    };
+    const applicationPayload = {
+      id: application.id,
+      creator_name: currentUser.name || 'مؤثرة',
+      price: application.price,
+      platform: currentUser.platform,
+      followers: currentUser.followers,
+      note: application.note
+    };
+
+    // نطلب من الوكيل يبدأ التفاوض (history فاضي = الوكيل يرحب ويبدأ)
+    fetch('/api/negotiate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaign: campaignData,
+        application: applicationPayload,
+        history: []
+      })
+    }).catch(err => console.error('Auto-negotiation start error:', err));
+  } catch (err) {
+    console.error('startAutoNegotiation error:', err);
   }
 }
 
@@ -812,7 +876,6 @@ init();
 
 <script src="push-subscribe.js"></script>
 <script>
-  // طلب تفعيل الإشعارات بعد تسجيل الدخول
   (async function() {
     if (typeof tryRestoreSession === 'function') await tryRestoreSession();
     const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
