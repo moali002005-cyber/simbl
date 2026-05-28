@@ -613,10 +613,6 @@ function render() {
 
     ${renderHistory()}
   `;
-  // إذا كانت الصفقة مكتملة، حمل بيانات الدفع
-  if (workflow.current_stage === 'completed') {
-    loadPaymentSection();
-  }
 }
 
 function renderCurrentStage(myTurn) {
@@ -799,6 +795,8 @@ function renderCurrentStage(myTurn) {
 }
 
 function renderCompleted() {
+  setTimeout(() => loadPaymentSection(), 100);
+  
   return `
     <div class="completed-banner">
       <h2>🎉 تمت الصفقة بنجاح!</h2>
