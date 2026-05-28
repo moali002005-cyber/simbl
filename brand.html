@@ -285,7 +285,7 @@ textarea { resize: vertical; min-height: 80px; }
   <div class="page-header">
     <div>
       <h1 class="welcome">أهلاً <span class="italic" id="welcome-name">بكم</span></h1>
-      <p class="welcome-sub">إدارة حملاتكم واستقبال عروض المؤثرات</p>
+      <p class="welcome-sub">إدارة حملاتكم واستقبال عروض المعلنين</p>
     </div>
     <button class="btn-new" onclick="openCampaignModal()">
       <span>+</span>
@@ -302,7 +302,7 @@ textarea { resize: vertical; min-height: 80px; }
 <div class="modal-backdrop" id="campaign-modal">
   <div class="modal">
     <h3>إنشاء حملة جديدة</h3>
-    <p class="sub">عبئي تفاصيل الحملة وراح تظهر للمؤثرات المسجلات في سيمبل.</p>
+    <p class="sub">عبّئوا تفاصيل الحملة وراح تظهر للمعلنين المسجلين في سيمبل.</p>
 
     <form onsubmit="submitCampaign(event)">
       <div class="field">
@@ -347,7 +347,7 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="field">
-        <label>متطلبات المؤثرة</label>
+        <label>متطلبات المعلن</label>
         <input type="text" name="requirements" placeholder="مثل: 50K+ متابع، مقيمة بالرياض">
       </div>
 <div class="field" style="grid-column: span 2;">
@@ -359,7 +359,7 @@ textarea { resize: vertical; min-height: 80px; }
           <span>يوم</span>
         </div>
         <small style="color: #6b6b6b; font-size: 12px; margin-top: 4px; display: block;">
-          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرات على حملتك.
+          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المعلنين على حملتك.
         </small>
       </div>
       <div class="field">
@@ -395,7 +395,7 @@ async function init() {
   }
 
   if (currentUser.role !== 'brand') {
-    alert('هذه الصفحة مخصصة للشركات. سيتم تحويلك للوحة المؤثرة.');
+    alert('هذه الصفحة مخصصة للشركات. سيتم تحويلك للوحة المعلن.');
     window.location.href = '/creator.html';
     return;
   }
@@ -464,7 +464,7 @@ function renderCampaigns() {
       <div class="empty">
         <div class="icon">◌</div>
         <h3>لم تنشئ أي حملة بعد</h3>
-        <p>ابدأ بنشر أول حملة وستظهر فوراً للمؤثرات</p>
+        <p>ابدأ بنشر أول حملة وستظهر فوراً للمعلنين</p>
         <button class="btn-new" onclick="openCampaignModal()">+ إنشاء حملة جديدة</button>
       </div>`;
     return;
@@ -517,7 +517,7 @@ function renderCampaigns() {
                 <div class="app-row" style="${isClosed ? 'background: rgba(10, 10, 10, 0.03); border-radius: 12px; padding: 12px;' : ''}">
                   <div class="app-creator">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px">
-                      <h4>${creator.name || 'مؤثرة'}</h4>
+                      <h4>${creator.name || 'معلن'}</h4>
                       <span style="font-size:11px; font-weight:500; padding:3px 10px; border-radius:100px; background:${statusBg}; color:${statusColor}">${statusLabel}</span>
                     </div>
                     <div class="meta">
@@ -594,9 +594,9 @@ async function submitCampaign(event) {
     closeModal();
     form.reset();
 
-    // إرسال إشعار لكل المؤثرات
+    // إرسال إشعار لكل المعلنين
     notifyAllCreators(campaign.title, currentUser.company_name || 'الشركة', createdCampaign?.id).catch(err => console.error(err));
-    // إرسال Push Notification لكل المؤثرات
+    // إرسال Push Notification لكل المعلنين
       try {
         const { data: creators } = await supabaseClient
           .from('users')
@@ -623,7 +623,7 @@ async function submitCampaign(event) {
       }
 
     await loadData();
-    setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرات الآن.'), 100);
+    setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمعلنين الآن.'), 100);
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
