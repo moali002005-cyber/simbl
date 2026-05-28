@@ -6,58 +6,49 @@
 <title>مساحة العمل - سيمبل</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --cream: #F7F3EC;
-  --cream-darker: #EFE9DD;
-  --ink: #1A1714;
-  --ink-soft: #3D3833;
-  --ink-muted: #6B645B;
-  --ink-faint: #A8A095;
-  --accent: #D4523A;
-  --accent-soft: #E8917E;
-  --olive: #5B6042;
-  --gold: #B8915E;
-  --line: rgba(26, 23, 20, 0.1);
-  --line-strong: rgba(26, 23, 20, 0.2);
-  --success: #5B6042;
-  --font-display: 'Reem Kufi', sans-serif;
-  --font-serif: 'Noto Naskh Arabic', serif;
-  --font-body: 'Tajawal', sans-serif;
+  --cream: #ffffff;
+  --cream-darker: #f5f5f4;
+  --ink: #0a0a0a;
+  --ink-soft: #3a3a3a;
+  --ink-muted: #6b6b6b;
+  --ink-faint: #a0a0a0;
+  --accent: #13B9B2;
+  --accent-soft: #7fd6d2;
+  --accent-ink: #0c4f4b;
+  --olive: #13B9B2;
+  --gold: #6b6b6b;
+  --line: rgba(10, 10, 10, 0.08);
+  --line-strong: rgba(10, 10, 10, 0.16);
+  --success: #13B9B2;
+  --font-display: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  --font-serif: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: var(--cream);
   color: var(--ink);
   font-family: var(--font-body);
-  font-weight: 300;
+  font-weight: 400;
   min-height: 100vh;
 }
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 0;
-  opacity: 0.3; mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
-.nav {
-  background: var(--cream);
-  padding: 20px 0;
-  border-bottom: 1px solid var(--line);
-}
+.nav { background: var(--cream); padding: 18px 0; border-bottom: 1px solid var(--line); }
 .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+.logo-eye { width: 42px; height: 42px; display: block; flex-shrink: 0; }
 .logo-mark {
   font-family: var(--font-display);
-  font-size: 24px; font-weight: 700; letter-spacing: -1px;
+  font-size: 24px; font-weight: 600; letter-spacing: 0;
   position: relative;
 }
 .logo-mark::after {
-  content: ''; position: absolute; bottom: 4px; inset-inline-end: -8px;
-  width: 6px; height: 6px; background: var(--accent); border-radius: 50%;
+  content: ''; position: absolute; bottom: 5px; inset-inline-end: -8px;
+  width: 5px; height: 5px; background: var(--accent); border-radius: 50%;
 }
 .back-link { color: var(--ink-muted); text-decoration: none; font-size: 14px; }
 .back-link:hover { color: var(--accent); }
@@ -65,8 +56,8 @@ body::before {
 .page { padding: 40px 0 80px; }
 
 .deal-summary {
-  background: linear-gradient(135deg, var(--olive), #6E7550);
-  color: white;
+  background: linear-gradient(135deg, var(--olive), #0e9a94);
+  color: #fff;
   padding: 24px 28px;
   border-radius: 20px;
   margin-bottom: 32px;
@@ -75,47 +66,14 @@ body::before {
   gap: 20px;
   align-items: center;
 }
-.deal-summary h2 {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 500;
-  margin-bottom: 6px;
-  opacity: 0.9;
-}
-.deal-summary .campaign-name {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
+.deal-summary h2 { font-family: var(--font-display); font-size: 18px; font-weight: 500; margin-bottom: 6px; opacity: 0.9; }
+.deal-summary .campaign-name { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 4px; }
 .deal-summary .parties { font-size: 13px; opacity: 0.9; }
-.deal-price {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 600;
-  text-align: end;
-}
+.deal-price { font-family: var(--font-display); font-size: 28px; font-weight: 600; text-align: end; }
 
-.stages-bar {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 32px;
-}
-.stages-track {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  position: relative;
-}
-.stage-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-}
+.stages-bar { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 24px; margin-bottom: 32px; }
+.stages-track { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; position: relative; }
+.stage-item { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
 .stage-circle {
   width: 36px;
   height: 36px;
@@ -133,62 +91,27 @@ body::before {
   position: relative;
   z-index: 2;
 }
-.stage-item.done .stage-circle {
-  background: var(--olive);
-  color: white;
-  border-color: var(--olive);
-}
+.stage-item.done .stage-circle { background: var(--olive); color: #fff; border-color: var(--olive); }
 .stage-item.active .stage-circle {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(212, 82, 58, 0.15);
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(10, 10, 10, 0.10);
 }
-.stage-label {
-  font-size: 11px;
-  color: var(--ink-muted);
-  text-align: center;
-  font-weight: 500;
-}
-.stage-item.done .stage-label,
-.stage-item.active .stage-label {
-  color: var(--ink);
-}
-.stage-line {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  width: 100%;
-  height: 2px;
-  background: var(--line);
-  z-index: 1;
-}
-.stage-item.done .stage-line {
-  background: var(--olive);
-}
+.stage-label { font-size: 11px; color: var(--ink-muted); text-align: center; font-weight: 500; }
+.stage-item.done .stage-label, .stage-item.active .stage-label { color: var(--ink); }
+.stage-line { position: absolute; top: 18px; left: 50%; width: 100%; height: 2px; background: var(--line); z-index: 1; }
+.stage-item.done .stage-line { background: var(--olive); }
 .stage-item:last-child .stage-line { display: none; }
 
-.current-stage-card {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 32px;
-  margin-bottom: 24px;
-}
-.stage-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
-}
+.current-stage-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 32px; margin-bottom: 24px; }
+.stage-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .stage-icon {
   width: 56px;
   height: 56px;
   border-radius: 16px;
   background: var(--accent);
-  color: white;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,29 +119,16 @@ body::before {
   font-size: 28px;
   font-weight: 600;
 }
-.stage-title {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  letter-spacing: -0.3px;
-}
+.stage-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 4px; letter-spacing: 0; }
 .stage-desc { font-size: 14px; color: var(--ink-soft); }
 
-.agent-message {
-  background: var(--cream-darker);
-  padding: 16px 20px;
-  border-radius: 14px;
-  margin-bottom: 24px;
-  display: flex;
-  gap: 12px;
-}
+.agent-message { background: var(--cream-darker); padding: 16px 20px; border-radius: 14px; margin-bottom: 24px; display: flex; gap: 12px; }
 .agent-bubble-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   background: var(--accent);
-  color: white;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -226,22 +136,11 @@ body::before {
   font-weight: 600;
   flex-shrink: 0;
 }
-.agent-message-content {
-  flex: 1;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--ink-soft);
-}
+.agent-message-content { flex: 1; font-size: 14px; line-height: 1.7; color: var(--ink-soft); }
 .agent-message-content strong { color: var(--ink); font-weight: 500; }
 
 .field { margin-bottom: 20px; }
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-soft);
-  margin-bottom: 8px;
-}
+label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-soft); margin-bottom: 8px; }
 input, textarea {
   width: 100%;
   padding: 14px 16px;
@@ -249,95 +148,36 @@ input, textarea {
   border-radius: 12px;
   font-family: var(--font-body);
   font-size: 14px;
-  background: white;
+  background: #fff;
+  color: var(--ink);
 }
 textarea { resize: vertical; min-height: 100px; }
-input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-.hint {
-  font-size: 12px;
-  color: var(--ink-muted);
-  margin-top: 6px;
-}
+input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(19,185,178,0.14); }
+.hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
 
-.actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-}
-.btn {
-  padding: 14px 28px;
-  border-radius: 100px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: all 0.2s;
-}
-.btn-primary {
-  background: var(--ink);
-  color: var(--cream);
-  flex: 1;
-}
+.actions { display: flex; gap: 12px; margin-top: 24px; }
+.btn { padding: 14px 28px; border-radius: 100px; font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; }
+.btn-primary { background: var(--ink); color: #fff; flex: 1; }
 .btn-primary:hover { background: var(--accent); }
 .btn-primary:disabled { background: var(--ink-faint); cursor: not-allowed; }
-.btn-success {
-  background: var(--olive);
-  color: white;
-  flex: 1;
-}
-.btn-success:hover { background: #6E7550; }
-.btn-secondary {
-  background: white;
-  border: 1px solid var(--line-strong);
-  color: var(--ink-soft);
-}
+.btn-success { background: var(--olive); color: #fff; flex: 1; }
+.btn-success:hover { background: #0e9a94; }
+.btn-secondary { background: #fff; border: 1px solid var(--line-strong); color: var(--ink-soft); }
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
-.waiting-card {
-  text-align: center;
-  padding: 40px 24px;
-  color: var(--ink-muted);
-}
-.waiting-card .icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.4;
-}
-.waiting-card h3 {
-  font-family: var(--font-display);
-  font-size: 18px;
-  color: var(--ink);
-  margin-bottom: 8px;
-}
+.waiting-card { text-align: center; padding: 40px 24px; color: var(--ink-muted); }
+.waiting-card .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.waiting-card h3 { font-family: var(--font-display); font-size: 18px; color: var(--ink); margin-bottom: 8px; }
 
-.history-section {
-  margin-top: 32px;
-}
-.history-title {
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: var(--ink-muted);
-}
-.history-item {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px 20px;
-  margin-bottom: 10px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 16px;
-  align-items: center;
-}
+.history-section { margin-top: 32px; }
+.history-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--ink-muted); }
+.history-item { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; margin-bottom: 10px; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; }
 .history-icon {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(91, 96, 66, 0.12);
-  color: var(--olive);
+  background: rgba(19, 185, 178, 0.12);
+  color: var(--accent-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,53 +185,22 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); }
   font-weight: 600;
   font-size: 14px;
 }
-.history-content h4 {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.history-content .meta {
-  font-size: 12px;
-  color: var(--ink-muted);
-}
-.history-content .data {
-  font-size: 13px;
-  color: var(--ink-soft);
-  margin-top: 6px;
-  background: var(--cream-darker);
-  padding: 8px 10px;
-  border-radius: 8px;
-}
-.history-time {
-  font-size: 11px;
-  color: var(--ink-faint);
-  white-space: nowrap;
-}
+.history-content h4 { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.history-content .meta { font-size: 12px; color: var(--ink-muted); }
+.history-content .data { font-size: 13px; color: var(--ink-soft); margin-top: 6px; background: var(--cream-darker); padding: 8px 10px; border-radius: 8px; }
+.history-time { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
 
 .completed-banner {
-  background: linear-gradient(135deg, var(--olive), var(--gold));
-  color: white;
+  background: linear-gradient(135deg, var(--olive), #0e9a94);
+  color: #fff;
   padding: 40px;
   border-radius: 24px;
   text-align: center;
 }
-.completed-banner h2 {
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-.completed-banner p {
-  font-size: 15px;
-  opacity: 0.95;
-}
+.completed-banner h2 { font-family: var(--font-display); font-size: 28px; font-weight: 600; margin-bottom: 12px; }
+.completed-banner p { font-size: 15px; opacity: 0.95; }
 
-.loading {
-  text-align: center;
-  padding: 60px;
-  color: var(--ink-muted);
-}
+.loading { text-align: center; padding: 60px; color: var(--ink-muted); }
 
 @media (max-width: 740px) {
   .container { padding: 0 16px; }
@@ -403,6 +212,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); }
   .current-stage-card { padding: 24px; }
   .stage-title { font-size: 18px; }
   .actions { flex-direction: column; }
+  .logo-eye { width: 36px; height: 36px; }
 }
 </style>
 </head>
@@ -411,6 +221,14 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); }
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="logo">
+      <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true">
+        <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/>
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/>
+          <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/>
+          <circle cx="100" cy="100" r="7" fill="#0a0a0a"/>
+        </g>
+      </svg>
       <span class="logo-mark">سيمبل</span>
     </a>
     <a href="javascript:history.back()" class="back-link">← العودة</a>
@@ -468,7 +286,7 @@ async function init() {
     }
 
     if (appData.status !== 'closed') {
-      document.getElementById('content').innerHTML = '<div class="loading">هذه الصفقة لم تكتمل بعد. <a href="/campaign.html?app=' + applicationId + '" style="color:var(--accent)">العودة للتفاوض</a></div>';
+      document.getElementById('content').innerHTML = '<div class="loading">هذه الصفقة لم تكتمل بعد. <a href="/campaign.html?app=' + applicationId + '" style="color:var(--accent-ink)">العودة للتفاوض</a></div>';
       return;
     }
 
@@ -620,7 +438,7 @@ function renderCurrentStage(myTurn) {
       agentMsg: myTurn
         ? `ممتاز! وصلنا عنوان ${application.creator_name}. <strong>اشحنوا المنتج الحين</strong>، وأدخلوا رقم التتبع لما يكون جاهز.`
         : 'الشركة قاعدة تجهز الشحنة. راح نخبرك بمجرد ما يتم الشحن مع رقم التتبع.',
-      addressDisplay: `<div class="agent-message" style="background:rgba(91,96,66,0.08); border:1px solid rgba(91,96,66,0.2)">
+      addressDisplay: `<div class="agent-message" style="background:rgba(19,185,178,0.08); border:1px solid rgba(19,185,178,0.2)">
         <div class="agent-bubble-avatar" style="background:var(--olive)">📍</div>
         <div class="agent-message-content">
           <strong>عنوان الشحن:</strong><br>
@@ -648,7 +466,7 @@ function renderCurrentStage(myTurn) {
       agentMsg: myTurn
         ? 'تم الشحن! بمجرد ما يوصلك المنتج، اضغطي زر <strong>"تم الاستلام"</strong> عشان نكمل للمرحلة الجاية (التصوير).'
         : `في انتظار <strong>${application.creator_name}</strong> تستلم المنتج وتأكد ذلك.`,
-      shippingInfo: workflow.tracking_number || workflow.shipping_note ? `<div class="agent-message" style="background:rgba(184, 145, 94, 0.1); border:1px solid rgba(184, 145, 94, 0.25)">
+      shippingInfo: workflow.tracking_number || workflow.shipping_note ? `<div class="agent-message" style="background:rgba(10,10,10,0.04); border:1px solid rgba(10,10,10,0.12)">
         <div class="agent-bubble-avatar" style="background:var(--gold)">↗</div>
         <div class="agent-message-content">
           <strong>معلومات الشحن:</strong><br>
@@ -691,11 +509,11 @@ function renderCurrentStage(myTurn) {
       agentMsg: myTurn
         ? `${application.creator_name} رفعت المحتوى! <strong>راجعوه</strong>، ولو كل شي تمام وافقوا. أو اطلبوا تعديل لو فيه شي يحتاج تغيير.`
         : 'الشركة قاعدة تراجع محتواك الحين. راح نخبرك بالرد قريباً.',
-      contentDisplay: `<div class="agent-message" style="background:rgba(212, 82, 58, 0.08); border:1px solid rgba(212, 82, 58, 0.2)">
+      contentDisplay: `<div class="agent-message" style="background:rgba(19,185,178,0.08); border:1px solid rgba(19,185,178,0.2)">
         <div class="agent-bubble-avatar">◇</div>
         <div class="agent-message-content">
           <strong>المحتوى المرفوع:</strong><br>
-          <a href="${escapeHtml(workflow.content_url || '#')}" target="_blank" style="color:var(--accent); text-decoration:underline; word-break:break-all">${escapeHtml(workflow.content_url || '')}</a>
+          <a href="${escapeHtml(workflow.content_url || '#')}" target="_blank" style="color:var(--accent-ink); text-decoration:underline; word-break:break-all">${escapeHtml(workflow.content_url || '')}</a>
           ${workflow.content_note ? `<br><br><strong>ملاحظات:</strong><br>${escapeHtml(workflow.content_note)}` : ''}
         </div>
       </div>`,
@@ -896,7 +714,7 @@ function renderWaitingForBankDetails(payment) {
 }
 
 function renderBrandPaymentView(payment, daysLeft) {
-  const statusColor = daysLeft < 0 ? 'var(--accent)' : daysLeft <= 7 ? 'var(--gold)' : 'var(--olive)';
+  const statusColor = daysLeft < 0 ? 'var(--ink)' : daysLeft <= 7 ? 'var(--ink-muted)' : 'var(--accent)';
   const statusText = daysLeft < 0 ? `متأخر ${Math.abs(daysLeft)} يوم ⚠️` : `${daysLeft} يوم متبقي`;
 
   return `
@@ -908,20 +726,20 @@ function renderBrandPaymentView(payment, daysLeft) {
           <div class="stage-desc">حولوا المبلغ للحساب أدناه</div>
         </div>
       </div>
-      <div class="agent-message" style="background:rgba(184, 145, 94, 0.1); border:1px solid rgba(184, 145, 94, 0.25)">
+      <div class="agent-message" style="background:rgba(10,10,10,0.04); border:1px solid rgba(10,10,10,0.12)">
         <div class="agent-bubble-avatar" style="background:var(--gold)">💰</div>
         <div class="agent-message-content">
           <strong>بيانات التحويل:</strong><br><br>
           🏦 <strong>البنك:</strong> ${escapeHtml(payment.bank_name)}<br>
           💳 <strong>الآيبان:</strong>
-          <span style="font-family:'Courier New', monospace; background:white; padding:4px 8px; border-radius:6px; display:inline-block; margin-top:4px">${escapeHtml(payment.iban)}</span>
-          <button onclick="copyIban('${escapeHtmlAttr(payment.iban)}', this)" style="background:var(--ink); color:var(--cream); border:none; padding:4px 10px; border-radius:100px; font-family:var(--font-body); font-size:11px; cursor:pointer; margin-inline-start:6px">نسخ</button>
+          <span style="font-family:'Courier New', monospace; background:#fff; padding:4px 8px; border-radius:6px; display:inline-block; margin-top:4px">${escapeHtml(payment.iban)}</span>
+          <button onclick="copyIban('${escapeHtmlAttr(payment.iban)}', this)" style="background:var(--ink); color:#fff; border:none; padding:4px 10px; border-radius:100px; font-family:var(--font-body); font-size:11px; cursor:pointer; margin-inline-start:6px">نسخ</button>
           <br>
           👤 <strong>اسم صاحب الحساب:</strong> ${escapeHtml(payment.account_holder_name)}<br>
           💰 <strong>المبلغ:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س
         </div>
       </div>
-      <div style="background:${statusColor}; color:white; padding:14px 20px; border-radius:14px; margin-bottom:20px; text-align:center;">
+      <div style="background:${statusColor}; color:#fff; padding:14px 20px; border-radius:14px; margin-bottom:20px; text-align:center;">
         <div style="font-size:13px; opacity:0.9; margin-bottom:4px">⏰ موعد التحويل</div>
         <div style="font-family:var(--font-display); font-size:20px; font-weight:600">${statusText}</div>
         <div style="font-size:12px; opacity:0.9; margin-top:4px">الموعد الأقصى: ${new Date(payment.due_date).toLocaleDateString('ar-SA')}</div>
@@ -934,7 +752,7 @@ function renderBrandPaymentView(payment, daysLeft) {
 }
 
 function renderCreatorWaitingPayment(payment, daysLeft) {
-  const statusColor = daysLeft < 0 ? 'var(--accent)' : daysLeft <= 7 ? 'var(--gold)' : 'var(--olive)';
+  const statusColor = daysLeft < 0 ? 'var(--ink)' : daysLeft <= 7 ? 'var(--ink-muted)' : 'var(--accent)';
   const statusText = daysLeft < 0 ? `متأخر ${Math.abs(daysLeft)} يوم` : `${daysLeft} يوم متبقي`;
 
   return `
@@ -955,7 +773,7 @@ function renderCreatorWaitingPayment(payment, daysLeft) {
           💰 <strong>المبلغ المنتظر:</strong> ${payment.amount.toLocaleString('ar-SA')} ر.س
         </div>
       </div>
-      <div style="background:${statusColor}; color:white; padding:20px; border-radius:14px; margin-bottom:20px; text-align:center;">
+      <div style="background:${statusColor}; color:#fff; padding:20px; border-radius:14px; margin-bottom:20px; text-align:center;">
         <div style="font-size:13px; opacity:0.9; margin-bottom:6px">⏰ الموعد المتوقع للتحويل</div>
         <div style="font-family:var(--font-display); font-size:24px; font-weight:600">${statusText}</div>
         <div style="font-size:12px; opacity:0.9; margin-top:6px">الموعد الأقصى: ${new Date(payment.due_date).toLocaleDateString('ar-SA')}</div>
@@ -1006,7 +824,7 @@ function renderBrandPaidView(payment) {
           <div class="stage-desc">المؤثرة راح تأكد الاستلام</div>
         </div>
       </div>
-      <div class="agent-message" style="background:rgba(91,96,66,0.08); border:1px solid rgba(91,96,66,0.2)">
+      <div class="agent-message" style="background:rgba(19,185,178,0.08); border:1px solid rgba(19,185,178,0.2)">
         <div class="agent-bubble-avatar" style="background:var(--olive)">✓</div>
         <div class="agent-message-content">
           <strong>سجلت التحويل بنجاح!</strong><br><br>
@@ -1026,7 +844,7 @@ function renderBrandPaidView(payment) {
 
 function renderPaymentCompleted(payment) {
   return `
-    <div class="completed-banner" style="background:linear-gradient(135deg, var(--olive), var(--gold))">
+    <div class="completed-banner" style="background:linear-gradient(135deg, var(--olive), #0e9a94)">
       <h2>💰 تم الدفع بنجاح!</h2>
       <p>المبلغ ${payment.amount.toLocaleString('ar-SA')} ر.س تم تحويله واستلامه. الصفقة مكتملة 100%.</p>
     </div>
@@ -1195,7 +1013,7 @@ function renderHistory() {
         if (item.type === 'published') {
           dataHtml = `
             <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px">
-              <a href="${escapeHtml(item.videoUrl)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; background:var(--accent); color:white; padding:10px 16px; border-radius:100px; text-decoration:none; font-weight:500; font-size:13px; font-family:var(--font-body)">
+              <a href="${escapeHtml(item.videoUrl)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; background:var(--accent); color:#fff; padding:10px 16px; border-radius:100px; text-decoration:none; font-weight:500; font-size:13px; font-family:var(--font-body)">
                 <span>🎬</span>
                 <span>مشاهدة الفيديو</span>
               </a>
@@ -1205,13 +1023,13 @@ function renderHistory() {
                     <div style="font-size:11px; color:var(--ink-muted); margin-bottom:2px">كود الترويج</div>
                     <div style="font-family:'Courier New', monospace; font-size:12px; word-break:break-all; color:var(--ink)">${escapeHtml(item.promoCode)}</div>
                   </div>
-                  <button onclick="copyPromoCode(this, '${escapeHtmlAttr(item.promoCode)}')" style="background:var(--ink); color:var(--cream); border:none; padding:8px 14px; border-radius:100px; font-family:var(--font-body); font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0">نسخ</button>
+                  <button onclick="copyPromoCode(this, '${escapeHtmlAttr(item.promoCode)}')" style="background:var(--ink); color:#fff; border:none; padding:8px 14px; border-radius:100px; font-family:var(--font-body); font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0">نسخ</button>
                 </div>
               ` : ''}
             </div>
           `;
         } else if (item.type === 'link' && item.data) {
-          dataHtml = `<a href="${escapeHtml(item.data)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:white; padding:8px 14px; border-radius:100px; text-decoration:none; font-weight:500; font-size:12px; font-family:var(--font-body); margin-top:6px">${item.label || 'فتح الرابط ↗'}</a>`;
+          dataHtml = `<a href="${escapeHtml(item.data)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:#fff; padding:8px 14px; border-radius:100px; text-decoration:none; font-weight:500; font-size:12px; font-family:var(--font-body); margin-top:6px">${item.label || 'فتح الرابط ↗'}</a>`;
         } else if (item.data) {
           dataHtml = `<div class="data">${escapeHtml(item.data)}</div>`;
         }
@@ -1238,7 +1056,7 @@ function copyPromoCode(btn, code) {
   navigator.clipboard.writeText(code).then(() => {
     const original = btn.textContent;
     btn.textContent = 'تم النسخ ✓';
-    btn.style.background = 'var(--olive)';
+    btn.style.background = 'var(--accent)';
     setTimeout(() => {
       btn.textContent = original;
       btn.style.background = 'var(--ink)';
