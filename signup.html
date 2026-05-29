@@ -350,6 +350,12 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="field">
+        <label>كلمة السر</label>
+        <input type="password" name="password" required minlength="6" placeholder="٦ أحرف على الأقل" autocomplete="new-password">
+        <div class="hint">تستخدمها لتسجيل الدخول لاحقاً.</div>
+      </div>
+
+      <div class="field">
         <label>نبذة عنك (اختياري)</label>
         <textarea name="bio" placeholder="عرفي عن نفسك ونوع المحتوى الذي تقدّمنه..."></textarea>
       </div>
@@ -421,6 +427,12 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="field">
+        <label>كلمة السر</label>
+        <input type="password" name="password" required minlength="6" placeholder="٦ أحرف على الأقل" autocomplete="new-password">
+        <div class="hint">تستخدمها لتسجيل الدخول لاحقاً.</div>
+      </div>
+
+      <div class="field">
         <label>الموقع الإلكتروني (اختياري)</label>
         <input type="text" name="website" placeholder="https://example.com">
       </div>
@@ -474,11 +486,13 @@ async function submitForm(event, role) {
   submitBtn.textContent = 'جاري الإنشاء...';
 
   const fd = new FormData(form);
+  const email = (fd.get('email') || '').trim().toLowerCase();
+  const password = fd.get('password');
   const userData = { role };
 
   if (role === 'creator') {
     userData.name = fd.get('name');
-    userData.email = fd.get('email');
+    userData.email = email;
     userData.whatsapp = fd.get('whatsapp');
     userData.platform = fd.get('platform');
     userData.handle = fd.get('handle');
@@ -493,23 +507,38 @@ async function submitForm(event, role) {
     userData.name = fd.get('contact_name');
     userData.position = fd.get('position');
     userData.phone = fd.get('phone');
-    userData.email = fd.get('email');
+    userData.email = email;
     userData.website = fd.get('website') || null;
   }
 
   try {
+    // 1) إنشاء حساب المصادقة (يخزّن كلمة السر مشفّرة)
+    const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
+      email,
+      password
+    });
+    if (authErr) throw authErr;
+
+    // 2) ربط الملف الشخصي بحساب المصادقة
+    if (authData.user) userData.auth_id = authData.user.id;
+
+    // 3) حفظ بيانات المستخدم في جدول users
     const savedUser = await dbSignup(userData);
     saveCurrentUser(savedUser);
+
     document.getElementById('role-selection').style.display = 'none';
     document.getElementById('success-' + role).classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (err) {
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
-    if (err.message && err.message.includes('duplicate')) {
-      alert('هذا البريد الإلكتروني مسجل مسبقاً. استخدم بريداً آخر.');
+    const msg = (err && err.message) ? err.message : '';
+    if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('duplicate')) {
+      alert('هذا البريد الإلكتروني مسجل مسبقاً. سجّل الدخول أو استخدم بريداً آخر.');
+    } else if (msg.toLowerCase().includes('password')) {
+      alert('كلمة السر ضعيفة. استخدم ٦ أحرف على الأقل.');
     } else {
-      alert('حصل خطأ أثناء التسجيل: ' + (err.message || 'يرجى المحاولة مرة أخرى'));
+      alert('حصل خطأ أثناء التسجيل: ' + (msg || 'يرجى المحاولة مرة أخرى'));
       console.error(err);
     }
   }
