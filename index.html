@@ -153,6 +153,7 @@ body {
 }
 
 .hero-eyebrow {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 14px;
@@ -166,6 +167,20 @@ body {
   padding: 12px 26px;
   border-radius: 999px;
   margin-bottom: 64px;
+}
+.hero-eyebrow::before {
+  content: '';
+  position: absolute;
+  inset: -22px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse, rgba(19, 185, 178, 0.6), rgba(19, 185, 178, 0) 70%);
+  filter: blur(18px);
+  z-index: -1;
+  animation: badgeGlow 3.4s ease-in-out infinite;
+}
+@keyframes badgeGlow {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.12); }
 }
 .hero-eq {
   display: inline-flex;
@@ -759,7 +774,7 @@ body {
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.8s, transform 0.8s; }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
-/* شاشة الافتتاح — زووم سريع داخل العين */
+/* شاشة الافتتاح — يتشكّل أول ثانيتين ثم زووم */
 #splash {
   position: fixed;
   inset: 0;
@@ -768,19 +783,42 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: splashOut 0.4s ease 1.75s forwards;
+  animation: splashOut 0.4s ease 2.65s forwards;
 }
 #splash .splash-eye {
   width: clamp(120px, 26vw, 190px);
   height: clamp(120px, 26vw, 190px);
+  /* مرحلة التشكّل أسرع ثم الزووم */
+  animation: splashZoom 1.3s cubic-bezier(0.7, 0, 0.3, 1) 1.35s forwards;
+}
+/* رسم الخطوط: العدسات ثم العين ثم البؤبؤ بالتتابع - أسرع */
+#splash .splash-eye .ln {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: splashDraw 0.7s ease forwards;
+}
+#splash .splash-eye .ln2 { animation-delay: 0.28s; }
+#splash .splash-eye .eyeShape {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  fill: transparent;
+  animation: splashDraw 0.45s ease 0.62s forwards, eyeFill 0.3s ease 1s forwards;
+}
+@keyframes eyeFill { to { fill: #ffffff; } }
+#splash .splash-eye .pupil {
   opacity: 0;
-  transform: scale(0.3);
-  animation: splashZoom 2s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pupilIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.98s forwards;
+}
+@keyframes splashDraw { to { stroke-dashoffset: 0; } }
+@keyframes pupilIn {
+  0% { opacity: 0; transform: scale(0); }
+  100% { opacity: 1; transform: scale(1); }
 }
 @keyframes splashZoom {
-  0% { opacity: 0; transform: scale(0.3); }
-  20% { opacity: 1; transform: scale(1); }
-  62% { opacity: 1; transform: scale(1); }
+  0% { opacity: 1; transform: scale(1); }
+  35% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(11); }
 }
 @keyframes splashOut {
@@ -798,10 +836,10 @@ body.splash-active { overflow: hidden; }
 <div id="splash" aria-hidden="true">
   <svg class="splash-eye" viewBox="0 0 200 200">
     <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
-      <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/>
-      <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/>
-      <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/>
-      <circle cx="100" cy="100" r="7" fill="#0a0a0a"/>
+      <path class="ln" d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/>
+      <path class="ln ln2" d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/>
+      <path class="eyeShape" d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/>
+      <circle class="pupil" cx="100" cy="100" r="7" fill="#0a0a0a"/>
     </g>
   </svg>
 </div>
@@ -810,7 +848,7 @@ body.splash-active { overflow: hidden; }
     document.body.classList.remove('splash-active');
     var s = document.getElementById('splash');
     if (s) s.style.display = 'none';
-  }, 2150);
+  }, 3050);
 </script>
 
 <nav class="nav" id="nav">
