@@ -758,9 +758,60 @@ body {
 
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.8s, transform 0.8s; }
 .reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* شاشة الافتتاح — زووم سريع داخل العين */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: splashOut 0.4s ease 1.75s forwards;
+}
+#splash .splash-eye {
+  width: clamp(120px, 26vw, 190px);
+  height: clamp(120px, 26vw, 190px);
+  opacity: 0;
+  transform: scale(0.3);
+  animation: splashZoom 2s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+@keyframes splashZoom {
+  0% { opacity: 0; transform: scale(0.3); }
+  20% { opacity: 1; transform: scale(1); }
+  62% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(11); }
+}
+@keyframes splashOut {
+  to { opacity: 0; visibility: hidden; }
+}
+body.splash-active { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  #splash .splash-eye { animation-duration: 0.5s; }
+  #splash { animation-delay: 0.5s; }
+}
 </style>
 </head>
-<body>
+<body class="splash-active">
+
+<div id="splash" aria-hidden="true">
+  <svg class="splash-eye" viewBox="0 0 200 200">
+    <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
+      <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/>
+      <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/>
+      <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/>
+      <circle cx="100" cy="100" r="7" fill="#0a0a0a"/>
+    </g>
+  </svg>
+</div>
+<script>
+  setTimeout(function(){
+    document.body.classList.remove('splash-active');
+    var s = document.getElementById('splash');
+    if (s) s.style.display = 'none';
+  }, 2150);
+</script>
 
 <nav class="nav" id="nav">
   <div class="container nav-inner">
