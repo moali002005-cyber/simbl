@@ -54,7 +54,7 @@ body {
 .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 2; }
 
 .nav {
-  padding: 24px 0;
+  padding: 32px 0;
   position: sticky;
   top: 0;
   background: rgba(255, 255, 255, 0.85);
@@ -72,27 +72,46 @@ body {
 }
 
 .logo {
-  display: flex;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 2px;
   text-decoration: none;
   color: var(--ink);
 }
-.logo-eye { width: 46px; height: 46px; display: block; flex-shrink: 0; }
+.logo-eye { width: 72px; height: 72px; display: block; flex-shrink: 0; }
+.logo-pupil {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: logoLook 6s ease-in-out infinite;
+}
+@keyframes logoLook {
+  0%, 12% { transform: translate(0, 0); }
+  24% { transform: translate(6px, 0); }
+  40% { transform: translate(-6px, 0); }
+  52% { transform: translate(0, 2px); }
+  64% { transform: translate(0, 0); }
+  72% { transform: translate(0, 0) scaleY(0.15); }
+  76% { transform: translate(0, 0) scaleY(1); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-pupil { animation: none; }
+}
 .logo-mark {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
   position: relative;
 }
 .logo-mark::after {
   content: '';
   position: absolute;
-  bottom: 6px;
-  inset-inline-end: -8px;
-  width: 6px;
-  height: 6px;
+  bottom: 3px;
+  inset-inline-end: -6px;
+  width: 4px;
+  height: 4px;
   background: var(--accent);
   border-radius: 50%;
 }
@@ -138,7 +157,7 @@ body {
 .btn-ghost:hover { border-color: var(--ink); }
 
 .hero {
-  min-height: calc(100vh - 88px);
+  min-height: calc(100vh - 140px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -767,7 +786,8 @@ body {
   .hero-grid { grid-template-columns: 1fr; }
   .audience-card { padding: 40px 28px; }
   .audience-card h3 { font-size: 30px; }
-  .logo-eye { width: 38px; height: 38px; }
+  .logo-eye { width: 52px; height: 52px; }
+  .logo-mark { font-size: 13px; }
   .hero-steps { gap: 12px; }
 }
 
@@ -859,7 +879,7 @@ body.splash-active { overflow: hidden; }
           <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/>
           <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/>
           <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/>
-          <circle cx="100" cy="100" r="7" fill="#0a0a0a"/>
+          <circle class="logo-pupil" cx="100" cy="100" r="7" fill="#0a0a0a"/>
         </g>
       </svg>
       <span class="logo-mark">سيمبل</span>
