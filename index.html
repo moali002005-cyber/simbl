@@ -901,8 +901,8 @@ body.splash-active { overflow: hidden; }
           ووكيل ذكاء اصطناعي يتفاوض ويقفل الصفقة لصالح الطرفين.
         </p>
         <div class="hero-ctas">
-          <a href="/signup.html" class="btn btn-primary hero-cta-lg">ابدأ كمعلن ←</a>
-          <a href="/signup.html" class="btn btn-ghost hero-cta-lg">ابدأ كشركة</a>
+          <a href="/signup.html?role=creator" class="btn btn-primary hero-cta-lg">ابدأ كمعلن ←</a>
+          <a href="/signup.html?role=brand" class="btn btn-ghost hero-cta-lg">ابدأ كشركة</a>
         </div>
 
         <div class="hero-steps">
@@ -959,7 +959,7 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
     link.textContent = dashboardLabel;
   });
 
-  document.querySelectorAll('a[href="/signup.html"]').forEach(link => {
+  document.querySelectorAll('a[href^="/signup.html"]').forEach(link => {
     link.href = dashboardUrl;
     if (link.textContent.includes('ابدأ')) {
       link.textContent = 'ادخل ' + dashboardLabel;

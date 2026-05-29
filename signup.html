@@ -522,6 +522,23 @@ function goToDashboard(role) {
     window.location.href = '/brand.html';
   }
 }
+
+// فتح النموذج تلقائياً حسب نوع الحساب القادم من الصفحة الرئيسية
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  let role = params.get('role');
+  if (role === 'company') role = 'brand';
+  if (role === 'advertiser' || role === 'influencer') role = 'creator';
+  if (role === 'creator' || role === 'brand') {
+    const grid = document.querySelector('.role-grid');
+    const eyebrow = document.querySelector('#role-selection .eyebrow');
+    const sub = document.querySelector('#role-selection .subtitle');
+    if (grid) grid.style.display = 'none';
+    if (eyebrow) eyebrow.style.display = 'none';
+    if (sub) sub.style.display = 'none';
+    selectRole(role);
+  }
+})();
 </script>
 
 </body>
