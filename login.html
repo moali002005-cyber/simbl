@@ -146,6 +146,44 @@ input::placeholder { color: var(--ink-faint); }
 .btn-submit:hover { background: var(--accent); transform: translateY(-1px); }
 .btn-submit:disabled { background: var(--ink-faint); cursor: not-allowed; transform: none; }
 
+.tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--cream-darker);
+  padding: 5px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+.tab {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab.active { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(10,10,10,0.06); }
+.pane { display: none; }
+.pane.active { display: block; }
+.muted-link {
+  display: inline;
+  background: none;
+  border: none;
+  color: var(--accent-ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+.field-hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
+
 .error-box {
   display: none;
   padding: 14px 16px;
@@ -210,22 +248,54 @@ input::placeholder { color: var(--ink-faint); }
   <div class="login-card">
     <div class="eyebrow">تسجيل دخول</div>
     <h1>أهلاً بعودتك <span class="italic">إلى سيمبل</span></h1>
-    <p class="subtitle">أدخل بريدك الإلكتروني للدخول إلى حسابك.</p>
-
-    <div class="info-note">
-      🔐 حالياً نستخدم تسجيل دخول مبسط بالبريد الإلكتروني فقط. سيتم إضافة كلمات السر قريباً.
-    </div>
+    <p class="subtitle">اختر طريقة الدخول إلى حسابك.</p>
 
     <div class="error-box" id="error-box"></div>
 
-    <form onsubmit="handleLogin(event)">
-      <div class="field">
-        <label>البريد الإلكتروني</label>
-        <input type="email" id="email-input" required placeholder="example@email.com" autocomplete="email">
-      </div>
+    <div class="tabs">
+      <button type="button" class="tab active" id="tab-password" onclick="switchTab('password')">كلمة السر</button>
+      <button type="button" class="tab" id="tab-otp" onclick="switchTab('otp')">كود على الإيميل</button>
+    </div>
 
-      <button type="submit" class="btn-submit" id="submit-btn">دخول</button>
-    </form>
+    <!-- طريقة كلمة السر -->
+    <div class="pane active" id="pane-password">
+      <form onsubmit="loginWithPassword(event)">
+        <div class="field">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="pw-email" required placeholder="example@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>كلمة السر</label>
+          <input type="password" id="pw-password" required placeholder="كلمة السر" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-submit" id="pw-btn">دخول</button>
+      </form>
+    </div>
+
+    <!-- طريقة كود الإيميل (OTP) -->
+    <div class="pane" id="pane-otp">
+      <!-- الخطوة ١: إدخال الإيميل -->
+      <form onsubmit="sendOtp(event)" id="otp-email-form">
+        <div class="field">
+          <label>البريد الإلكتروني</label>
+          <input type="email" id="otp-email" required placeholder="example@email.com" autocomplete="email">
+          <div class="field-hint">نرسل لك كود مكوّن من ٦ أرقام على بريدك.</div>
+        </div>
+        <button type="submit" class="btn-submit" id="otp-send-btn">إرسال الكود</button>
+      </form>
+      <!-- الخطوة ٢: إدخال الكود -->
+      <form onsubmit="verifyOtp(event)" id="otp-code-form" style="display:none">
+        <div class="field">
+          <label>الكود المرسل إلى <span id="otp-email-label" style="color:var(--accent-ink)"></span></label>
+          <input type="text" id="otp-code" required placeholder="••••••" inputmode="numeric" maxlength="6" autocomplete="one-time-code" style="text-align:center; letter-spacing:8px; font-size:20px">
+          <div class="field-hint">
+            ما وصلك الكود؟ <button type="button" class="muted-link" onclick="resendOtp()">إعادة الإرسال</button>
+            · <button type="button" class="muted-link" onclick="resetOtp()">تغيير الإيميل</button>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit" id="otp-verify-btn">تأكيد ودخول</button>
+      </form>
+    </div>
 
     <p class="bottom-link">ما عندك حساب بعد؟ <a href="/signup.html">سجل الآن</a></p>
   </div>
@@ -233,48 +303,160 @@ input::placeholder { color: var(--ink-faint); }
 
 <script src="supabase-config.js"></script>
 <script>
-async function handleLogin(event) {
-  event.preventDefault();
-  const email = document.getElementById('email-input').value.trim().toLowerCase();
-  const submitBtn = document.getElementById('submit-btn');
-  const errorBox = document.getElementById('error-box');
+function switchTab(which) {
+  const isPw = which === 'password';
+  document.getElementById('tab-password').classList.toggle('active', isPw);
+  document.getElementById('tab-otp').classList.toggle('active', !isPw);
+  document.getElementById('pane-password').classList.toggle('active', isPw);
+  document.getElementById('pane-otp').classList.toggle('active', !isPw);
+  hideError();
+}
 
-  errorBox.classList.remove('show');
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'جاري التحقق...';
+function showError(html) {
+  const box = document.getElementById('error-box');
+  box.innerHTML = html;
+  box.classList.add('show');
+}
+function hideError() {
+  document.getElementById('error-box').classList.remove('show');
+}
+
+// بعد نجاح المصادقة: نجيب ملف المستخدم من جدول users ونوجّهه
+async function finishLogin(email, authUser) {
+  let profile = null;
+
+  // نحاول الربط عبر auth_id أولاً
+  if (authUser && authUser.id) {
+    const { data } = await supabaseClient
+      .from('users').select('*').eq('auth_id', authUser.id).maybeSingle();
+    profile = data || null;
+  }
+  // احتياطي: عبر الإيميل (ونربط auth_id لو ناقص)
+  if (!profile && email) {
+    const { data } = await supabaseClient
+      .from('users').select('*').eq('email', email).maybeSingle();
+    profile = data || null;
+    if (profile && authUser && authUser.id && !profile.auth_id) {
+      try {
+        await supabaseClient.from('users').update({ auth_id: authUser.id }).eq('id', profile.id);
+      } catch (e) {}
+    }
+  }
+
+  if (!profile) {
+    showError('لا يوجد ملف حساب مرتبط بهذا البريد. <a href="/signup.html">سجل حساب جديد</a>');
+    return false;
+  }
+
+  saveCurrentUser(profile);
+  if (profile.role === 'creator') {
+    window.location.href = '/creator.html';
+  } else if (profile.role === 'brand') {
+    window.location.href = '/brand.html';
+  } else {
+    showError('نوع الحساب غير معروف.');
+    return false;
+  }
+  return true;
+}
+
+// ===== طريقة كلمة السر =====
+async function loginWithPassword(event) {
+  event.preventDefault();
+  hideError();
+  const email = document.getElementById('pw-email').value.trim().toLowerCase();
+  const password = document.getElementById('pw-password').value;
+  const btn = document.getElementById('pw-btn');
+  btn.disabled = true; btn.textContent = 'جاري التحقق...';
 
   try {
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (!data) {
-      errorBox.innerHTML = 'لا يوجد حساب بهذا البريد الإلكتروني. <a href="/signup.html">سجل حساب جديد</a>';
-      errorBox.classList.add('show');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'دخول';
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      if ((error.message || '').toLowerCase().includes('invalid')) {
+        showError('البريد الإلكتروني أو كلمة السر غير صحيحة.');
+      } else {
+        showError('حصل خطأ. حاول مرة أخرى.');
+      }
+      btn.disabled = false; btn.textContent = 'دخول';
       return;
     }
-
-    saveCurrentUser(data);
-
-    if (data.role === 'creator') {
-      window.location.href = '/creator.html';
-    } else if (data.role === 'brand') {
-      window.location.href = '/brand.html';
-    } else {
-      throw new Error('نوع الحساب غير معروف');
-    }
+    await finishLogin(email, data.user);
   } catch (err) {
     console.error(err);
-    errorBox.textContent = 'حصل خطأ. حاول مرة أخرى.';
-    errorBox.classList.add('show');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'دخول';
+    showError('حصل خطأ. حاول مرة أخرى.');
+    btn.disabled = false; btn.textContent = 'دخول';
+  }
+}
+
+// ===== طريقة كود الإيميل (OTP) =====
+let otpEmail = '';
+
+async function sendOtp(event) {
+  if (event) event.preventDefault();
+  hideError();
+  otpEmail = document.getElementById('otp-email').value.trim().toLowerCase();
+  const btn = document.getElementById('otp-send-btn');
+  btn.disabled = true; btn.textContent = 'جاري الإرسال...';
+
+  try {
+    // shouldCreateUser:false → لا ننشئ حساب جديد من صفحة الدخول
+    const { error } = await supabaseClient.auth.signInWithOtp({
+      email: otpEmail,
+      options: { shouldCreateUser: false }
+    });
+    if (error) {
+      const m = (error.message || '').toLowerCase();
+      if (m.includes('not') && (m.includes('found') || m.includes('exist') || m.includes('signups'))) {
+        showError('لا يوجد حساب بهذا البريد. <a href="/signup.html">سجل حساب جديد</a>');
+      } else {
+        showError('تعذّر إرسال الكود. تأكد من البريد وحاول مرة أخرى.');
+      }
+      btn.disabled = false; btn.textContent = 'إرسال الكود';
+      return;
+    }
+    document.getElementById('otp-email-label').textContent = otpEmail;
+    document.getElementById('otp-email-form').style.display = 'none';
+    document.getElementById('otp-code-form').style.display = 'block';
+    document.getElementById('otp-code').focus();
+    btn.disabled = false; btn.textContent = 'إرسال الكود';
+  } catch (err) {
+    console.error(err);
+    showError('حصل خطأ. حاول مرة أخرى.');
+    btn.disabled = false; btn.textContent = 'إرسال الكود';
+  }
+}
+
+function resendOtp() { if (otpEmail) sendOtp(); }
+function resetOtp() {
+  hideError();
+  document.getElementById('otp-code-form').style.display = 'none';
+  document.getElementById('otp-email-form').style.display = 'block';
+  document.getElementById('otp-code').value = '';
+}
+
+async function verifyOtp(event) {
+  event.preventDefault();
+  hideError();
+  const token = document.getElementById('otp-code').value.trim();
+  const btn = document.getElementById('otp-verify-btn');
+  btn.disabled = true; btn.textContent = 'جاري التحقق...';
+
+  try {
+    const { data, error } = await supabaseClient.auth.verifyOtp({
+      email: otpEmail,
+      token,
+      type: 'email'
+    });
+    if (error) {
+      showError('الكود غير صحيح أو منتهي. أعد المحاولة.');
+      btn.disabled = false; btn.textContent = 'تأكيد ودخول';
+      return;
+    }
+    await finishLogin(otpEmail, data.user);
+  } catch (err) {
+    console.error(err);
+    showError('حصل خطأ. حاول مرة أخرى.');
+    btn.disabled = false; btn.textContent = 'تأكيد ودخول';
   }
 }
 </script>
