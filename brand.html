@@ -25,13 +25,12 @@
   --accent: #13B9B2;
   --accent-soft: #7fd6d2;
   --accent-ink: #0c4f4b;
-  --olive: #13B9B2;
-  --gold: #6b6b6b;
   --line: rgba(10, 10, 10, 0.08);
   --line-strong: rgba(10, 10, 10, 0.16);
   --success: #13B9B2;
+  --gold: #6b6b6b;
+  --olive: #13B9B2;
   --font-display: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
-  --font-serif: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
   --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
 }
 
@@ -51,118 +50,177 @@ body {
 
 .nav {
   background: var(--cream);
-  padding: 18px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 50;
 }
 .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-.logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
-.logo-eye { width: 42px; height: 42px; display: block; flex-shrink: 0; }
+.logo { display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--ink); transition: transform .3s ease-out; }
+.logo:hover { transform: scale(1.05); }
+.logo-eye { width: 40px; height: 40px; display: block; flex-shrink: 0; }
 .logo-mark {
   font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: 0;
-  position: relative;
+  font-size: 16px; font-weight: 500;
+  color: var(--ink); position: relative;
+  padding-left: 10px; line-height: 1;
 }
 .logo-mark::after {
-  content: '';
-  position: absolute;
-  bottom: 5px;
-  inset-inline-end: -8px;
-  width: 5px;
-  height: 5px;
-  background: var(--accent);
-  border-radius: 50%;
+  content: ''; position: absolute;
+  bottom: 0; left: 0;
+  width: 4px; height: 4px;
+  background: var(--accent); border-radius: 50%;
 }
 
-.user-menu { display: flex; align-items: center; gap: 16px; }
+.user-menu { display: flex; align-items: center; gap: 10px; }
 .user-pill {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: flex; align-items: center; gap: 8px;
   background: #fff;
-  padding: 8px 14px 8px 8px;
+  padding: 4px 12px 4px 4px;
   border-radius: 100px;
   border: 1px solid var(--line);
+  transition: border-color .2s, transform .2s;
 }
+.user-pill:hover { border-color: rgba(19,185,178,0.40); transform: translateY(-1px); }
 .user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--ink);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 13px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 500; font-size: 12px;
 }
-.user-name { font-size: 14px; font-weight: 500; }
+.user-name { font-size: 14px; font-weight: 500; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .btn-logout {
   background: transparent;
   border: 1px solid var(--line-strong);
   color: var(--ink-muted);
-  padding: 8px 16px;
-  border-radius: 100px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: 7px 14px; border-radius: 100px;
+  font-family: var(--font-body); font-size: 13px;
+  cursor: pointer; transition: all 0.2s;
 }
 .btn-logout:hover { color: var(--accent); border-color: var(--accent); }
 
-.page-header {
-  padding: 48px 0 32px;
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-.welcome {
-  font-family: var(--font-display);
-  font-size: 36px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 8px;
-}
-.welcome .italic { font-family: var(--font-display); font-style: normal; color: var(--accent); }
-.welcome-sub { color: var(--ink-soft); font-size: 16px; }
+/* ==================== HERO ==================== */
+@keyframes sb-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.7); opacity: 0.35; } }
+@keyframes sb-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes sb-glow { 0%,100% { box-shadow: 0 0 14px 0 rgba(19,185,178,0.18); } 50% { box-shadow: 0 0 32px 6px rgba(19,185,178,0.48); } }
 
-.btn-new {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 14px 28px;
-  border-radius: 100px;
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.hero { padding: 60px 24px 56px; text-align: center; }
+.hero-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: 100px;
+  font-size: 14px; font-weight: 500;
+  margin-bottom: 24px;
+  border: 1px solid rgba(19,185,178,0.30);
+  color: var(--accent-ink); background: #fff;
+  animation: sb-glow 2.6s ease-in-out infinite;
 }
-.btn-new:hover { background: var(--ink); transform: translateY(-1px); }
+.hero-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: sb-pulse 1.6s ease-in-out infinite; flex-shrink: 0; }
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px; color: var(--ink);
+}
+.hero-title .nm { color: var(--accent); position: relative; display: inline-block; cursor: default; }
+.hero-title .nm::after {
+  content: ''; position: absolute; bottom: -3px; right: 0; left: 0;
+  height: 2px; background: var(--accent);
+  transform: scaleX(0); transform-origin: right;
+  transition: transform .35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hero-title .nm:hover::after { transform: scaleX(1); }
+.hero-sub { font-size: 16px; max-width: 540px; margin: 0 auto 28px; line-height: 1.7; color: var(--ink-soft); }
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 14px 32px; border-radius: 100px; border: 0;
+  font-family: var(--font-body); font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: background .25s, transform .15s;
+  background: var(--ink); color: #fff;
+}
+.hero-cta:hover { background: var(--accent); transform: translateY(-2px); }
+.hero-cta:active { transform: translateY(0); }
+.hero-link {
+  display: inline-block; margin-right: 16px;
+  font-size: 14px; cursor: pointer;
+  color: var(--ink-muted); transition: color .2s;
+  background: transparent; border: 0; font-family: var(--font-body);
+}
+.hero-link:hover { color: var(--accent); }
+.hero-arr { display: inline-block; transition: transform .25s ease-out; }
+.hero-link:hover .hero-arr { transform: translateX(-5px); }
+
+.hero-features {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  margin-top: 40px; padding-top: 28px;
+  border-top: 1px solid var(--line);
+  max-width: 560px; margin-left: auto; margin-right: auto;
+}
+.hero-feat {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 100px;
+  background: #fff; font-size: 13px; font-weight: 500;
+  border: 1px solid rgba(19,185,178,0.25); color: var(--accent-ink);
+  cursor: default;
+  animation: sb-float 2.8s ease-in-out infinite;
+}
+.hero-features .hero-feat:nth-child(1) { animation-delay: 0s; }
+.hero-features .hero-feat:nth-child(2) { animation-delay: 0.4s; }
+.hero-features .hero-feat:nth-child(3) { animation-delay: 0.8s; }
+.hero-feat:hover {
+  animation: none;
+  transform: translateY(-8px);
+  border-color: rgba(19,185,178,0.55);
+  transition: transform .25s, border-color .25s;
+}
+.hero-feat-ic {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; background: var(--accent);
+  transition: transform .35s; font-size: 12px;
+}
+.hero-feat:hover .hero-feat-ic { transform: rotate(360deg); }
+
+/* ==================== APP CONTENT ==================== */
+.section-divider {
+  border-top: 1px solid var(--line);
+  margin: 20px 0 32px;
+}
 
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px; }
-.stat-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+.stat-card {
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; padding: 20px;
+}
 .stat-label { font-size: 13px; color: var(--ink-muted); margin-bottom: 8px; }
-.stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 600; letter-spacing: -0.01em; line-height: 1; }
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 32px; font-weight: 600;
+  letter-spacing: -1px; line-height: 1; color: var(--ink);
+}
+.stat-value.muted { color: var(--ink-muted); }
+.stat-value.success { color: var(--accent); }
 
-.section-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 20px; letter-spacing: 0; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 600;
+  margin-bottom: 20px; letter-spacing: -0.5px;
+}
 
 .campaigns-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 48px; }
 
-.campaign-row { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; transition: all 0.2s; }
+.campaign-row {
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; padding: 24px;
+  transition: border-color .2s;
+}
 .campaign-row:hover { border-color: var(--ink-soft); }
 .campaign-row .top { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; margin-bottom: 16px; }
-.campaign-row h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0; }
+.campaign-row h3 {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 600;
+  margin-bottom: 6px; letter-spacing: -0.3px;
+}
 .campaign-row .desc { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
 
 .campaign-meta { display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted); flex-wrap: wrap; margin-top: 12px; }
@@ -170,54 +228,53 @@ body {
 
 .applications-summary {
   background: var(--cream-darker);
-  padding: 16px 20px;
-  border-radius: 12px;
+  padding: 16px 20px; border-radius: 12px;
   margin-top: 16px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
 }
 .applications-summary .text { font-size: 14px; color: var(--ink-soft); }
-.applications-summary strong { color: var(--accent-ink); font-weight: 600; }
+.applications-summary strong { color: var(--accent); font-weight: 600; }
 
 .btn-view {
-  background: var(--ink);
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 100px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
+  background: var(--ink); color: #fff;
+  border: none; padding: 10px 20px; border-radius: 100px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background .2s;
 }
 .btn-view:hover { background: var(--accent); }
 
-.empty { background: #fff; border: 1px dashed var(--line-strong); border-radius: 20px; padding: 60px 32px; text-align: center; color: var(--ink-muted); }
+.empty {
+  background: #fff; border: 1px dashed var(--line-strong);
+  border-radius: 20px; padding: 60px 32px;
+  text-align: center; color: var(--ink-muted);
+}
 .empty .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
 .empty h3 { font-family: var(--font-display); font-size: 20px; color: var(--ink); margin-bottom: 8px; }
 .empty p { margin-bottom: 24px; }
 
-.applications-detail { display: none; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-top: 16px; }
+.applications-detail {
+  display: none;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; padding: 24px; margin-top: 16px;
+}
 .applications-detail.show { display: block; }
 
-.app-row { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.app-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 16px; align-items: center;
+  padding: 16px 0; border-bottom: 1px solid var(--line);
+}
 .app-row:last-child { border-bottom: none; }
 .app-creator h4 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
 .app-creator .meta { font-size: 12px; color: var(--ink-muted); display: flex; gap: 12px; }
-.app-price { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--accent-ink); }
+.app-price { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--accent); }
 
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(10, 10, 10, 0.5);
   backdrop-filter: blur(4px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 20px;
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
 }
 .modal-backdrop.show { display: flex; }
 .modal { background: #fff; border-radius: 24px; padding: 36px; max-width: 640px; width: 100%; max-height: 90vh; overflow-y: auto; }
@@ -227,14 +284,9 @@ body {
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-soft); margin-bottom: 8px; }
 input, select, textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  background: #fff;
-  color: var(--ink);
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  font-family: var(--font-body); font-size: 14px; background: #fff;
 }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(19,185,178,0.14); }
 textarea { resize: vertical; min-height: 80px; }
@@ -250,9 +302,14 @@ textarea { resize: vertical; min-height: 80px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .modal { padding: 24px; }
   .field-row { grid-template-columns: 1fr; }
-  .welcome { font-size: 26px; }
-  .app-row { grid-template-columns: 1fr; gap: 8px; }
+  .hero-title { font-size: 28px; }
+  .hero-sub { font-size: 15px; }
+  .hero { padding: 40px 16px 36px; }
   .logo-eye { width: 36px; height: 36px; }
+  .logo-mark { font-size: 14px; }
+  .user-pill .user-name { display: none; }
+  .app-row { grid-template-columns: 1fr; gap: 8px; }
+  .hero-link { display: block; margin: 14px 0 0; }
 }
 </style>
 </head>
@@ -263,10 +320,10 @@ textarea { resize: vertical; min-height: 80px; }
     <a href="/" class="logo">
       <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true">
         <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
-          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/>
-          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/>
-          <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/>
-          <circle cx="100" cy="100" r="7" fill="#0a0a0a"/>
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(25 100 100)"/>
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(-25 100 100)"/>
+          <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/>
+          <circle cx="100" cy="100" r="8" fill="#0a0a0a"/>
         </g>
       </svg>
       <span class="logo-mark">سيمبل</span>
@@ -282,16 +339,25 @@ textarea { resize: vertical; min-height: 80px; }
 </nav>
 
 <main class="container">
-  <div class="page-header">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
+    <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بكم</span></h1>
+    <p class="hero-sub">أطلق حملتك، ودع الوكيل الذكي يتفاوض على العروض ويقفل الصفقات لصالحك.</p>
     <div>
-      <h1 class="welcome">أهلاً <span class="italic" id="welcome-name">بكم</span></h1>
-      <p class="welcome-sub">إدارة حملاتكم واستقبال عروض المعلنين</p>
+      <button class="hero-cta" onclick="openCampaignModal()">+ حملة جديدة</button>
+      <button class="hero-link" onclick="goToCampaigns()">صفقات أقفلها الوكيل (<span id="hero-closed-count">٠</span>) <span class="hero-arr">←</span></button>
     </div>
-    <button class="btn-new" onclick="openCampaignModal()">
-      <span>+</span>
-      <span>حملة جديدة</span>
-    </button>
-  </div>
+    <div class="hero-features">
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الحملة</span>
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>يتفاوض الوكيل</span>
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>يقفل الصفقة</span>
+    </div>
+  </section>
+
+  <!-- ============ APP CONTENT ============ -->
+  <div id="app-section" class="section-divider"></div>
 
   <div class="stats" id="stats-row"></div>
 
@@ -302,7 +368,7 @@ textarea { resize: vertical; min-height: 80px; }
 <div class="modal-backdrop" id="campaign-modal">
   <div class="modal">
     <h3>إنشاء حملة جديدة</h3>
-    <p class="sub">عبّئوا تفاصيل الحملة وراح تظهر للمعلنين المسجلين في سيمبل.</p>
+    <p class="sub">عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.</p>
 
     <form onsubmit="submitCampaign(event)">
       <div class="field">
@@ -347,10 +413,10 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="field">
-        <label>متطلبات المعلن</label>
-        <input type="text" name="requirements" placeholder="مثل: 50K+ متابع، مقيمة بالرياض">
+        <label>متطلبات المؤثر</label>
+        <input type="text" name="requirements" placeholder="مثل: 50K+ متابع، مقيم بالرياض">
       </div>
-<div class="field" style="grid-column: span 2;">
+      <div class="field" style="grid-column: span 2;">
         <label>مدة الدفع (إجباري) - بعد إكمال الحملة، الدفع خلال:</label>
         <div style="display: flex; gap: 10px; align-items: center;">
           <input type="number" name="payment_min_days" placeholder="من" min="1" max="365" value="7" required style="flex:1;" />
@@ -358,8 +424,8 @@ textarea { resize: vertical; min-height: 80px; }
           <input type="number" name="payment_max_days" placeholder="إلى" min="1" max="365" value="30" required style="flex:1;" />
           <span>يوم</span>
         </div>
-        <small style="color: #6b6b6b; font-size: 12px; margin-top: 4px; display: block;">
-          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المعلنين على حملتك.
+        <small style="color: var(--ink-muted); font-size: 12px; margin-top: 4px; display: block;">
+          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرين على حملتك.
         </small>
       </div>
       <div class="field">
@@ -383,8 +449,28 @@ let currentUser = null;
 let myCampaigns = [];
 let campaignApps = {};
 
+const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
+
+function activeCampaignsLabel(n) {
+  if (n === 0) return 'لا حملات نشطة';
+  if (n === 1) return 'حملة نشطة';
+  if (n === 2) return 'حملتان نشطتان';
+  return `${toArabic(n)} حملات نشطة`;
+}
+
+function closedDealsLabel(n) {
+  if (n === 0) return 'لم تُقفل صفقة بعد';
+  if (n === 1) return 'صفقة أقفلها الوكيل';
+  if (n === 2) return 'صفقتان أقفلهما الوكيل';
+  return `${toArabic(n)} صفقات أقفلها الوكيل`;
+}
+
+function goToCampaigns() {
+  document.getElementById('app-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 async function init() {
-  // محاولة استعادة الجلسة من cookie لو localStorage فاضي
   await tryRestoreSession();
 
   currentUser = getCurrentUser();
@@ -405,7 +491,6 @@ async function init() {
   document.getElementById('user-initial').textContent = companyName[0];
   document.getElementById('welcome-name').textContent = companyName;
 
-  // تفعيل الإشعارات
   initNotifications('user-menu');
 
   await loadData();
@@ -421,12 +506,23 @@ async function loadData() {
       campaignApps[c.id] = await dbGetCampaignApplications(c.id);
     }));
 
+    updateHeroStats();
     renderStats();
     renderCampaigns();
   } catch (err) {
     console.error(err);
-    document.getElementById('campaigns-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--ink-soft)">حصل خطأ في التحميل. حدّث الصفحة.</div>';
+    document.getElementById('campaigns-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--accent)">حصل خطأ في التحميل. حدّث الصفحة.</div>';
   }
+}
+
+function updateHeroStats() {
+  const active = myCampaigns.filter(c => c.status !== 'closed').length;
+  const allApps = Object.values(campaignApps).flat();
+  const closed = allApps.filter(a => a.status === 'closed').length;
+
+  document.getElementById('hero-status').textContent =
+    `${activeCampaignsLabel(active)} · ${closedDealsLabel(closed)}`;
+  document.getElementById('hero-closed-count').textContent = toArabic(closed);
 }
 
 function renderStats() {
@@ -447,11 +543,11 @@ function renderStats() {
     </div>
     <div class="stat-card">
       <div class="stat-label">قيد المراجعة</div>
-      <div class="stat-value" style="color: var(--ink-muted)">${pendingApps}</div>
+      <div class="stat-value muted">${pendingApps}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">صفقات مقفلة</div>
-      <div class="stat-value" style="color: var(--accent)">${closedDeals}</div>
+      <div class="stat-value success">${closedDeals}</div>
     </div>
   `;
 }
@@ -464,8 +560,8 @@ function renderCampaigns() {
       <div class="empty">
         <div class="icon">◌</div>
         <h3>لم تنشئ أي حملة بعد</h3>
-        <p>ابدأ بنشر أول حملة وستظهر فوراً للمعلنين</p>
-        <button class="btn-new" onclick="openCampaignModal()">+ إنشاء حملة جديدة</button>
+        <p>ابدأ بنشر أول حملة وستظهر فوراً للمؤثرين</p>
+        <button class="hero-cta" onclick="openCampaignModal()">+ إنشاء حملة جديدة</button>
       </div>`;
     return;
   }
@@ -482,7 +578,7 @@ function renderCampaigns() {
             <p class="desc">${c.description}</p>
             <div class="campaign-meta">
               <span><strong>الميزانية:</strong> ${c.budget} ر.س</span>
-              <span><strong>السقف:</strong> ${c.max_budget.toLocaleString('ar-SA')} ر.س</span>
+              <span><strong>السقف:</strong> ${(c.max_budget || 0).toLocaleString('ar-SA')} ر.س</span>
               ${c.duration ? `<span><strong>المدة:</strong> ${c.duration}</span>` : ''}
               ${c.package ? `<span><strong>الباقة:</strong> ${c.package}</span>` : ''}
             </div>
@@ -493,7 +589,7 @@ function renderCampaigns() {
           <div class="applications-summary">
             <div class="text">
               تم استلام <strong>${apps.length}</strong> ${apps.length === 1 ? 'عرض' : 'عروض'}
-              ${apps.filter(a => a.status === 'closed').length > 0 ? `· <strong style="color:var(--accent)">${apps.filter(a => a.status === 'closed').length}</strong> صفقة مقفلة` : ''}
+              ${apps.filter(a => a.status === 'closed').length > 0 ? `· <strong>${apps.filter(a => a.status === 'closed').length}</strong> صفقة مقفلة` : ''}
               ${pendingApps.length > 0 ? `· <strong style="color:var(--ink-muted)">${pendingApps.length}</strong> قيد المراجعة` : ''}
             </div>
             <button class="btn-view" onclick="toggleApplications('${c.id}')">
@@ -506,18 +602,18 @@ function renderCampaigns() {
               const isClosed = a.status === 'closed';
               const isActive = a.status === 'active';
               const statusLabel = isClosed ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
-              const statusColor = isClosed ? '#ffffff' : isActive ? 'var(--accent-ink)' : 'var(--ink-muted)';
-              const statusBg = isClosed ? 'var(--ink)' : isActive ? 'rgba(19, 185, 178, 0.14)' : 'rgba(10, 10, 10, 0.06)';
+              const statusColor = isClosed ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
+              const statusBg = isClosed ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
               const buttonLabel = isClosed ? 'عرض الاتفاق' : isActive ? 'متابعة التفاوض' : 'بدء التفاوض';
               const priceDisplay = isClosed && a.final_price
                 ? `<div style="font-family:var(--font-display); font-size:13px; color:var(--ink-muted); text-decoration:line-through; margin-bottom:2px">${a.price.toLocaleString('ar-SA')} ر.س</div>
-                   <div class="app-price" style="color:var(--accent)">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
+                   <div class="app-price">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
                 : `<div class="app-price">${a.price.toLocaleString('ar-SA')} ر.س</div>`;
               return `
-                <div class="app-row" style="${isClosed ? 'background: rgba(10, 10, 10, 0.03); border-radius: 12px; padding: 12px;' : ''}">
+                <div class="app-row" style="${isClosed ? 'background: rgba(19, 185, 178, 0.04); border-radius: 12px; padding: 12px;' : ''}">
                   <div class="app-creator">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px">
-                      <h4>${creator.name || 'معلن'}</h4>
+                      <h4>${creator.name || 'مؤثر'}</h4>
                       <span style="font-size:11px; font-weight:500; padding:3px 10px; border-radius:100px; background:${statusBg}; color:${statusColor}">${statusLabel}</span>
                     </div>
                     <div class="meta">
@@ -526,10 +622,10 @@ function renderCampaigns() {
                       <span>${creator.platform || ''}</span>
                     </div>
                     ${a.note && !isClosed ? `<div style="font-size:13px; color:var(--ink-soft); margin-top:6px">"${a.note}"</div>` : ''}
-                    ${isClosed && a.deal_details ? `<div style="font-size:13px; color:var(--accent-ink); margin-top:6px; padding:8px 10px; background:rgba(19, 185, 178, 0.10); border-radius:8px"><strong>الاتفاق:</strong> ${a.deal_details}</div>` : ''}
+                    ${isClosed && a.deal_details ? `<div style="font-size:13px; color:var(--accent-ink); margin-top:6px; padding:8px 10px; background:rgba(19, 185, 178, 0.08); border-radius:8px"><strong>الاتفاق:</strong> ${a.deal_details}</div>` : ''}
                   </div>
                   <div>${priceDisplay}</div>
-                  <button class="btn-view" onclick="startNegotiation('${a.id}')" style="${isClosed ? 'background:var(--accent)' : ''}">${buttonLabel}</button>
+                  <button class="btn-view" onclick="startNegotiation('${a.id}')">${buttonLabel}</button>
                 </div>
               `;
             }).join('')}
@@ -594,36 +690,35 @@ async function submitCampaign(event) {
     closeModal();
     form.reset();
 
-    // إرسال إشعار لكل المعلنين
     notifyAllCreators(campaign.title, currentUser.company_name || 'الشركة', createdCampaign?.id).catch(err => console.error(err));
-    // إرسال Push Notification لكل المعلنين
-      try {
-        const { data: creators } = await supabaseClient
-          .from('users')
-          .select('id')
-          .eq('role', 'creator');
-        
-        if (creators && creators.length > 0) {
-          fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + supabaseClient.supabaseKey
-            },
-            body: JSON.stringify({
-              title: '🎯 حملة جديدة!',
-              body: (currentUser.company_name || 'شركة') + ': ' + campaign.title,
-              url: '/creator.html',
-              target_users: creators.map(c => c.id)
-            })
-          }).then(r => r.json()).then(r => console.log('Push sent:', r));
-        }
-      } catch (pushErr) {
-        console.error('Push failed:', pushErr);
+
+    try {
+      const { data: creators } = await supabaseClient
+        .from('users')
+        .select('id')
+        .eq('role', 'creator');
+
+      if (creators && creators.length > 0) {
+        fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + supabaseClient.supabaseKey
+          },
+          body: JSON.stringify({
+            title: '🎯 حملة جديدة!',
+            body: (currentUser.company_name || 'شركة') + ': ' + campaign.title,
+            url: '/creator.html',
+            target_users: creators.map(c => c.id)
+          })
+        }).then(r => r.json()).then(r => console.log('Push sent:', r));
       }
+    } catch (pushErr) {
+      console.error('Push failed:', pushErr);
+    }
 
     await loadData();
-    setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمعلنين الآن.'), 100);
+    setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرين الآن.'), 100);
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;

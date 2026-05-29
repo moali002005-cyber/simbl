@@ -25,14 +25,10 @@
   --accent: #13B9B2;
   --accent-soft: #7fd6d2;
   --accent-ink: #0c4f4b;
-  --olive: #13B9B2;
-  --gold: #6b6b6b;
   --line: rgba(10, 10, 10, 0.08);
   --line-strong: rgba(10, 10, 10, 0.16);
   --success: #13B9B2;
-  --warning: #6b6b6b;
   --font-display: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
-  --font-serif: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
   --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
 }
 
@@ -52,47 +48,51 @@ body {
 
 .nav {
   background: var(--cream);
-  padding: 18px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 50;
 }
 .nav-inner { display: flex; justify-content: space-between; align-items: center; }
-.logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
-.logo-eye { width: 42px; height: 42px; display: block; flex-shrink: 0; }
+.logo { display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--ink); transition: transform .3s ease-out; }
+.logo:hover { transform: scale(1.05); }
+.logo-eye { width: 40px; height: 40px; display: block; flex-shrink: 0; }
 .logo-mark {
   font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
   position: relative;
+  padding-left: 10px;
+  line-height: 1;
 }
 .logo-mark::after {
   content: '';
   position: absolute;
-  bottom: 5px;
-  inset-inline-end: -8px;
-  width: 5px;
-  height: 5px;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  height: 4px;
   background: var(--accent);
   border-radius: 50%;
 }
 
-.user-menu { display: flex; align-items: center; gap: 16px; }
+.user-menu { display: flex; align-items: center; gap: 10px; }
 .user-pill {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: #fff;
-  padding: 8px 14px 8px 8px;
+  padding: 4px 12px 4px 4px;
   border-radius: 100px;
   border: 1px solid var(--line);
-  cursor: pointer;
+  transition: border-color .2s, transform .2s;
 }
+.user-pill:hover { border-color: rgba(19,185,178,0.40); transform: translateY(-1px); }
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
@@ -101,14 +101,14 @@ body {
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 13px;
+  font-size: 12px;
 }
 .user-name { font-size: 14px; font-weight: 500; }
 .btn-logout {
   background: transparent;
   border: 1px solid var(--line-strong);
   color: var(--ink-muted);
-  padding: 8px 16px;
+  padding: 7px 14px;
   border-radius: 100px;
   font-family: var(--font-body);
   font-size: 13px;
@@ -117,16 +117,92 @@ body {
 }
 .btn-logout:hover { color: var(--accent); border-color: var(--accent); }
 
-.page-header { padding: 48px 0 32px; }
-.welcome {
-  font-family: var(--font-display);
-  font-size: 36px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 8px;
+/* ==================== HERO ==================== */
+@keyframes sb-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.7); opacity: 0.35; } }
+@keyframes sb-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes sb-glow { 0%,100% { box-shadow: 0 0 14px 0 rgba(19,185,178,0.18); } 50% { box-shadow: 0 0 32px 6px rgba(19,185,178,0.48); } }
+
+.hero { padding: 60px 24px 56px; text-align: center; }
+.hero-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: 100px;
+  font-size: 14px; font-weight: 500;
+  margin-bottom: 24px;
+  border: 1px solid rgba(19,185,178,0.30);
+  color: var(--accent-ink); background: #fff;
+  animation: sb-glow 2.6s ease-in-out infinite;
 }
-.welcome .italic { font-family: var(--font-display); font-style: normal; color: var(--accent); }
-.welcome-sub { color: var(--ink-soft); font-size: 16px; }
+.hero-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: sb-pulse 1.6s ease-in-out infinite; flex-shrink: 0; }
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px; color: var(--ink);
+}
+.hero-title .nm { color: var(--accent); position: relative; display: inline-block; cursor: default; }
+.hero-title .nm::after {
+  content: ''; position: absolute; bottom: -3px; right: 0; left: 0;
+  height: 2px; background: var(--accent);
+  transform: scaleX(0); transform-origin: right;
+  transition: transform .35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hero-title .nm:hover::after { transform: scaleX(1); }
+.hero-sub { font-size: 16px; max-width: 520px; margin: 0 auto 28px; line-height: 1.7; color: var(--ink-soft); }
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 14px 32px; border-radius: 100px; border: 0;
+  font-family: var(--font-body); font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: background .25s, transform .15s;
+  background: var(--ink); color: #fff;
+}
+.hero-cta:hover { background: var(--accent); transform: translateY(-2px); }
+.hero-cta:active { transform: translateY(0); }
+.hero-link {
+  display: inline-block; margin-right: 16px;
+  font-size: 14px; cursor: pointer;
+  color: var(--ink-muted); transition: color .2s;
+  background: transparent; border: 0; font-family: var(--font-body);
+}
+.hero-link:hover { color: var(--accent); }
+.hero-arr { display: inline-block; transition: transform .25s ease-out; }
+.hero-link:hover .hero-arr { transform: translateX(-5px); }
+
+.hero-features {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  margin-top: 40px; padding-top: 28px;
+  border-top: 1px solid var(--line);
+  max-width: 560px; margin-left: auto; margin-right: auto;
+}
+.hero-feat {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 100px;
+  background: #fff; font-size: 13px; font-weight: 500;
+  border: 1px solid rgba(19,185,178,0.25); color: var(--accent-ink);
+  cursor: default;
+  animation: sb-float 2.8s ease-in-out infinite;
+}
+.hero-features .hero-feat:nth-child(1) { animation-delay: 0s; }
+.hero-features .hero-feat:nth-child(2) { animation-delay: 0.4s; }
+.hero-features .hero-feat:nth-child(3) { animation-delay: 0.8s; }
+.hero-feat:hover {
+  animation: none;
+  transform: translateY(-8px);
+  border-color: rgba(19,185,178,0.55);
+  transition: transform .25s, border-color .25s;
+}
+.hero-feat-ic {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; background: var(--accent);
+  transition: transform .35s; font-size: 12px;
+}
+.hero-feat:hover .hero-feat-ic { transform: rotate(360deg); }
+
+/* ==================== TABS & APP CONTENT ==================== */
+.section-divider {
+  border-top: 1px solid var(--line);
+  margin: 20px 0 32px;
+}
 
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 32px; }
 .tab {
@@ -186,16 +262,10 @@ body {
 .campaign-card .top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
 .brand-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-muted); }
 .brand-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 28px; height: 28px; border-radius: 50%;
   background: var(--cream-darker);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 600; font-size: 11px;
   color: var(--ink-soft);
 }
 .budget-tag { background: var(--cream-darker); padding: 6px 12px; border-radius: 100px; font-size: 12px; font-weight: 500; color: var(--ink); }
@@ -203,13 +273,8 @@ body {
 .campaign-card h3 { font-family: var(--font-display); font-size: 19px; font-weight: 600; line-height: 1.3; letter-spacing: 0; }
 
 .campaign-card .desc {
-  font-size: 14px;
-  color: var(--ink-soft);
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-size: 14px; color: var(--ink-soft); line-height: 1.6;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 .meta-row { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -220,16 +285,10 @@ body {
 .tag { font-size: 11px; padding: 4px 10px; background: var(--cream-darker); border-radius: 100px; color: var(--accent-ink); font-weight: 500; }
 
 .btn-apply {
-  background: var(--ink);
-  color: #fff;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 100px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+  background: var(--ink); color: #fff;
+  padding: 10px 20px; border: none; border-radius: 100px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
 }
 .btn-apply:hover { background: var(--accent); }
 .btn-apply.applied { background: var(--cream-darker); color: var(--ink-muted); cursor: not-allowed; }
@@ -258,15 +317,11 @@ body {
 .status-rejected { background: var(--cream-darker); color: var(--ink-muted); }
 
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(10, 10, 10, 0.5);
   backdrop-filter: blur(4px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 20px;
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
 }
 .modal-backdrop.show { display: flex; }
 .modal { background: #fff; border-radius: 24px; padding: 36px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; }
@@ -275,14 +330,10 @@ body {
 .field { margin-bottom: 20px; }
 label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-soft); margin-bottom: 8px; }
 input, textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  font-family: var(--font-body);
-  font-size: 14px;
-  background: #fff;
-  color: var(--ink);
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  font-family: var(--font-body); font-size: 14px;
+  background: #fff; color: var(--ink);
 }
 input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(19,185,178,0.14); }
 .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
@@ -295,8 +346,13 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   .container { padding: 0 16px; }
   .campaigns-grid { grid-template-columns: 1fr; }
   .modal { padding: 24px; }
-  .welcome { font-size: 26px; }
+  .hero-title { font-size: 28px; }
+  .hero-sub { font-size: 15px; }
+  .hero { padding: 40px 16px 36px; }
   .logo-eye { width: 36px; height: 36px; }
+  .logo-mark { font-size: 14px; }
+  .user-pill .user-name { display: none; }
+  .hero-link { display: block; margin: 14px 0 0; }
 }
 </style>
 </head>
@@ -307,10 +363,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
     <a href="/" class="logo">
       <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true">
         <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
-          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/>
-          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/>
-          <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/>
-          <circle cx="100" cy="100" r="7" fill="#0a0a0a"/>
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(25 100 100)"/>
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(-25 100 100)"/>
+          <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/>
+          <circle cx="100" cy="100" r="8" fill="#0a0a0a"/>
         </g>
       </svg>
       <span class="logo-mark">سيمبل</span>
@@ -326,10 +382,25 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 </nav>
 
 <main class="container">
-  <div class="page-header">
-    <h1 class="welcome">أهلاً <span class="italic" id="welcome-name">بك</span></h1>
-    <p class="welcome-sub">تصفحي الحملات المتاحة وقدّم عروضك</p>
-  </div>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
+    <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بك</span></h1>
+    <p class="hero-sub">اطّلع على جميع الحملات الإعلانية المتاحة لك، واختر المناسب.</p>
+    <div>
+      <button class="hero-cta" onclick="goToBrowse()">تصفّح الحملات</button>
+      <button class="hero-link" onclick="goToApplications()">صفقاتي (<span id="hero-app-count">٠</span>) <span class="hero-arr">←</span></button>
+    </div>
+    <div class="hero-features">
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تصلك الحملات</span>
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تختار المناسب</span>
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تقفل الصفقة</span>
+    </div>
+  </section>
+
+  <!-- ============ APP CONTENT ============ -->
+  <div id="app-section" class="section-divider"></div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('browse')" id="tab-browse">
@@ -352,7 +423,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
       <button class="filter-pill" onclick="filterCampaigns('food', this)">طعام</button>
       <button class="filter-pill" onclick="filterCampaigns('tech', this)">تقنية</button>
     </div>
-
     <div class="campaigns-grid" id="campaigns-list"></div>
   </div>
 
@@ -394,6 +464,26 @@ let myApplications = [];
 let currentFilter = 'all';
 let currentCampaignId = null;
 
+const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
+
+function newCampaignsLabel(n) {
+  if (n === 0) return 'حملات بانتظارك';
+  if (n === 1) return 'حملة جديدة لك اليوم';
+  if (n === 2) return 'حملتان جديدتان لك اليوم';
+  return `${toArabic(n)} حملات جديدة لك اليوم`;
+}
+
+function goToBrowse() {
+  switchTab('browse');
+  document.getElementById('app-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function goToApplications() {
+  switchTab('applications');
+  document.getElementById('app-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 async function init() {
   await tryRestoreSession();
 
@@ -410,7 +500,7 @@ async function init() {
     return;
   }
 
-  const firstName = (currentUser.name || 'معلن').split(' ')[0];
+  const firstName = (currentUser.name || 'بك').split(' ')[0];
   document.getElementById('user-name').textContent = firstName;
   document.getElementById('user-initial').textContent = firstName[0];
   document.getElementById('welcome-name').textContent = firstName;
@@ -427,12 +517,23 @@ async function loadData() {
       dbGetCampaigns(),
       dbGetMyApplications(currentUser.id)
     ]);
+    updateHeroStats();
     renderCampaigns();
     renderApplications();
   } catch (err) {
     console.error(err);
     document.getElementById('campaigns-list').innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--ink-soft)">حصل خطأ في تحميل البيانات. حدّث الصفحة وحاول مرة أخرى.</div>';
   }
+}
+
+function updateHeroStats() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const newToday = allCampaigns.filter(c => new Date(c.created_at) >= today).length;
+  document.getElementById('hero-status').textContent = newCampaignsLabel(newToday);
+
+  const activeApps = myApplications.filter(a => a.status !== 'rejected').length;
+  document.getElementById('hero-app-count').textContent = toArabic(activeApps);
 }
 
 function renderCampaigns() {
@@ -497,7 +598,7 @@ function renderApplications() {
       <div class="empty">
         <div class="icon">◌</div>
         <h3>لم تقدّم على أي حملة بعد</h3>
-        <p>تصفحي الحملات المتاحة وقدّم عرضك على ما يناسبك</p>
+        <p>تصفّح الحملات المتاحة وقدّم عرضك على ما يناسبك</p>
       </div>`;
     return;
   }
@@ -575,7 +676,6 @@ async function submitApplication(event) {
   try {
     const savedApplication = await dbApply(applicationData);
 
-    // إرسال إشعار للشركة
     if (campaign && campaign.brand_id) {
       createNotification(
         campaign.brand_id,
@@ -589,16 +689,14 @@ async function submitApplication(event) {
     closeModal();
     form.reset();
 
-    // بدء التفاوض التلقائي مع الوكيل فوراً (نستخدم التقديم المحفوظ مباشرة)
     startAutoNegotiation(savedApplication, campaign);
 
     submitBtn.disabled = false;
     submitBtn.textContent = original;
 
-    // إعادة تحميل البيانات لتحديث القائمة
     await loadData();
 
-    setTimeout(() => alert('تم إرسال عرضك بنجاح! الوكيل الذكي بدأ التفاوض. افتحي "تقديماتي" لمتابعة المحادثة.'), 100);
+    setTimeout(() => alert('تم إرسال عرضك بنجاح! الوكيل الذكي بدأ التفاوض. افتح "صفقاتي" لمتابعة المحادثة.'), 100);
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
@@ -607,7 +705,6 @@ async function submitApplication(event) {
   }
 }
 
-// بدء التفاوض التلقائي: الوكيل يكتب أول رسالة ترحيب وعرض
 async function startAutoNegotiation(application, campaign) {
   try {
     if (!application || !application.id || !campaign) {
@@ -615,7 +712,6 @@ async function startAutoNegotiation(application, campaign) {
       return;
     }
 
-    // نتأكد ما فيه محادثة سابقة (عشان ما نكرر)
     const { data: existing } = await supabaseClient
       .from('negotiations')
       .select('id')
@@ -623,7 +719,6 @@ async function startAutoNegotiation(application, campaign) {
       .limit(1);
     if (existing && existing.length > 0) return;
 
-    // نجهّز بيانات الحملة والتقديم للوكيل
     const campaignData = {
       id: campaign.id,
       title: campaign.title,
@@ -645,7 +740,6 @@ async function startAutoNegotiation(application, campaign) {
       note: application.note
     };
 
-    // نطلب من الوكيل يبدأ التفاوض (history فاضي = الوكيل يرحب ويبدأ)
     fetch('/api/negotiate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
