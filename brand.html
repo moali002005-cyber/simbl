@@ -528,13 +528,18 @@ body {
 
 /* ============ Approval gate (waiting for brand to confirm deal close) ============ */
 .approval-gate {
-  background: rgba(243, 156, 18, 0.07);
-  border: 1.5px solid rgba(243, 156, 18, 0.42);
+  background: rgba(19, 185, 178, 0.04);
+  border: 1.5px solid rgba(19, 185, 178, 0.35);
   border-radius: 14px;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  animation: ag-pulse 2.6s ease-in-out infinite;
+}
+@keyframes ag-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(19, 185, 178, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(19, 185, 178, 0.06); }
 }
 .ag-top {
   display: grid;
@@ -544,8 +549,8 @@ body {
 }
 .ag-icon {
   width: 44px; height: 44px;
-  background: rgba(243, 156, 18, 0.2);
-  color: #854F0B;
+  background: rgba(19, 185, 178, 0.16);
+  color: #0c4f4b;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 22px;
@@ -580,7 +585,7 @@ body {
 /* Swipe-to-approve track */
 .swipe-track {
   background: #fff;
-  border: 1.5px solid rgba(243, 156, 18, 0.35);
+  border: 1.5px solid rgba(19, 185, 178, 0.35);
   border-radius: 100px;
   position: relative;
   height: 60px;
@@ -596,7 +601,7 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #854F0B;
+  color: #0c4f4b;
   font-weight: 500;
   pointer-events: none;
   z-index: 1;
@@ -1390,8 +1395,8 @@ function renderSingleCampaign(c) {
               const forcedExpand = single || awaitingApproval;
               const isExpanded = forcedExpand || expandedAppId === a.id;
               const statusLabel = awaitingApproval ? '⏳ بانتظار تعميدك' : isApproved ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
-              const statusColor = awaitingApproval ? '#854F0B' : isApproved ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
-              const statusBg = awaitingApproval ? 'rgba(243, 156, 18, 0.15)' : isApproved ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
+              const statusColor = awaitingApproval ? '#0c4f4b' : isApproved ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
+              const statusBg = awaitingApproval ? 'rgba(19, 185, 178, 0.10)' : isApproved ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
               const buttonLabel = isClosed ? '💬 عرض المفاوضة' : isActive ? '💬 متابعة المفاوضة' : '💬 بدء المفاوضة';
               const stageName = (isApproved && a.stage) ? (WORKFLOW_STAGES.find(s => s.id === a.stage)?.name || '') : '';
               const stagePill = stageName ? `<span class="acc-stage">مرحلة: ${stageName}</span>` : '';
