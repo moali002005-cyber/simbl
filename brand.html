@@ -1589,7 +1589,8 @@ const WORKFLOW_STAGES = [
   { id: 5, name: 'المحتوى' },
   { id: 6, name: 'الموافقة' },
   { id: 7, name: 'النشر' },
-  { id: 8, name: 'مكتمل', isFinal: true }
+  { id: 8, name: 'البيانات البنكية' },
+  { id: 9, name: 'مكتمل', isFinal: true }
 ];
 
 const STAGE_ACTIONS = {
@@ -1625,8 +1626,13 @@ const STAGE_ACTIONS = {
   },
   7: {
     responsible: 'creator',
-    creator: { label: '✓ تأكيد النشر', desc: 'بعد نشر المحتوى، أرفق رابط المنشور وأكّد.' },
+    creator: { label: '✓ تأكيد النشر', desc: 'بعد نشر المحتوى، أرفق رابط المنشور وكود الترويج وأكّد.' },
     brand:   { desc: 'بانتظار نشر المعلن للمحتوى المعتمد.' }
+  },
+  8: {
+    responsible: 'creator',
+    creator: { label: '✓ إرسال البيانات البنكية', desc: 'أضف بياناتك البنكية لاستلام المبلغ المتفق عليه.' },
+    brand:   { desc: 'تم النشر. المعلن يضيف بياناته البنكية لاستلام المبلغ.' }
   }
 };
 
@@ -1653,7 +1659,13 @@ const STAGE_FIELDS = {
     { name: 'feedback', label: 'ملاحظات (اختياري)', placeholder: 'أي ملاحظات...', type: 'text', required: false }
   ],
   7: [
-    { name: 'publish_link', label: 'رابط المنشور', placeholder: 'رابط البوست/الريل/الستوري', type: 'url', required: true }
+    { name: 'publish_link', label: 'رابط المنشور', placeholder: '', type: 'url', required: true },
+    { name: 'promo_code',   label: 'كود الترويج', placeholder: '', type: 'textarea', rows: 4, required: false }
+  ],
+  8: [
+    { name: 'account_holder', label: 'اسم صاحب الحساب', placeholder: '', type: 'text', required: true },
+    { name: 'iban',           label: 'رقم الآيبان', placeholder: '', type: 'text', required: true },
+    { name: 'bank_name',      label: 'اسم البنك', placeholder: '', type: 'text', required: false }
   ]
 };
 
@@ -1664,7 +1676,8 @@ const STAGE_NOTIFICATIONS = {
   5: { title: '🎬 المحتوى', body: 'البريف جاهز، الصفقة في مرحلة إعداد المحتوى' },
   6: { title: '👀 المراجعة', body: 'المحتوى جاهز، الصفقة في مرحلة المراجعة والموافقة' },
   7: { title: '🚀 النشر', body: 'تمت الموافقة، الصفقة في مرحلة النشر' },
-  8: { title: '🎉 صفقة مكتملة', body: 'تم اكتمال الصفقة بنجاح' }
+  8: { title: '💳 البيانات البنكية', body: 'تم النشر، المعلن يضيف بياناته البنكية' },
+  9: { title: '🎉 صفقة مكتملة', body: 'تم استلام البيانات، الصفقة مكتملة بنجاح' }
 };
 
 function escHtml(s) {
@@ -1695,34 +1708,36 @@ function renderStageHistory(stageData, currentStage) {
     const stageName = WORKFLOW_STAGES.find(s => s.id === stageId)?.name || '';
     const fields = STAGE_FIELDS[stageId] || [];
 
-    // افصل الحقول إلى inline (نص قصير) و block (textarea)
+    // افصل الحقول إلى inline (نص قصير) و block (textarea/url - مع نسخ)
     const inlineFields = [];
     const blockFields = [];
     fields.forEach(f => {
       if (data[f.name] !== undefined && data[f.name] !== '') {
-        if (f.type === 'textarea') blockFields.push(f);
+        if (f.type === 'textarea' || f.type === 'url') blockFields.push(f);
         else inlineFields.push(f);
       }
     });
 
     const inlineHtml = inlineFields.map(f => {
       const val = data[f.name];
-      const isUrl = f.type === 'url';
-      const display = isUrl ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>` : escHtml(val);
-      return `<div><strong>${f.label}:</strong> ${display}</div>`;
+      return `<div><strong>${f.label}:</strong> ${escHtml(val)}</div>`;
     }).join('');
 
     const blockHtml = blockFields.map(f => {
       const val = data[f.name];
-      const longText = val.length > 200;
+      const isUrl = f.type === 'url';
+      const longText = !isUrl && val.length > 200;
       const cid = 'brf-' + stageId + '-' + f.name + '-' + Math.random().toString(36).slice(2, 8);
+      const content = isUrl
+        ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>`
+        : escHtml(val);
       return `
         <div class="brief-field">
           <div class="brief-header">
             <strong>${f.label}:</strong>
             <button class="brief-copy" onclick="event.stopPropagation(); copyBrief(this)">📋 نسخ</button>
           </div>
-          <div class="brief-content${longText ? ' truncated' : ''}" id="${cid}">${escHtml(val)}</div>
+          <div class="brief-content${longText ? ' truncated' : ''}" id="${cid}">${content}</div>
           ${longText ? `<button class="brief-toggle" onclick="event.stopPropagation(); toggleBrief('${cid}', this)">قراءة المزيد ↓</button>` : ''}
         </div>
       `;
@@ -1743,7 +1758,7 @@ function renderStageHistory(stageData, currentStage) {
 }
 
 function renderStageAction(applicationId, currentStage, viewerRole) {
-  if (currentStage >= 8) {
+  if (currentStage >= 9) {
     return `<div class="stage-action complete"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
   }
   const info = STAGE_ACTIONS[currentStage];
@@ -1757,7 +1772,8 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
     const inputsHtml = fields.map(f => {
       const fid = `sf-${applicationId}-${f.name}`;
       if (f.type === 'textarea') {
-        return `<div class="sa-field"><label for="${fid}">${f.label}${f.required ? ' *' : ''}</label><textarea id="${fid}" name="${f.name}" placeholder="${escHtml(f.placeholder)}"${f.required ? ' required' : ''}></textarea></div>`;
+        const rows = f.rows || 3;
+        return `<div class="sa-field"><label for="${fid}">${f.label}${f.required ? ' *' : ''}</label><textarea id="${fid}" name="${f.name}" placeholder="${escHtml(f.placeholder)}" rows="${rows}"${f.required ? ' required' : ''}></textarea></div>`;
       }
       return `<div class="sa-field"><label for="${fid}">${f.label}${f.required ? ' *' : ''}</label><input type="${f.type}" id="${fid}" name="${f.name}" placeholder="${escHtml(f.placeholder)}"${f.required ? ' required' : ''}></div>`;
     }).join('');
