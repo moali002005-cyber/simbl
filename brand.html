@@ -998,11 +998,8 @@ function renderSingleCampaign(c) {
               ${apps.filter(a => a.status === 'closed').length > 0 ? `· <strong>${apps.filter(a => a.status === 'closed').length}</strong> صفقة مقفلة` : ''}
               ${pendingApps.length > 0 ? `· <strong style="color:var(--ink-muted)">${pendingApps.length}</strong> قيد المراجعة` : ''}
             </div>
-            <button class="btn-view" onclick="toggleApplications('${c.id}')">
-              <span id="toggle-text-${c.id}">عرض التقديمات</span>
-            </button>
           </div>
-          <div class="applications-detail" id="apps-${c.id}">
+          <div class="applications-detail show" id="apps-${c.id}">
             ${apps.map(a => {
               const creator = a.users || {};
               const isClosed = a.status === 'closed';
@@ -1010,7 +1007,7 @@ function renderSingleCampaign(c) {
               const statusLabel = isClosed ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
               const statusColor = isClosed ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
               const statusBg = isClosed ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
-              const buttonLabel = isClosed ? 'عرض الاتفاق' : isActive ? 'متابعة التفاوض' : 'بدء التفاوض';
+              const buttonLabel = isClosed ? '💬 عرض المفاوضة' : isActive ? '💬 متابعة المفاوضة' : '💬 بدء المفاوضة';
               const priceDisplay = isClosed && a.final_price
                 ? `<div style="font-family:var(--font-display); font-size:13px; color:var(--ink-muted); text-decoration:line-through; margin-bottom:2px">${a.price.toLocaleString('ar-SA')} ر.س</div>
                    <div class="app-price">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
