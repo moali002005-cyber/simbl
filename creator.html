@@ -335,9 +335,28 @@ body {
 .app-info .meta { font-size: 13px; color: var(--ink-muted); }
 .app-status { padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 500; }
 .status-pending { background: rgba(10, 10, 10, 0.06); color: var(--ink-muted); }
+.status-pending_approval { background: rgba(243, 156, 18, 0.15); color: #854F0B; }
 .status-active { background: rgba(19, 185, 178, 0.14); color: var(--accent-ink); }
 .status-closed { background: var(--ink); color: #fff; }
 .status-rejected { background: var(--cream-darker); color: var(--ink-muted); }
+
+/* ============ Approval gate (deal waiting for brand confirmation) ============ */
+.approval-gate {
+  margin-top: 8px;
+  background: rgba(243, 156, 18, 0.07);
+  border: 1px solid rgba(243, 156, 18, 0.32);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ag-info { flex: 1; min-width: 200px; }
+.ag-price { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.ag-price .num { color: var(--accent); font-size: 16px; }
+.ag-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.6; }
 
 /* ============ Workflow progress strip ============ */
 .workflow-strip {
@@ -826,15 +845,27 @@ function renderApplications() {
     const campaignTitle = a.campaigns?.title || 'حملة';
     const brandName = a.campaigns?.users?.company_name || '';
     const isClosed = a.status === 'closed';
+    const isApproved = isClosed && a.brand_approved === true;
+    const awaitingApproval = isClosed && !isApproved;
+    const statusKey = awaitingApproval ? 'pending_approval' : a.status;
+    const statusLabel = awaitingApproval ? '⏳ بانتظار تعميد الشركة' : statusLabels[a.status];
     return `
       <div class="application-card" onclick="window.location.href='/campaign.html?app=${a.id}'" style="cursor: pointer">
         <div class="app-info">
           <h4>${campaignTitle}</h4>
           <div class="meta">${brandName} · عرضك: ${a.price.toLocaleString('ar-SA')} ر.س · ${new Date(a.created_at).toLocaleDateString('ar-SA')}</div>
         </div>
-        <span class="app-status status-${a.status}">${statusLabels[a.status]}</span>
+        <span class="app-status status-${statusKey}">${statusLabel}</span>
       </div>
-      ${isClosed ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'creator') : ''}
+      ${awaitingApproval ? `
+        <div class="approval-gate" onclick="event.stopPropagation()">
+          <div class="ag-info">
+            <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</span></div>
+            <div class="ag-desc">تم التوصّل لاتفاق، بانتظار تعميد الشركة لبدء التنفيذ.</div>
+          </div>
+        </div>
+      ` : ''}
+      ${isApproved ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'creator') : ''}
     `;
   }).join('');
 }

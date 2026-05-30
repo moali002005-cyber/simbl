@@ -526,6 +526,38 @@ body {
 }
 .btn-negotiation:hover { background: var(--accent); transform: translateY(-1px); }
 
+/* ============ Approval gate (waiting for brand to confirm deal close) ============ */
+.approval-gate {
+  background: rgba(243, 156, 18, 0.07);
+  border: 1px solid rgba(243, 156, 18, 0.32);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ag-info { flex: 1; min-width: 200px; }
+.ag-price { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.ag-price .num { color: var(--accent); font-size: 16px; }
+.ag-desc { font-size: 12px; color: var(--ink-soft); }
+.ag-btn {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  padding: 11px 22px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .2s, transform .15s;
+}
+.ag-btn:hover { background: var(--accent-ink); transform: translateY(-1px); }
+.ag-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 @media (max-width: 640px) {
   .app-row-compact { grid-template-columns: auto 1fr auto; padding: 12px 14px; gap: 10px; }
   .app-expand-btn { display: none; }
@@ -1087,6 +1119,40 @@ function toggleAppExpand(appId) {
   renderCampaigns();
 }
 
+async function approveDeal(applicationId) {
+  const { app, campaign } = findAppById(applicationId);
+  if (!app) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .update({ brand_approved: true })
+      .eq('id', applicationId)
+      .select();
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+    }
+
+    // إشعار المعلن باعتماد الصفقة
+    if (app.creator_id) {
+      const title = '🎉 تم اعتماد الصفقة';
+      const body = `${campaign?.title || 'صفقة'}: الشركة اعتمدت الاتفاق! نبدأ التنفيذ.`;
+      createNotification(app.creator_id, 'deal_approved', title, body, '/creator.html').catch(console.error);
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body, url: '/creator.html', target_users: [app.creator_id] })
+      }).catch(console.error);
+    }
+
+    await loadData();
+  } catch (err) {
+    console.error('Approve error:', err);
+    alert('حصل خطأ في الاعتماد: ' + (err.message || 'حاول مرة أخرى'));
+  }
+}
+
 function renderSingleCampaign(c) {
     const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
@@ -1131,23 +1197,26 @@ function renderSingleCampaign(c) {
             ${apps.map((a, idx) => {
               const creator = a.users || {};
               const isClosed = a.status === 'closed';
+              const isApproved = isClosed && a.brand_approved === true;
+              const awaitingApproval = isClosed && !isApproved;
               const isActive = a.status === 'active';
               const single = apps.length === 1;
               const isExpanded = single || expandedAppId === a.id;
-              const statusLabel = isClosed ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
-              const statusColor = isClosed ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
-              const statusBg = isClosed ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
+              const statusLabel = awaitingApproval ? '⏳ بانتظار تعميدك' : isApproved ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
+              const statusColor = awaitingApproval ? '#854F0B' : isApproved ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
+              const statusBg = awaitingApproval ? 'rgba(243, 156, 18, 0.15)' : isApproved ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
               const buttonLabel = isClosed ? '💬 عرض المفاوضة' : isActive ? '💬 متابعة المفاوضة' : '💬 بدء المفاوضة';
-              const stageName = (isClosed && a.stage) ? (WORKFLOW_STAGES.find(s => s.id === a.stage)?.name || '') : '';
+              const stageName = (isApproved && a.stage) ? (WORKFLOW_STAGES.find(s => s.id === a.stage)?.name || '') : '';
               const stagePill = stageName ? `<span class="acc-stage">مرحلة: ${stageName}</span>` : '';
               const priceDisplay = isClosed && a.final_price
                 ? `<div class="strike">${a.price.toLocaleString('ar-SA')} ر.س</div><div class="final">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
                 : `<div class="final">${a.price.toLocaleString('ar-SA')} ر.س</div>`;
               const rowClickAttr = single ? '' : `onclick="toggleAppExpand('${a.id}')"`;
               const lockedCls = single ? 'locked' : '';
+              const compactRowClosedCls = isApproved ? 'closed' : '';
               return `
                 <div class="app-block ${isExpanded ? 'is-expanded' : ''}">
-                  <div class="app-row-compact ${isClosed ? 'closed' : ''} ${lockedCls}" ${rowClickAttr}>
+                  <div class="app-row-compact ${compactRowClosedCls} ${lockedCls}" ${rowClickAttr}>
                     <div class="app-num">${toArabic(idx + 1)}</div>
                     <div class="acc">
                       <div class="acc-top">
@@ -1166,10 +1235,21 @@ function renderSingleCampaign(c) {
                   </div>
                   ${isExpanded ? `
                     <div class="app-expanded" onclick="event.stopPropagation()">
-                      ${a.note && !isClosed ? `<div class="note-row">"${escHtml(a.note)}"</div>` : ''}
-                      ${isClosed && a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : ''}
-                      ${isClosed ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'brand') : ''}
-                      <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
+                      ${awaitingApproval ? `
+                        <div class="approval-gate">
+                          <div class="ag-info">
+                            <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</span></div>
+                            <div class="ag-desc">الوكيل توصّل لاتفاق مع المعلن. بحاجة موافقتك لإقفال الصفقة.</div>
+                          </div>
+                          <button class="ag-btn" onclick="event.stopPropagation(); approveDeal('${a.id}')">✓ اعتماد</button>
+                        </div>
+                        <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
+                      ` : `
+                        ${a.note && !isClosed ? `<div class="note-row">"${escHtml(a.note)}"</div>` : ''}
+                        ${isApproved && a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : ''}
+                        ${isApproved ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'brand') : ''}
+                        <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
+                      `}
                     </div>
                   ` : ''}
                 </div>
