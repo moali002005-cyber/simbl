@@ -431,9 +431,90 @@ body {
 }
 .app-row-compact:hover { border-color: var(--ink-soft); background: #fafaf6; }
 .app-row-compact.closed { background: rgba(19, 185, 178, 0.05); border-color: rgba(19, 185, 178, 0.22); }
+.app-row-compact.negotiating {
+  background: rgba(19, 185, 178, 0.025);
+  border-color: rgba(19, 185, 178, 0.22);
+  animation: nego-glow 2.6s ease-in-out infinite;
+}
+@keyframes nego-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(19, 185, 178, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(19, 185, 178, 0.08); }
+}
 .app-row-compact.locked { cursor: default; }
 .app-row-compact.locked:hover { background: #fff; border-color: var(--line); }
 .app-row-compact.closed.locked:hover { background: rgba(19, 185, 178, 0.05); border-color: rgba(19, 185, 178, 0.22); }
+.app-row-compact.negotiating.locked:hover { background: rgba(19, 185, 178, 0.025); border-color: rgba(19, 185, 178, 0.22); }
+
+.nego-pill {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+.nego-pill .nego-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: nego-dot-blink 1.4s ease-in-out infinite;
+}
+@keyframes nego-dot-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+/* Negotiating banner (in expanded view) */
+.nego-banner {
+  background: rgba(19, 185, 178, 0.05);
+  border: 1px solid rgba(19, 185, 178, 0.3);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: center;
+  animation: nego-glow 2.6s ease-in-out infinite;
+}
+.nego-ring {
+  width: 48px; height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.nego-ring::before {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  z-index: 2;
+}
+.nego-ring::after {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: nego-ring-pulse 1.8s ease-out infinite;
+  z-index: 1;
+}
+@keyframes nego-ring-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+.nego-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+.nego-desc {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
 .app-block.is-expanded .app-row-compact {
   border-radius: 14px 14px 0 0;
   border-bottom-color: transparent;
@@ -1495,13 +1576,24 @@ function renderSingleCampaign(c) {
               const isApproved = isClosed && a.brand_approved === true;
               const awaitingApproval = isClosed && !isApproved;
               const isActive = a.status === 'active';
+              const isNegotiating = !isClosed;
               const single = apps.length === 1;
               const forcedExpand = single || awaitingApproval;
               const isExpanded = forcedExpand || expandedAppId === a.id;
-              const statusLabel = awaitingApproval ? '⏳ بانتظار تعميدك' : isApproved ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
-              const statusColor = awaitingApproval ? '#0c4f4b' : isApproved ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
-              const statusBg = awaitingApproval ? 'rgba(19, 185, 178, 0.10)' : isApproved ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
-              const buttonLabel = isClosed ? '💬 عرض المفاوضة' : isActive ? '💬 متابعة المفاوضة' : '💬 بدء المفاوضة';
+              const statusLabel = awaitingApproval ? '⏳ بانتظار تعميدك'
+                                : isApproved ? '✓ تم الاتفاق'
+                                : isNegotiating ? '<span class="nego-dot"></span>الوكيل يفاوض الآن'
+                                : 'جديد';
+              const statusColor = awaitingApproval ? '#0c4f4b'
+                                : isApproved ? 'var(--accent)'
+                                : isNegotiating ? 'var(--accent-ink)'
+                                : 'var(--ink-muted)';
+              const statusBg = awaitingApproval ? 'rgba(19, 185, 178, 0.10)'
+                             : isApproved ? 'rgba(19, 185, 178, 0.15)'
+                             : isNegotiating ? 'rgba(19, 185, 178, 0.10)'
+                             : 'rgba(10, 10, 10, 0.06)';
+              const pillExtraCls = isNegotiating ? 'nego-pill' : '';
+              const buttonLabel = '💬 عرض المفاوضة';
               const stageName = (isApproved && a.stage) ? (WORKFLOW_STAGES.find(s => s.id === a.stage)?.name || '') : '';
               const stagePill = stageName ? `<span class="acc-stage">مرحلة: ${stageName}</span>` : '';
               const priceDisplay = isClosed && a.final_price
@@ -1509,15 +1601,15 @@ function renderSingleCampaign(c) {
                 : `<div class="final">${a.price.toLocaleString('ar-SA')} ر.س</div>`;
               const rowClickAttr = forcedExpand ? '' : `onclick="toggleAppExpand('${a.id}')"`;
               const lockedCls = forcedExpand ? 'locked' : '';
-              const compactRowClosedCls = isApproved ? 'closed' : '';
+              const compactRowStateCls = isApproved ? 'closed' : isNegotiating ? 'negotiating' : '';
               return `
                 <div class="app-block ${isExpanded ? 'is-expanded' : ''}">
-                  <div class="app-row-compact ${compactRowClosedCls} ${lockedCls}" ${rowClickAttr}>
+                  <div class="app-row-compact ${compactRowStateCls} ${lockedCls}" ${rowClickAttr}>
                     <div class="app-num">${toArabic(idx + 1)}</div>
                     <div class="acc">
                       <div class="acc-top">
                         <h4>${escHtml(creator.name || 'مؤثر')}</h4>
-                        <span class="acc-pill" style="background:${statusBg}; color:${statusColor}">${statusLabel}</span>
+                        <span class="acc-pill ${pillExtraCls}" style="background:${statusBg}; color:${statusColor}">${statusLabel}</span>
                         ${stagePill}
                       </div>
                       <div class="acc-meta">
@@ -1531,7 +1623,16 @@ function renderSingleCampaign(c) {
                   </div>
                   ${isExpanded ? `
                     <div class="app-expanded" onclick="event.stopPropagation()">
-                      ${awaitingApproval ? `
+                      ${isNegotiating ? `
+                        <div class="nego-banner">
+                          <div class="nego-ring"></div>
+                          <div>
+                            <div class="nego-title">الوكيل يقوم بالمفاوضة الآن</div>
+                            <div class="nego-desc">يفاوض المعلن للوصول لأفضل سعر. لمّا يتم الاتفاق راح يطلب تعميدك للسعر النهائي قبل إقفال الصفقة.</div>
+                          </div>
+                        </div>
+                        <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
+                      ` : awaitingApproval ? `
                         <div class="approval-gate">
                           <div class="ag-top">
                             <div class="ag-icon">⏳</div>
@@ -1549,7 +1650,6 @@ function renderSingleCampaign(c) {
                         </div>
                         <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
                       ` : `
-                        ${a.note && !isClosed ? `<div class="note-row">"${escHtml(a.note)}"</div>` : ''}
                         ${isApproved && a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : ''}
                         ${isApproved ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'brand') : ''}
                         <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
