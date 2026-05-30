@@ -534,8 +534,71 @@ body {
   font-weight: 600;
 }
 .hi-name { font-weight: 600; color: var(--ink); }
-.hi-fields { color: var(--ink-soft); font-size: 12px; margin-top: 2px; line-height: 1.6; }
+.hi-fields { color: var(--ink-soft); font-size: 12px; margin-top: 2px; line-height: 1.6; word-break: break-word; overflow-wrap: anywhere; }
 .hi-fields a { color: var(--accent-ink); text-decoration: underline; word-break: break-all; }
+
+/* Brief / long-text field with copy + read more */
+.hi-blocks { margin-top: 8px; display: flex; flex-direction: column; gap: 12px; }
+.brief-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.brief-header strong { font-size: 12px; color: var(--ink); font-weight: 600; }
+.brief-copy {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background .15s, color .15s, border-color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.brief-copy:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.brief-content {
+  background: var(--cream-darker);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.brief-content.truncated {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.brief-content.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+.brief-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--accent-ink);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 0 0;
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+.brief-toggle:hover { color: var(--accent); }
 @media (max-width: 640px) {
   .workflow-strip { padding: 18px 8px 14px; gap: 2px; }
   .ws-circle { width: 28px; height: 28px; font-size: 12px; }
@@ -984,25 +1047,88 @@ function renderStageHistory(stageData, currentStage) {
     const data = stageData[stageId] || {};
     const stageName = WORKFLOW_STAGES.find(s => s.id === stageId)?.name || '';
     const fields = STAGE_FIELDS[stageId] || [];
-    const fieldsHtml = fields
-      .filter(f => data[f.name])
-      .map(f => {
-        const val = data[f.name];
-        const isUrl = f.type === 'url';
-        const display = isUrl ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>` : escHtml(val);
-        return `<div><strong>${f.label}:</strong> ${display}</div>`;
-      }).join('');
+
+    const inlineFields = [];
+    const blockFields = [];
+    fields.forEach(f => {
+      if (data[f.name] !== undefined && data[f.name] !== '') {
+        if (f.type === 'textarea') blockFields.push(f);
+        else inlineFields.push(f);
+      }
+    });
+
+    const inlineHtml = inlineFields.map(f => {
+      const val = data[f.name];
+      const isUrl = f.type === 'url';
+      const display = isUrl ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>` : escHtml(val);
+      return `<div><strong>${f.label}:</strong> ${display}</div>`;
+    }).join('');
+
+    const blockHtml = blockFields.map(f => {
+      const val = data[f.name];
+      const longText = val.length > 200;
+      const cid = 'brf-' + stageId + '-' + f.name + '-' + Math.random().toString(36).slice(2, 8);
+      return `
+        <div class="brief-field">
+          <div class="brief-header">
+            <strong>${f.label}:</strong>
+            <button class="brief-copy" onclick="event.stopPropagation(); copyBrief(this)">📋 نسخ</button>
+          </div>
+          <div class="brief-content${longText ? ' truncated' : ''}" id="${cid}">${escHtml(val)}</div>
+          ${longText ? `<button class="brief-toggle" onclick="event.stopPropagation(); toggleBrief('${cid}', this)">قراءة المزيد ↓</button>` : ''}
+        </div>
+      `;
+    }).join('');
+
     return `
       <div class="history-item">
         <div class="hi-tick">✓</div>
         <div style="min-width:0; flex:1;">
           <div class="hi-name">${toArabic(stageId)}. ${stageName}</div>
-          ${fieldsHtml ? `<div class="hi-fields">${fieldsHtml}</div>` : ''}
+          ${inlineHtml ? `<div class="hi-fields">${inlineHtml}</div>` : ''}
+          ${blockHtml ? `<div class="hi-blocks">${blockHtml}</div>` : ''}
         </div>
       </div>
     `;
   }).join('');
   return `<div class="stage-history" onclick="event.stopPropagation()"><h4>سجلّ المراحل المكتملة</h4>${items}</div>`;
+}
+
+function copyBrief(btn) {
+  const wrap = btn.closest('.brief-field');
+  if (!wrap) return;
+  const content = wrap.querySelector('.brief-content');
+  if (!content) return;
+  const text = content.textContent;
+  const original = btn.innerHTML;
+  const done = () => {
+    btn.innerHTML = '✓ نُسخ';
+    setTimeout(() => { btn.innerHTML = original; }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, onDone) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    onDone && onDone();
+  } catch (e) {
+    alert('فشل النسخ. انسخ يدويًا.');
+  }
+}
+function toggleBrief(id, btn) {
+  const content = document.getElementById(id);
+  if (!content) return;
+  const isExpanded = content.classList.toggle('expanded');
+  content.classList.toggle('truncated', !isExpanded);
+  btn.textContent = isExpanded ? 'إخفاء ↑' : 'قراءة المزيد ↓';
 }
 
 function renderStageAction(applicationId, currentStage, viewerRole) {
