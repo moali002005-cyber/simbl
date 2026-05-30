@@ -10,6 +10,24 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="سيمبل">
 <link rel="apple-touch-icon" href="/icon-192.png">
+
+<!-- فحص سريع جدًا قبل أي شي: إذا المستخدم مسجّل، حوّله مباشرة لوجهته -->
+<script>
+  try {
+    var _json = localStorage.getItem('simbl_current_user');
+    if (_json) {
+      var _u = JSON.parse(_json);
+      if (_u && _u.role === 'creator') {
+        document.documentElement.style.visibility = 'hidden';
+        window.location.replace('/creator.html');
+      } else if (_u && _u.role === 'brand') {
+        document.documentElement.style.visibility = 'hidden';
+        window.location.replace('/brand.html');
+      }
+    }
+  } catch (e) {}
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -946,25 +964,18 @@ const observer = new IntersectionObserver(entries => {
 
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-(async function checkLoggedIn() {
-  await tryRestoreSession();
-  const user = getCurrentUser();
-  if (!user) return;
+// تحويل تلقائي للمستخدم المسجّل - حتى لو localStorage فاضي بس فيه cookie
+(async function autoRedirectIfLoggedIn() {
+  try {
+    await tryRestoreSession();
+    const user = getCurrentUser();
+    if (!user || !user.role) return;
 
-  const dashboardUrl = user.role === 'creator' ? '/creator.html' : '/brand.html';
-  const dashboardLabel = user.role === 'creator' ? 'لوحة المعلن' : 'لوحة الشركة';
-
-  document.querySelectorAll('a[href="/login.html"]').forEach(link => {
-    link.href = dashboardUrl;
-    link.textContent = dashboardLabel;
-  });
-
-  document.querySelectorAll('a[href^="/signup.html"]').forEach(link => {
-    link.href = dashboardUrl;
-    if (link.textContent.includes('ابدأ')) {
-      link.textContent = 'ادخل ' + dashboardLabel;
-    }
-  });
+    const dest = user.role === 'creator' ? '/creator.html' : '/brand.html';
+    window.location.replace(dest);
+  } catch (err) {
+    console.error('Auto-redirect check failed:', err);
+  }
 })();
 </script>
 
