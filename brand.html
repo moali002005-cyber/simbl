@@ -243,6 +243,79 @@ body {
 }
 .btn-view:hover { background: var(--accent); }
 
+/* ============ Campaign actions menu ============ */
+.campaign-actions { position: relative; }
+.action-trigger {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-size: 20px;
+  line-height: 1;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+  padding: 0;
+}
+.action-trigger:hover { border-color: var(--ink); color: var(--ink); background: var(--cream-darker); }
+
+.action-menu {
+  display: none;
+  position: absolute;
+  top: 44px;
+  inset-inline-start: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px -10px rgba(10,10,10,0.18);
+  padding: 6px;
+  z-index: 20;
+  animation: actionMenuIn 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.action-menu.show { display: block; }
+@keyframes actionMenuIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.action-item {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: right;
+  color: var(--ink);
+  transition: background 0.15s;
+}
+.action-item:hover { background: var(--cream-darker); }
+.action-item .ai-ic {
+  width: 28px; height: 28px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  background: var(--cream-darker);
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.action-danger { color: #c93030; }
+.action-danger:hover { background: rgba(201, 48, 48, 0.06); }
+.action-danger .ai-ic { background: rgba(201, 48, 48, 0.10); color: #c93030; }
+
+/* ============ Delete confirmation modal ============ */
+.btn-danger {
+  background: #c93030 !important;
+  color: #fff !important;
+}
+.btn-danger:hover { background: #a52424 !important; }
+
 .empty {
   background: #fff; border: 1px dashed var(--line-strong);
   border-radius: 20px; padding: 60px 32px;
@@ -442,6 +515,18 @@ textarea { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
+<!-- نافذة تأكيد الحذف -->
+<div class="modal-backdrop" id="delete-modal">
+  <div class="modal" style="max-width: 460px">
+    <h3>حذف الحملة</h3>
+    <p class="sub" id="delete-modal-sub">متأكد من حذف هذه الحملة؟ سيتم حذف جميع العروض المرتبطة بها، ولن يمكن التراجع عن هذا الإجراء.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeDelete()">إلغاء</button>
+      <button type="button" class="btn-primary btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">حذف نهائي</button>
+    </div>
+  </div>
+</div>
+
 <script src="supabase-config.js"></script>
 <script src="notifications.js"></script>
 <script>
@@ -583,6 +668,19 @@ function renderCampaigns() {
               ${c.package ? `<span><strong>الباقة:</strong> ${c.package}</span>` : ''}
             </div>
           </div>
+          <div class="campaign-actions">
+            <button class="action-trigger" onclick="event.stopPropagation(); toggleActions('${c.id}')" aria-label="خيارات">⋮</button>
+            <div class="action-menu" id="actions-${c.id}">
+              <button class="action-item" onclick="openEditModal('${c.id}')">
+                <span class="ai-ic">✎</span>
+                <span>تعديل الحملة</span>
+              </button>
+              <button class="action-item action-danger" onclick="askDelete('${c.id}')">
+                <span class="ai-ic">×</span>
+                <span>حذف الحملة</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         ${apps.length > 0 ? `
@@ -651,12 +749,129 @@ function startNegotiation(applicationId) {
   window.location.href = '/campaign.html?app=' + applicationId;
 }
 
+let editingCampaignId = null;
+let deletingCampaignId = null;
+
+function setModalMode(mode, campaign) {
+  const modal = document.getElementById('campaign-modal');
+  const h3 = modal.querySelector('h3');
+  const sub = modal.querySelector('.sub');
+  const submitBtn = modal.querySelector('button[type="submit"]');
+
+  if (mode === 'edit') {
+    h3.textContent = 'تعديل الحملة';
+    sub.textContent = 'عدّل تفاصيل الحملة وسيتم تحديثها فورًا للمؤثرين.';
+    submitBtn.textContent = 'حفظ التعديلات';
+
+    const form = modal.querySelector('form');
+    form.querySelector('[name="title"]').value = campaign.title || '';
+    form.querySelector('[name="description"]').value = campaign.description || '';
+    form.querySelector('[name="industry"]').value = campaign.brand_industry || '';
+    form.querySelector('[name="budget"]').value = campaign.budget || '';
+    form.querySelector('[name="duration"]').value = campaign.duration || '';
+    form.querySelector('[name="package"]').value = campaign.package || '';
+    form.querySelector('[name="requirements"]').value = campaign.requirements || '';
+    form.querySelector('[name="payment_min_days"]').value = campaign.payment_min_days || 7;
+    form.querySelector('[name="payment_max_days"]').value = campaign.payment_max_days || 30;
+    form.querySelector('[name="maxBudget"]').value = campaign.max_budget || '';
+  } else {
+    h3.textContent = 'إنشاء حملة جديدة';
+    sub.textContent = 'عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.';
+    submitBtn.textContent = 'نشر الحملة';
+
+    const form = modal.querySelector('form');
+    form.reset();
+    form.querySelector('[name="payment_min_days"]').value = 7;
+    form.querySelector('[name="payment_max_days"]').value = 30;
+  }
+}
+
 function openCampaignModal() {
+  editingCampaignId = null;
+  setModalMode('create');
+  document.getElementById('campaign-modal').classList.add('show');
+}
+
+function openEditModal(campaignId) {
+  closeAllActions();
+  const campaign = myCampaigns.find(c => c.id === campaignId);
+  if (!campaign) return;
+
+  editingCampaignId = campaignId;
+  setModalMode('edit', campaign);
   document.getElementById('campaign-modal').classList.add('show');
 }
 
 function closeModal() {
   document.getElementById('campaign-modal').classList.remove('show');
+  editingCampaignId = null;
+}
+
+function toggleActions(campaignId) {
+  const menu = document.getElementById('actions-' + campaignId);
+  if (!menu) return;
+  const wasOpen = menu.classList.contains('show');
+  closeAllActions();
+  if (!wasOpen) menu.classList.add('show');
+}
+
+function closeAllActions() {
+  document.querySelectorAll('.action-menu.show').forEach(m => m.classList.remove('show'));
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.campaign-actions')) closeAllActions();
+});
+
+function askDelete(campaignId) {
+  closeAllActions();
+  deletingCampaignId = campaignId;
+  const campaign = myCampaigns.find(c => c.id === campaignId);
+  const sub = document.getElementById('delete-modal-sub');
+  if (campaign) {
+    sub.innerHTML = `متأكد من حذف حملة "<strong>${campaign.title}</strong>"؟ سيتم حذف جميع العروض المرتبطة بها، ولن يمكن التراجع عن هذا الإجراء.`;
+  }
+  document.getElementById('delete-modal').classList.add('show');
+}
+
+function closeDelete() {
+  document.getElementById('delete-modal').classList.remove('show');
+  deletingCampaignId = null;
+}
+
+async function confirmDelete() {
+  if (!deletingCampaignId) return;
+  const id = deletingCampaignId;
+  const btn = document.getElementById('confirm-delete-btn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'جاري الحذف...';
+
+  try {
+    // حذف العروض والمحادثات المرتبطة أولاً (best-effort)
+    try {
+      const { data: apps } = await supabaseClient
+        .from('applications').select('id').eq('campaign_id', id);
+      if (apps && apps.length > 0) {
+        const appIds = apps.map(a => a.id);
+        await supabaseClient.from('negotiations').delete().in('application_id', appIds);
+        await supabaseClient.from('applications').delete().eq('campaign_id', id);
+      }
+    } catch (e) { console.warn('Dependent delete warning:', e); }
+
+    const { error } = await supabaseClient.from('campaigns').delete().eq('id', id);
+    if (error) throw error;
+
+    closeDelete();
+    btn.disabled = false;
+    btn.textContent = original;
+    await loadData();
+  } catch (err) {
+    console.error('Delete error:', err);
+    btn.disabled = false;
+    btn.textContent = original;
+    alert('حصل خطأ أثناء الحذف: ' + (err.message || 'حاول مرة أخرى'));
+  }
 }
 
 async function submitCampaign(event) {
@@ -665,12 +880,11 @@ async function submitCampaign(event) {
   const submitBtn = form.querySelector('button[type="submit"]');
   const original = submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = 'جاري النشر...';
+  submitBtn.textContent = editingCampaignId ? 'جاري الحفظ...' : 'جاري النشر...';
 
   const fd = new FormData(form);
   const industry = fd.get('industry');
   const campaign = {
-    brand_id: currentUser.id,
     title: fd.get('title'),
     description: fd.get('description'),
     brand_industry: industry,
@@ -681,14 +895,34 @@ async function submitCampaign(event) {
     requirements: fd.get('requirements') || null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
     payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
-    tags: [industry],
-    status: 'active'
+    tags: [industry]
   };
 
   try {
+    if (editingCampaignId) {
+      // وضع التعديل
+      const { error } = await supabaseClient
+        .from('campaigns')
+        .update(campaign)
+        .eq('id', editingCampaignId);
+      if (error) throw error;
+
+      const editedId = editingCampaignId;
+      closeModal();
+      submitBtn.disabled = false;
+      submitBtn.textContent = original;
+      await loadData();
+      setTimeout(() => alert('تم حفظ التعديلات بنجاح.'), 100);
+      return;
+    }
+
+    // وضع الإنشاء
+    campaign.brand_id = currentUser.id;
+    campaign.status = 'active';
     const createdCampaign = await dbCreateCampaign(campaign);
     closeModal();
-    form.reset();
+    submitBtn.disabled = false;
+    submitBtn.textContent = original;
 
     notifyAllCreators(campaign.title, currentUser.company_name || 'الشركة', createdCampaign?.id).catch(err => console.error(err));
 
@@ -723,15 +957,13 @@ async function submitCampaign(event) {
     console.error(err);
     submitBtn.disabled = false;
     submitBtn.textContent = original;
-    alert('حصل خطأ أثناء نشر الحملة. حاول مرة أخرى.');
+    alert('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'));
   }
 }
 
 function logout() {
-  if (confirm('متأكد من تسجيل الخروج؟')) {
-    clearCurrentUser();
-    window.location.href = '/';
-  }
+  clearCurrentUser();
+  window.location.href = '/';
 }
 
 init();
