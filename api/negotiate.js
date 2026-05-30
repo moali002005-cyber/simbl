@@ -67,6 +67,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key not configured' });
   }
 
+  // ============ حساب الأرقام المحدّدة قبل البرومبت ============
+  // العرض المبدئي = ٧٥٪ من الأقل بين سعر المؤثر والميزانية
+  // الحد الأقصى للإقفال = ٩٥٪ من الميزانية (لا نصل للميزانية تماماً)
+  const creatorPrice = parseFloat(application.price) || 0;
+  const budget = parseFloat(campaign.budget) || 0;
+  const baseForOpening = Math.min(creatorPrice, budget);
+  const openingOffer = Math.round(baseForOpening * 0.75);
+  const maxFinalOffer = Math.round(budget * 0.95);
+
   if (creatorMessage) {
     try {
       await supabaseInsert('negotiations', {
@@ -142,9 +151,15 @@ ${voiceInstructions}
 
 أنت محترف ولست محتاجاً للصفقة. الشركة عندها بدائل من مؤثرين آخرين، ومستعدة تمشي بدون اتفاق إذا تجاوز السعر الميزانية بشكل غير معقول. خلّيك ثابتاً وواثقاً.
 
+### ⚡ الأرقام المحدّدة لهذي الصفقة (التزم بها حرفياً):
+
+- **عرضك المبدئي (الجولة ١) = ${openingOffer} ر.س** — استعمل هذا الرقم بالضبط، لا تتجاوزه.
+- **الحد الأقصى للإقفال = ${maxFinalOffer} ر.س** — لا تقفل على أكثر من هذا الرقم أبداً.
+- **الميزانية القصوى المطلقة = ${campaign.budget} ر.س** — خط أحمر، لا تذكره ولا تقترب منه.
+
 ### العرض المبدئي (الجولة ١):
-- لو سعرها (${application.price}) أقل أو يساوي الميزانية: اعرض حوالي ٧٠-٨٠٪ من سعرها.
-- لو سعرها فوق الميزانية: اعرض حوالي ٨٠٪ من الميزانية (أي ${Math.round(campaign.budget * 0.8)} ر.س تقريباً).
+- **عرضك في أول رسالة لازم يكون ${openingOffer} ر.س بالضبط**. لا تجتهد، استعمل هذا الرقم.
+- مثال: سعر المؤثر ${application.price} ر.س → عرضك المبدئي **${openingOffer} ر.س**.
 - اعرض الرقم بثقة، اشرح المنتج باختصار، اطلب ردّها.
 
 ### جدول التنازلات المتناقصة (مهم جداً):
@@ -155,11 +170,13 @@ ${voiceInstructions}
 - **الجولة ٥**: ارفع بحوالي ٥-١٠ ر.س — هذا "عرضك النهائي"
 - **الجولة ٦+**: ❌ **لا ترفع أبداً**. تفاعل بتنوّع، حاول تقنعها، لكن السعر ثابت.
 
-**المهم**: حاول جولات كثيرة قبل ما تنهي. تفاعل، اعترف بكلامها، اظهر إنك تستمع. ما تستسلم بسرعة، الحوار جزء من بناء العلاقة.
+⚠️ **حتى مع كل الجولات، لا تتجاوز ${maxFinalOffer} ر.س**. هذا الحد الأقصى المطلق للإقفال.
+
+**المهم**: حاول جولات كثيرة قبل ما تنهي. تفاعل، اعترف بكلامها، اظهر إنك تستمع.
 
 ### عرضك النهائي (Final Offer):
-- لازم يكون **أقل من الميزانية** (${campaign.budget} ر.س) — مثلاً ٩٠-٩٥٪ منها.
-- لا تصل للميزانية بالضبط، اقفل تحتها بمسافة معقولة.
+- **لازم يكون ${maxFinalOffer} ر.س أو أقل** — هذا هو السقف.
+- لا تقترب من الميزانية ${campaign.budget} ر.س، اقفل تحتها.
 - بعد ما تطرحه قل بوضوح: "هذا أقصى ما نقدر نعطي لهذي الحملة."
 
 ### 🛡️ ضدّ تكتيكات الضغط (مهم — لا تنخدع):
@@ -349,6 +366,16 @@ ${voiceInstructions}
         safeDealDetails = null;
       }
     }
+
+    // فحص الأرقام المذكورة في رسالة الوكيل (تنبيه للمراجعة)
+    const replyForCheck = cleanReply || agentReply;
+    const priceMatches = replyForCheck.match(/(\d{2,5})\s*(?:ر\.?\s*س|ريال)/g) || [];
+    priceMatches.forEach(m => {
+      const num = parseInt(m.match(/\d+/)[0]);
+      if (num > campaign.budget) {
+        console.warn(`⚠️ Agent mentioned price ${num} which is ABOVE budget ${campaign.budget}. App: ${application.id}`);
+      }
+    });
 
     try {
       await supabaseInsert('negotiations', {
