@@ -100,6 +100,11 @@ h1 { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter
   background: var(--ink); color: #fff;
   border-radius: 100px;
 }
+.badge-awaiting {
+  font-size: 11px; font-weight: 500; padding: 4px 10px;
+  background: rgba(243, 156, 18, 0.15); color: #854F0B;
+  border-radius: 100px;
+}
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 .application-summary {
@@ -209,6 +214,11 @@ h1 { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter
   color: var(--ink-muted);
   border-top: 1px solid var(--line);
 }
+.read-only-notice.awaiting {
+  background: rgba(243, 156, 18, 0.08);
+  color: #854F0B;
+  font-weight: 500;
+}
 
 .deal-closed-banner {
   background: linear-gradient(135deg, #13B9B2, #0e9a94);
@@ -234,6 +244,50 @@ h1 { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter
 .deal-content p { font-size: 14px; opacity: 0.95; line-height: 1.6; }
 .deal-content .price { font-family: var(--font-display); font-size: 26px; font-weight: 600; margin-top: 8px; }
 
+/* ============ Awaiting brand approval banner ============ */
+.deal-awaiting-banner {
+  background: rgba(243, 156, 18, 0.06);
+  border: 1px solid rgba(243, 156, 18, 0.32);
+  color: var(--ink);
+  padding: 24px 28px;
+  border-radius: 20px;
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 20px;
+  align-items: center;
+}
+.deal-awaiting-banner .deal-icon {
+  background: rgba(243, 156, 18, 0.2);
+  color: #854F0B;
+  font-size: 26px;
+}
+.deal-awaiting-banner h3 { font-family: var(--font-display); font-size: 20px; margin-bottom: 6px; color: var(--ink); }
+.deal-awaiting-banner p { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+.deal-awaiting-banner .price {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  margin-top: 8px;
+  color: var(--accent-ink);
+}
+.deal-awaiting-banner .approve-cta {
+  display: inline-block;
+  margin-top: 16px;
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 100px;
+  border: 0;
+  font-weight: 500;
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+}
+.deal-awaiting-banner .approve-cta:hover { background: var(--accent); transform: translateY(-1px); }
+.deal-awaiting-banner .approve-cta:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .loading { text-align: center; padding: 60px; color: var(--ink-muted); }
 
 @media (max-width: 640px) {
@@ -242,7 +296,7 @@ h1 { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter
   h1 { font-size: 22px; }
   .application-summary { grid-template-columns: 1fr; }
   .offer-price { font-size: 20px; }
-  .deal-closed-banner { grid-template-columns: 1fr; text-align: center; }
+  .deal-closed-banner, .deal-awaiting-banner { grid-template-columns: 1fr; text-align: center; }
   .deal-icon { margin: 0 auto; }
   .logo-eye { width: 36px; height: 36px; }
 }
@@ -281,6 +335,7 @@ let application = null;
 let messages = [];
 let isAgentThinking = false;
 let dealClosed = false;
+let approvedClose = false;
 let dealDetails = null;
 let pollInterval = null;
 
@@ -333,6 +388,7 @@ async function init() {
     }
 
     dealClosed = application.status === 'closed';
+    approvedClose = application.brand_approved === true;
     dealDetails = application.deal_details;
 
     await loadMessagesFromDB();
@@ -342,7 +398,8 @@ async function init() {
       await startNegotiation();
     }
 
-    if (!dealClosed) {
+    // واصل التحديث إذا لم تكتمل الصفقة (status أو الاعتماد)
+    if (!dealClosed || !approvedClose) {
       pollInterval = setInterval(checkNewMessages, 5000);
     }
   } catch (err) {
@@ -374,23 +431,35 @@ async function loadMessagesFromDB() {
 
 async function checkNewMessages() {
   const previousCount = messages.length;
+  const wasDealClosed = dealClosed;
+  const wasApproved = approvedClose;
   await loadMessagesFromDB();
 
   try {
     const { data } = await supabaseClient
       .from('applications')
-      .select('status, deal_details, final_price')
+      .select('status, deal_details, final_price, brand_approved')
       .eq('id', application.id)
       .single();
-    if (data && data.status === 'closed' && !dealClosed) {
-      dealClosed = true;
-      dealDetails = data.deal_details;
-      application.final_price = data.final_price;
-      if (pollInterval) clearInterval(pollInterval);
+    if (data) {
+      if (data.status === 'closed' && !dealClosed) {
+        dealClosed = true;
+        dealDetails = data.deal_details;
+        application.final_price = data.final_price;
+      }
+      if (data.brand_approved === true && !approvedClose) {
+        approvedClose = true;
+        application.brand_approved = true;
+      }
+      // أوقف التحديث لما يتم الإقفال والاعتماد معًا
+      if (dealClosed && approvedClose && pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
     }
   } catch (err) {}
 
-  if (messages.length > previousCount || dealClosed) {
+  if (messages.length > previousCount || dealClosed !== wasDealClosed || approvedClose !== wasApproved) {
     render();
   }
 }
@@ -398,6 +467,9 @@ async function checkNewMessages() {
 function render() {
   const brandInitial = campaign.brand_name ? campaign.brand_name[0] : 'ش';
   const isCreator = currentUser.role === 'creator';
+  const isBrand = currentUser.role === 'brand';
+  const isAwaiting = dealClosed && !approvedClose;
+  const isFullyClosed = dealClosed && approvedClose;
 
   document.getElementById('content').innerHTML = `
     <div class="campaign-header">
@@ -429,9 +501,11 @@ function render() {
 
     <h2 class="section-title">
       غرفة التفاوض
-      ${dealClosed
+      ${isFullyClosed
         ? '<span class="badge-closed">✓ اتفاق مكتمل</span>'
-        : '<span class="badge-live">تفاوض نشط</span>'}
+        : isAwaiting
+          ? '<span class="badge-awaiting">⏳ بانتظار تعميد الشركة</span>'
+          : '<span class="badge-live">تفاوض نشط</span>'}
     </h2>
 
     <div class="application-summary">
@@ -457,9 +531,13 @@ function render() {
       <div class="messages" id="messages">
         ${renderMessages()}
       </div>
-      ${dealClosed ? `
+      ${isFullyClosed ? `
         <div class="read-only-notice">
           ✓ تم إقفال الاتفاق بنجاح
+        </div>
+      ` : isAwaiting ? `
+        <div class="read-only-notice awaiting">
+          ⏳ بانتظار تعميد الشركة على إقفال الصفقة
         </div>
       ` : !isCreator ? `
         <div class="read-only-notice">
@@ -474,14 +552,26 @@ function render() {
       `}
     </div>
 
-    ${dealClosed && dealDetails ? `
+    ${isAwaiting ? `
+      <div class="deal-awaiting-banner">
+        <div class="deal-icon">⏳</div>
+        <div class="deal-content">
+          <h3>${isBrand ? 'بحاجة تعميدك على الصفقة' : 'بانتظار تعميد الشركة'}</h3>
+          <p>${isBrand
+            ? 'الوكيل توصّل لاتفاق مع المعلن. راجع المفاوضة فوق، واعتمد الصفقة لبدء التنفيذ.'
+            : 'تم التوصّل لاتفاق مع الوكيل، بانتظار تعميد الشركة عشان نبدأ التنفيذ.'}</p>
+          ${application.final_price ? `<div class="price">${application.final_price.toLocaleString('ar-SA')} ر.س</div>` : ''}
+          ${isBrand ? `<button class="approve-cta" id="approve-btn" onclick="approveDeal()">✓ اعتماد الصفقة</button>` : ''}
+        </div>
+      </div>
+    ` : isFullyClosed && dealDetails ? `
       <div class="deal-closed-banner">
         <div class="deal-icon">✓</div>
         <div class="deal-content">
           <h3>تم الاتفاق بنجاح</h3>
           <p>${escapeHtml(dealDetails)}</p>
           ${application.final_price ? `<div class="price">${application.final_price.toLocaleString('ar-SA')} ر.س</div>` : ''}
-          <a href="/workflow.html?app=${application.id}" style="display:inline-block; margin-top:16px; background:#fff; color:var(--accent-ink); padding:12px 28px; border-radius:100px; text-decoration:none; font-weight:500; font-family:var(--font-body)">بدء التسليم ←</a>
+          <a href="/${isBrand ? 'brand' : 'creator'}.html" style="display:inline-block; margin-top:16px; background:#fff; color:var(--accent-ink); padding:12px 28px; border-radius:100px; text-decoration:none; font-weight:500; font-family:var(--font-body)">بدء التسليم ←</a>
         </div>
       </div>
     ` : ''}
@@ -547,7 +637,7 @@ async function startNegotiation() {
     if (data.dealClosed) {
       dealClosed = true;
       dealDetails = data.dealDetails;
-      if (pollInterval) clearInterval(pollInterval);
+      // approvedClose يظل false، الشركة لازم تعتمد
     }
 
     render();
@@ -593,7 +683,6 @@ async function sendCreatorMessage() {
     if (data.dealClosed) {
       dealClosed = true;
       dealDetails = data.dealDetails;
-      if (pollInterval) clearInterval(pollInterval);
     }
 
     render();
@@ -602,6 +691,51 @@ async function sendCreatorMessage() {
     isAgentThinking = false;
     render();
     alert('حصل خطأ. حاول مرة أخرى.');
+  }
+}
+
+async function approveDeal() {
+  const btn = document.getElementById('approve-btn');
+  if (!btn) return;
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'جاري الاعتماد...';
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .update({ brand_approved: true })
+      .eq('id', application.id)
+      .select();
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+    }
+
+    approvedClose = true;
+    application.brand_approved = true;
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+
+    // إشعار المعلن
+    if (application.creator_id) {
+      const title = '🎉 تم اعتماد الصفقة';
+      const body = `${campaign.title || 'صفقة'}: الشركة اعتمدت الاتفاق! نبدأ التنفيذ.`;
+      try {
+        await createNotification(application.creator_id, 'deal_approved', title, body, '/creator.html');
+      } catch (e) { console.error(e); }
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body, url: '/creator.html', target_users: [application.creator_id] })
+      }).catch(console.error);
+    }
+
+    render();
+  } catch (err) {
+    console.error('Approve error:', err);
+    btn.disabled = false;
+    btn.textContent = original;
+    alert('حصل خطأ في الاعتماد: ' + (err.message || 'حاول مرة أخرى'));
   }
 }
 
