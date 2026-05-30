@@ -6,7 +6,15 @@ if (!window.supabase) {
   console.error('Supabase library not loaded!');
 }
 
-window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// إعدادات الجلسة: حفظ دائم + تجديد تلقائي - الجلسة ما تنتهي إلا لما المستخدم نفسه يضغط خروج
+window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage
+  }
+});
 
 async function dbSignup(userData) {
   const { data, error } = await supabaseClient
@@ -100,12 +108,12 @@ function getCurrentUser() {
 }
 
 function saveCurrentUser(user) {
-  // نحفظ في localStorage (الأساسي)
+  // نحفظ في localStorage (الأساسي) - يبقى للأبد إلا لو المستخدم مسح بيانات المتصفح
   localStorage.setItem('simbl_current_user', JSON.stringify(user));
 
-  // نحفظ id في cookie لمدة سنة (احتياطي)
+  // نحفظ id في cookie لمدة ١٠ سنوات كاحتياطي
   const expires = new Date();
-  expires.setFullYear(expires.getFullYear() + 1);
+  expires.setFullYear(expires.getFullYear() + 10);
   document.cookie = `simbl_user_id=${user.id}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
 }
 
@@ -113,6 +121,13 @@ function clearCurrentUser() {
   localStorage.removeItem('simbl_current_user');
   // نمسح الـ cookie
   document.cookie = 'simbl_user_id=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+
+  // نسجّل خروج من Supabase Auth كذلك عشان الجلسة تنتهي كاملة
+  try {
+    if (window.supabaseClient && window.supabaseClient.auth) {
+      window.supabaseClient.auth.signOut();
+    }
+  } catch (e) {}
 }
 
 // محاولة استعادة الجلسة من cookie لو localStorage راح

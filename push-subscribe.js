@@ -1,4 +1,4 @@
-// تفعيل Push Notifications للمؤثرة
+// تفعيل Push Notifications للمؤثرة - تلقائيًا بدون مطالبة مخصصة
 
 const VAPID_PUBLIC_KEY = 'BGnZ74vZSsAwrRmrw6hcSfdZPjc30hzdqbxz8pfSNC90mwgJD_GdKB8S84kpYJV8QOmK0ZrCe5M2rKOQYkz9FVA';
 
@@ -16,10 +16,10 @@ async function subscribeToPush(userId) {
       return false;
     }
 
-    // طلب الإذن
+    // طلب الإذن (المتصفّح يعرض نافذته الأصلية)
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      console.log('المستخدم رفض الإشعارات');
+      console.log('المتصفّح رفض الإشعارات');
       return false;
     }
 
@@ -58,41 +58,27 @@ async function subscribeToPush(userId) {
   }
 }
 
-// زر طلب الإذن (اختياري - يمكن استدعاؤه من أي صفحة)
+// التفعيل التلقائي: أي مستخدم مسجّل دخول يصير مشترك تلقائيًا في الإشعارات
+// (المتصفّح بيعرض نافذته الصغيرة مرة وحدة فقط — هذي قاعدة المتصفح ولا نقدر نتجاوزها)
 function showPushPermissionPrompt(userId) {
-  if (localStorage.getItem('simbl_push_asked')) return;
-  if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+  if (!userId) return;
+  if (typeof Notification === 'undefined') return;
 
+  // إذا الإذن مرفوض سابقًا على مستوى المتصفّح، لا نقدر نسوي شيء
+  if (Notification.permission === 'denied') {
+    console.log('إذن الإشعارات مرفوض من المتصفح');
+    return;
+  }
+
+  // إذا الإذن مفعّل أصلاً، نسجّل المستخدم بصمت
+  if (Notification.permission === 'granted') {
+    subscribeToPush(userId);
+    return;
+  }
+
+  // الحالة الافتراضية: نطلب الإذن مباشرة بعد ثانيتين من تحميل الصفحة
+  // (نعطي وقت بسيط عشان الصفحة تخلّص تحميل قبل نافذة المتصفّح)
   setTimeout(() => {
-    const banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;bottom:20px;left:16px;right:16px;background:#1A1714;color:#F7F3EC;padding:16px;border-radius:16px;z-index:9999;max-width:500px;margin:0 auto;display:flex;gap:12px;align-items:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);font-family:"Tajawal",sans-serif;';
-    banner.innerHTML = `
-      <div style="flex:1">
-        <div style="font-weight:600;margin-bottom:4px;">🔔 فعّلي الإشعارات</div>
-        <div style="font-size:13px;opacity:0.85;">ليصلك إشعار فوري لكل حملة جديدة</div>
-      </div>
-      <button id="push-enable-btn" style="background:#D4523A;color:white;border:none;padding:10px 18px;border-radius:100px;font-family:inherit;font-size:13px;cursor:pointer;white-space:nowrap;">تفعيل</button>
-      <button id="push-dismiss-btn" style="background:transparent;color:white;border:none;padding:4px 8px;font-size:20px;cursor:pointer;">×</button>
-    `;
-    document.body.appendChild(banner);
-
-    document.getElementById('push-enable-btn').onclick = async () => {
-      banner.remove();
-      localStorage.setItem('simbl_push_asked', 'true');
-      const success = await subscribeToPush(userId);
-      if (success) {
-        // إشعار ترحيبي
-        new Notification('سيمبل', {
-          body: 'أهلاً بك ✨ راح يوصلك إشعار فوري لكل حملة جديدة',
-          icon: '/icon-192.png',
-          dir: 'rtl'
-        });
-      }
-    };
-
-    document.getElementById('push-dismiss-btn').onclick = () => {
-      banner.remove();
-      localStorage.setItem('simbl_push_asked', 'true');
-    };
-  }, 3000);
+    subscribeToPush(userId);
+  }, 2000);
 }
