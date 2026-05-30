@@ -407,10 +407,131 @@ body {
 
 .applications-detail {
   display: none;
-  background: #fff; border: 1px solid var(--line);
-  border-radius: 16px; padding: 24px; margin-top: 16px;
+  background: transparent;
+  padding: 0;
+  margin-top: 14px;
 }
 .applications-detail.show { display: block; }
+
+/* ============ Compact applications list ============ */
+.app-block { margin-bottom: 10px; }
+.app-block.is-expanded { margin-bottom: 18px; }
+
+.app-row-compact {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.app-row-compact:hover { border-color: var(--ink-soft); background: #fafaf6; }
+.app-row-compact.closed { background: rgba(19, 185, 178, 0.05); border-color: rgba(19, 185, 178, 0.22); }
+.app-row-compact.locked { cursor: default; }
+.app-row-compact.locked:hover { background: #fff; border-color: var(--line); }
+.app-row-compact.closed.locked:hover { background: rgba(19, 185, 178, 0.05); border-color: rgba(19, 185, 178, 0.22); }
+.app-block.is-expanded .app-row-compact {
+  border-radius: 14px 14px 0 0;
+  border-bottom-color: transparent;
+}
+
+.app-num {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--cream-darker);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 600;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.app-row-compact.closed .app-num { background: var(--accent); color: #fff; }
+
+.acc { min-width: 0; }
+.acc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.acc-top h4 { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin: 0; }
+.acc-pill { font-size: 10px; font-weight: 500; padding: 2px 9px; border-radius: 100px; white-space: nowrap; }
+.acc-stage { font-size: 10px; font-weight: 500; padding: 2px 9px; border-radius: 100px; background: rgba(10, 10, 10, 0.06); color: var(--ink-muted); white-space: nowrap; }
+.acc-meta { font-size: 11px; color: var(--ink-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+
+.app-price-c { text-align: left; }
+.app-price-c .strike { font-family: var(--font-display); font-size: 11px; color: var(--ink-muted); text-decoration: line-through; }
+.app-price-c .final  { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--accent); }
+
+.app-expand-btn {
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: transform .25s, background .15s, color .15s;
+}
+.app-expand-btn:hover { background: rgba(10, 10, 10, 0.04); color: var(--ink); }
+.app-block.is-expanded .app-expand-btn { transform: rotate(180deg); }
+
+.app-expanded {
+  border: 1px solid rgba(19, 185, 178, 0.3);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  padding: 16px;
+  background: rgba(19, 185, 178, 0.025);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.app-expanded > .workflow-strip,
+.app-expanded > .stage-history,
+.app-expanded > .stage-action { margin-top: 0; }
+
+.deal-row {
+  background: #fff;
+  border: 1px solid rgba(19, 185, 178, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--accent-ink);
+  line-height: 1.6;
+}
+
+.note-row {
+  background: var(--cream-darker);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.btn-negotiation {
+  background: var(--ink);
+  color: #fff;
+  border: 0;
+  padding: 10px 20px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-negotiation:hover { background: var(--accent); transform: translateY(-1px); }
+
+@media (max-width: 640px) {
+  .app-row-compact { grid-template-columns: auto 1fr auto; padding: 12px 14px; gap: 10px; }
+  .app-expand-btn { display: none; }
+  .acc-top h4 { font-size: 13px; }
+  .acc-meta { font-size: 10px; }
+}
 
 .app-row {
   display: grid; grid-template-columns: 1fr auto auto;
@@ -805,6 +926,7 @@ let currentUser = null;
 let myCampaigns = [];
 let campaignApps = {};
 let selectedCampaignId = null;
+let expandedAppId = null;
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
@@ -953,10 +1075,16 @@ function renderCampaigns() {
 
 function selectCampaign(campaignId) {
   selectedCampaignId = campaignId;
+  expandedAppId = null;
   renderCampaigns();
   // مرّر الصفحة لأعلى تفاصيل الحملة (سلس)
   const list = document.getElementById('campaigns-list');
   if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleAppExpand(appId) {
+  expandedAppId = expandedAppId === appId ? null : appId;
+  renderCampaigns();
 }
 
 function renderSingleCampaign(c) {
@@ -1000,37 +1128,51 @@ function renderSingleCampaign(c) {
             </div>
           </div>
           <div class="applications-detail show" id="apps-${c.id}">
-            ${apps.map(a => {
+            ${apps.map((a, idx) => {
               const creator = a.users || {};
               const isClosed = a.status === 'closed';
               const isActive = a.status === 'active';
+              const single = apps.length === 1;
+              const isExpanded = single || expandedAppId === a.id;
               const statusLabel = isClosed ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
               const statusColor = isClosed ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
               const statusBg = isClosed ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
               const buttonLabel = isClosed ? '💬 عرض المفاوضة' : isActive ? '💬 متابعة المفاوضة' : '💬 بدء المفاوضة';
+              const stageName = (isClosed && a.stage) ? (WORKFLOW_STAGES.find(s => s.id === a.stage)?.name || '') : '';
+              const stagePill = stageName ? `<span class="acc-stage">مرحلة: ${stageName}</span>` : '';
               const priceDisplay = isClosed && a.final_price
-                ? `<div style="font-family:var(--font-display); font-size:13px; color:var(--ink-muted); text-decoration:line-through; margin-bottom:2px">${a.price.toLocaleString('ar-SA')} ر.س</div>
-                   <div class="app-price">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
-                : `<div class="app-price">${a.price.toLocaleString('ar-SA')} ر.س</div>`;
+                ? `<div class="strike">${a.price.toLocaleString('ar-SA')} ر.س</div><div class="final">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
+                : `<div class="final">${a.price.toLocaleString('ar-SA')} ر.س</div>`;
+              const rowClickAttr = single ? '' : `onclick="toggleAppExpand('${a.id}')"`;
+              const lockedCls = single ? 'locked' : '';
               return `
-                <div class="app-row" style="${isClosed ? 'background: rgba(19, 185, 178, 0.04); border-radius: 12px; padding: 12px;' : ''}">
-                  <div class="app-creator">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px">
-                      <h4>${creator.name || 'مؤثر'}</h4>
-                      <span style="font-size:11px; font-weight:500; padding:3px 10px; border-radius:100px; background:${statusBg}; color:${statusColor}">${statusLabel}</span>
+                <div class="app-block ${isExpanded ? 'is-expanded' : ''}">
+                  <div class="app-row-compact ${isClosed ? 'closed' : ''} ${lockedCls}" ${rowClickAttr}>
+                    <div class="app-num">${toArabic(idx + 1)}</div>
+                    <div class="acc">
+                      <div class="acc-top">
+                        <h4>${escHtml(creator.name || 'مؤثر')}</h4>
+                        <span class="acc-pill" style="background:${statusBg}; color:${statusColor}">${statusLabel}</span>
+                        ${stagePill}
+                      </div>
+                      <div class="acc-meta">
+                        ${creator.handle ? `<span>${escHtml(creator.handle)}</span>` : ''}
+                        ${creator.followers ? `<span>${(creator.followers / 1000).toFixed(0)}K متابع</span>` : ''}
+                        ${creator.platform ? `<span>${escHtml(creator.platform)}</span>` : ''}
+                      </div>
                     </div>
-                    <div class="meta">
-                      <span>${creator.handle || ''}</span>
-                      <span>${creator.followers ? (creator.followers / 1000).toFixed(0) + 'K متابع' : ''}</span>
-                      <span>${creator.platform || ''}</span>
-                    </div>
-                    ${a.note && !isClosed ? `<div style="font-size:13px; color:var(--ink-soft); margin-top:6px">"${a.note}"</div>` : ''}
-                    ${isClosed && a.deal_details ? `<div style="font-size:13px; color:var(--accent-ink); margin-top:6px; padding:8px 10px; background:rgba(19, 185, 178, 0.08); border-radius:8px"><strong>الاتفاق:</strong> ${a.deal_details}</div>` : ''}
+                    <div class="app-price-c">${priceDisplay}</div>
+                    ${single ? '' : `<button class="app-expand-btn" aria-label="${isExpanded ? 'إخفاء' : 'فتح'}">▼</button>`}
                   </div>
-                  <div>${priceDisplay}</div>
-                  <button class="btn-view" onclick="startNegotiation('${a.id}')">${buttonLabel}</button>
+                  ${isExpanded ? `
+                    <div class="app-expanded" onclick="event.stopPropagation()">
+                      ${a.note && !isClosed ? `<div class="note-row">"${escHtml(a.note)}"</div>` : ''}
+                      ${isClosed && a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : ''}
+                      ${isClosed ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'brand') : ''}
+                      <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
+                    </div>
+                  ` : ''}
                 </div>
-                ${isClosed ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'brand') : ''}
               `;
             }).join('')}
           </div>
