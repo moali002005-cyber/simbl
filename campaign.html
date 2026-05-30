@@ -288,6 +288,79 @@ h1 { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter
 .deal-awaiting-banner .approve-cta:hover { background: var(--accent); transform: translateY(-1px); }
 .deal-awaiting-banner .approve-cta:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* Swipe to approve */
+.swipe-track {
+  background: #fff;
+  border: 1.5px solid rgba(243, 156, 18, 0.42);
+  border-radius: 100px;
+  position: relative;
+  height: 64px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  margin-top: 16px;
+  max-width: 380px;
+}
+.swipe-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #854F0B;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity .15s, color .25s;
+  font-family: var(--font-body);
+}
+.swipe-hint::before {
+  content: '\2190';
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 17px;
+  animation: swipe-nudge 1.4s ease-in-out infinite;
+}
+@keyframes swipe-nudge {
+  0%, 100% { transform: translateX(0); opacity: 0.45; }
+  50% { transform: translateX(-8px); opacity: 1; }
+}
+.swipe-track.done .swipe-hint::before { display: none; }
+.swipe-thumb {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 48px; height: 48px;
+  background: var(--ink);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  cursor: grab;
+  z-index: 2;
+  transition: background .2s, right .25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+}
+.swipe-thumb:hover { background: var(--accent); }
+.swipe-thumb.dragging { cursor: grabbing; transition: background .2s; }
+.swipe-fill {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 0;
+  background: rgba(19, 185, 178, 0.15);
+  border-radius: 100px 0 0 100px;
+  z-index: 0;
+  transition: width .25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.swipe-track.done {
+  background: rgba(19, 185, 178, 0.1);
+  border-color: rgba(19, 185, 178, 0.45);
+}
+.swipe-track.done .swipe-thumb { background: var(--accent); }
+.swipe-track.done .swipe-hint { color: var(--accent-ink); }
+
 .loading { text-align: center; padding: 60px; color: var(--ink-muted); }
 
 @media (max-width: 640px) {
@@ -561,7 +634,13 @@ function render() {
             ? 'الوكيل توصّل لاتفاق مع المعلن. راجع المفاوضة فوق، واعتمد الصفقة لبدء التنفيذ.'
             : 'تم التوصّل لاتفاق مع الوكيل، بانتظار تعميد الشركة عشان نبدأ التنفيذ.'}</p>
           ${application.final_price ? `<div class="price">${application.final_price.toLocaleString('ar-SA')} ر.س</div>` : ''}
-          ${isBrand ? `<button class="approve-cta" id="approve-btn" onclick="approveDeal()">✓ اعتماد الصفقة</button>` : ''}
+          ${isBrand ? `
+            <div class="swipe-track" id="approve-swipe" onclick="event.stopPropagation()">
+              <div class="swipe-fill"></div>
+              <div class="swipe-hint">اسحب لاعتماد الصفقة</div>
+              <div class="swipe-thumb">✓</div>
+            </div>
+          ` : ''}
         </div>
       </div>
     ` : isFullyClosed && dealDetails ? `
@@ -578,6 +657,7 @@ function render() {
   `;
 
   scrollToBottom();
+  initSwipeTracks();
 }
 
 function renderMessages() {
@@ -615,6 +695,87 @@ function formatTime(iso) {
 function scrollToBottom() {
   const m = document.getElementById('messages');
   if (m) m.scrollTop = m.scrollHeight;
+}
+
+// ============ Swipe to approve handler ============
+let activeSwipe = null;
+
+function initSwipeTracks() {
+  document.querySelectorAll('.swipe-track').forEach(track => {
+    if (track.dataset.swipeReady === '1') return;
+    track.dataset.swipeReady = '1';
+    const thumb = track.querySelector('.swipe-thumb');
+    if (!thumb) return;
+    thumb.addEventListener('mousedown', e => swipeStart(e, track));
+    thumb.addEventListener('touchstart', e => swipeStart(e, track), { passive: false });
+  });
+}
+
+function swipeStart(e, track) {
+  if (track.classList.contains('done')) return;
+  const thumb = track.querySelector('.swipe-thumb');
+  const fill = track.querySelector('.swipe-fill');
+  const hint = track.querySelector('.swipe-hint');
+  activeSwipe = {
+    track, thumb, fill, hint,
+    startX: e.touches ? e.touches[0].clientX : e.clientX,
+    trackWidth: track.offsetWidth,
+    thumbWidth: 48,
+    padding: 8,
+    currentLeft: 0
+  };
+  thumb.classList.add('dragging');
+  e.preventDefault();
+}
+
+function swipeMove(e) {
+  if (!activeSwipe) return;
+  const s = activeSwipe;
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const delta = s.startX - cx;
+  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
+  s.currentLeft = Math.max(0, Math.min(max, delta));
+  s.thumb.style.right = (s.padding + s.currentLeft) + 'px';
+  s.fill.style.width = (s.currentLeft + s.thumbWidth + s.padding) + 'px';
+  const pct = s.currentLeft / max;
+  s.hint.style.opacity = Math.max(0, 1 - pct * 1.6);
+  if (pct >= 0.92) swipeComplete();
+}
+
+function swipeEnd() {
+  if (!activeSwipe) return;
+  const s = activeSwipe;
+  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
+  s.thumb.classList.remove('dragging');
+  if (s.currentLeft / max < 0.92) {
+    s.thumb.style.right = s.padding + 'px';
+    s.fill.style.width = '0px';
+    s.hint.style.opacity = 1;
+  }
+  activeSwipe = null;
+}
+
+function swipeComplete() {
+  if (!activeSwipe) return;
+  const s = activeSwipe;
+  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
+  s.thumb.style.right = (s.padding + max) + 'px';
+  s.fill.style.width = (max + s.thumbWidth + s.padding) + 'px';
+  s.track.classList.add('done');
+  s.hint.textContent = '✓ جاري الاعتماد...';
+  s.hint.style.opacity = 1;
+  s.thumb.classList.remove('dragging');
+  activeSwipe = null;
+  approveDeal();
+}
+
+if (!window.__simblSwipeBound) {
+  window.__simblSwipeBound = true;
+  window.addEventListener('mousemove', swipeMove);
+  window.addEventListener('touchmove', swipeMove, { passive: false });
+  window.addEventListener('mouseup', swipeEnd);
+  window.addEventListener('touchend', swipeEnd);
+  window.addEventListener('touchcancel', swipeEnd);
 }
 
 async function startNegotiation() {
@@ -695,12 +856,6 @@ async function sendCreatorMessage() {
 }
 
 async function approveDeal() {
-  const btn = document.getElementById('approve-btn');
-  if (!btn) return;
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'جاري الاعتماد...';
-
   try {
     const { data, error } = await supabaseClient
       .from('applications')
@@ -733,9 +888,9 @@ async function approveDeal() {
     render();
   } catch (err) {
     console.error('Approve error:', err);
-    btn.disabled = false;
-    btn.textContent = original;
     alert('حصل خطأ في الاعتماد: ' + (err.message || 'حاول مرة أخرى'));
+    // أعد رسم السحب للحالة الأصلية
+    render();
   }
 }
 

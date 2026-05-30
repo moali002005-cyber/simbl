@@ -529,34 +529,133 @@ body {
 /* ============ Approval gate (waiting for brand to confirm deal close) ============ */
 .approval-gate {
   background: rgba(243, 156, 18, 0.07);
-  border: 1px solid rgba(243, 156, 18, 0.32);
-  border-radius: 12px;
-  padding: 14px 18px;
+  border: 1.5px solid rgba(243, 156, 18, 0.42);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ag-top {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  align-items: center;
+}
+.ag-icon {
+  width: 44px; height: 44px;
+  background: rgba(243, 156, 18, 0.2);
+  color: #854F0B;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  animation: ag-tilt 3s ease-in-out infinite;
+}
+@keyframes ag-tilt {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+.ag-info { min-width: 0; }
+.ag-title {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+.ag-price {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.ag-desc {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* Swipe-to-approve track */
+.swipe-track {
+  background: #fff;
+  border: 1.5px solid rgba(243, 156, 18, 0.35);
+  border-radius: 100px;
+  position: relative;
+  height: 60px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.swipe-hint {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.ag-info { flex: 1; min-width: 200px; }
-.ag-price { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
-.ag-price .num { color: var(--accent); font-size: 16px; }
-.ag-desc { font-size: 12px; color: var(--ink-soft); }
-.ag-btn {
-  background: var(--accent);
-  color: #fff;
-  border: 0;
-  padding: 11px 22px;
-  border-radius: 100px;
-  font-family: var(--font-body);
+  justify-content: center;
   font-size: 13px;
+  color: #854F0B;
   font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .2s, transform .15s;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity .15s, color .25s;
+  font-family: var(--font-body);
 }
-.ag-btn:hover { background: var(--accent-ink); transform: translateY(-1px); }
-.ag-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.swipe-hint::before {
+  content: '\2190';
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 16px;
+  animation: swipe-nudge 1.4s ease-in-out infinite;
+}
+@keyframes swipe-nudge {
+  0%, 100% { transform: translateX(0); opacity: 0.45; }
+  50% { transform: translateX(-8px); opacity: 1; }
+}
+.swipe-track.done .swipe-hint::before { display: none; }
+.swipe-thumb {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 48px; height: 48px;
+  background: var(--ink);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  cursor: grab;
+  z-index: 2;
+  transition: background .2s, right .25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+}
+.swipe-thumb:hover { background: var(--accent); }
+.swipe-thumb.dragging { cursor: grabbing; transition: background .2s; }
+.swipe-fill {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 0;
+  background: rgba(19, 185, 178, 0.15);
+  border-radius: 100px 0 0 100px;
+  z-index: 0;
+  transition: width .25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.swipe-thumb.dragging ~ .swipe-fill,
+.swipe-thumb.dragging { transition: none; }
+.swipe-track.done {
+  background: rgba(19, 185, 178, 0.1);
+  border-color: rgba(19, 185, 178, 0.45);
+}
+.swipe-track.done .swipe-thumb { background: var(--accent); }
+.swipe-track.done .swipe-hint { color: var(--accent-ink); }
+
+@media (max-width: 640px) {
+  .ag-top { grid-template-columns: 1fr; text-align: center; gap: 12px; }
+  .ag-icon { margin: 0 auto; }
+}
 
 @media (max-width: 640px) {
   .app-row-compact { grid-template-columns: auto 1fr auto; padding: 12px 14px; gap: 10px; }
@@ -1103,6 +1202,7 @@ function renderCampaigns() {
     return;
   }
   list.innerHTML = renderSingleCampaign(selected);
+  initSwipeTracks();
 }
 
 function selectCampaign(campaignId) {
@@ -1117,6 +1217,92 @@ function selectCampaign(campaignId) {
 function toggleAppExpand(appId) {
   expandedAppId = expandedAppId === appId ? null : appId;
   renderCampaigns();
+}
+
+// ============ Swipe-to-approve handler ============
+let activeSwipe = null;
+
+function initSwipeTracks() {
+  document.querySelectorAll('.swipe-track').forEach(track => {
+    if (track.dataset.swipeReady === '1') return;
+    track.dataset.swipeReady = '1';
+    const thumb = track.querySelector('.swipe-thumb');
+    if (!thumb) return;
+    thumb.addEventListener('mousedown', e => swipeStart(e, track));
+    thumb.addEventListener('touchstart', e => swipeStart(e, track), { passive: false });
+  });
+}
+
+function swipeStart(e, track) {
+  if (track.classList.contains('done')) return;
+  const thumb = track.querySelector('.swipe-thumb');
+  const fill = track.querySelector('.swipe-fill');
+  const hint = track.querySelector('.swipe-hint');
+  const appId = track.dataset.appId;
+  activeSwipe = {
+    track, thumb, fill, hint, appId,
+    startX: e.touches ? e.touches[0].clientX : e.clientX,
+    trackWidth: track.offsetWidth,
+    thumbWidth: 48,
+    padding: 6,
+    currentLeft: 0
+  };
+  thumb.classList.add('dragging');
+  e.preventDefault();
+}
+
+function swipeMove(e) {
+  if (!activeSwipe) return;
+  const s = activeSwipe;
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const delta = s.startX - cx; // RTL: drag left → positive
+  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
+  s.currentLeft = Math.max(0, Math.min(max, delta));
+  s.thumb.style.right = (s.padding + s.currentLeft) + 'px';
+  s.fill.style.width = (s.currentLeft + s.thumbWidth + s.padding) + 'px';
+  const pct = s.currentLeft / max;
+  s.hint.style.opacity = Math.max(0, 1 - pct * 1.6);
+  if (pct >= 0.92) {
+    swipeComplete();
+  }
+}
+
+function swipeEnd() {
+  if (!activeSwipe) return;
+  const s = activeSwipe;
+  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
+  s.thumb.classList.remove('dragging');
+  if (s.currentLeft / max < 0.92) {
+    s.thumb.style.right = s.padding + 'px';
+    s.fill.style.width = '0px';
+    s.hint.style.opacity = 1;
+  }
+  activeSwipe = null;
+}
+
+function swipeComplete() {
+  if (!activeSwipe) return;
+  const s = activeSwipe;
+  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
+  s.thumb.style.right = (s.padding + max) + 'px';
+  s.fill.style.width = (max + s.thumbWidth + s.padding) + 'px';
+  s.track.classList.add('done');
+  s.hint.textContent = '✓ جاري الاعتماد...';
+  s.hint.style.opacity = 1;
+  s.thumb.classList.remove('dragging');
+  const appId = s.appId;
+  activeSwipe = null;
+  approveDeal(appId);
+}
+
+// مستمعو النوافذ (مرّة واحدة فقط)
+if (!window.__simblSwipeBound) {
+  window.__simblSwipeBound = true;
+  window.addEventListener('mousemove', swipeMove);
+  window.addEventListener('touchmove', swipeMove, { passive: false });
+  window.addEventListener('mouseup', swipeEnd);
+  window.addEventListener('touchend', swipeEnd);
+  window.addEventListener('touchcancel', swipeEnd);
 }
 
 async function approveDeal(applicationId) {
@@ -1201,7 +1387,8 @@ function renderSingleCampaign(c) {
               const awaitingApproval = isClosed && !isApproved;
               const isActive = a.status === 'active';
               const single = apps.length === 1;
-              const isExpanded = single || expandedAppId === a.id;
+              const forcedExpand = single || awaitingApproval;
+              const isExpanded = forcedExpand || expandedAppId === a.id;
               const statusLabel = awaitingApproval ? '⏳ بانتظار تعميدك' : isApproved ? '✓ تم الاتفاق' : isActive ? 'تفاوض جاري' : 'جديد';
               const statusColor = awaitingApproval ? '#854F0B' : isApproved ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--ink-muted)';
               const statusBg = awaitingApproval ? 'rgba(243, 156, 18, 0.15)' : isApproved ? 'rgba(19, 185, 178, 0.15)' : isActive ? 'rgba(19, 185, 178, 0.12)' : 'rgba(10, 10, 10, 0.06)';
@@ -1211,8 +1398,8 @@ function renderSingleCampaign(c) {
               const priceDisplay = isClosed && a.final_price
                 ? `<div class="strike">${a.price.toLocaleString('ar-SA')} ر.س</div><div class="final">${a.final_price.toLocaleString('ar-SA')} ر.س</div>`
                 : `<div class="final">${a.price.toLocaleString('ar-SA')} ر.س</div>`;
-              const rowClickAttr = single ? '' : `onclick="toggleAppExpand('${a.id}')"`;
-              const lockedCls = single ? 'locked' : '';
+              const rowClickAttr = forcedExpand ? '' : `onclick="toggleAppExpand('${a.id}')"`;
+              const lockedCls = forcedExpand ? 'locked' : '';
               const compactRowClosedCls = isApproved ? 'closed' : '';
               return `
                 <div class="app-block ${isExpanded ? 'is-expanded' : ''}">
@@ -1231,17 +1418,25 @@ function renderSingleCampaign(c) {
                       </div>
                     </div>
                     <div class="app-price-c">${priceDisplay}</div>
-                    ${single ? '' : `<button class="app-expand-btn" aria-label="${isExpanded ? 'إخفاء' : 'فتح'}">▼</button>`}
+                    ${forcedExpand ? '' : `<button class="app-expand-btn" aria-label="${isExpanded ? 'إخفاء' : 'فتح'}">▼</button>`}
                   </div>
                   ${isExpanded ? `
                     <div class="app-expanded" onclick="event.stopPropagation()">
                       ${awaitingApproval ? `
                         <div class="approval-gate">
-                          <div class="ag-info">
-                            <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</span></div>
-                            <div class="ag-desc">الوكيل توصّل لاتفاق مع المعلن. بحاجة موافقتك لإقفال الصفقة.</div>
+                          <div class="ag-top">
+                            <div class="ag-icon">⏳</div>
+                            <div class="ag-info">
+                              <div class="ag-title">الوكيل توصّل لسعر نهائي:</div>
+                              <div class="ag-price">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</div>
+                              <div class="ag-desc">اسحب الزر لاعتماد الصفقة وبدء التنفيذ مع المعلن.</div>
+                            </div>
                           </div>
-                          <button class="ag-btn" onclick="event.stopPropagation(); approveDeal('${a.id}')">✓ اعتماد</button>
+                          <div class="swipe-track" data-app-id="${a.id}" onclick="event.stopPropagation()">
+                            <div class="swipe-fill"></div>
+                            <div class="swipe-hint">اسحب لاعتماد الصفقة</div>
+                            <div class="swipe-thumb">✓</div>
+                          </div>
                         </div>
                         <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">${buttonLabel}</button>
                       ` : `
