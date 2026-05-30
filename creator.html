@@ -117,6 +117,29 @@ body {
 }
 .btn-logout:hover { color: var(--accent); border-color: var(--accent); }
 
+.btn-push {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  padding: 7px 14px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s, transform 0.15s;
+  animation: btnPushPulse 2.4s ease-in-out infinite;
+}
+.btn-push:hover { background: var(--accent-ink); transform: translateY(-1px); animation: none; }
+.btn-push.show { display: inline-flex; }
+@keyframes btnPushPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(19, 185, 178, 0.45); }
+  50% { box-shadow: 0 0 0 10px rgba(19, 185, 178, 0); }
+}
+
 /* ==================== HERO ==================== */
 @keyframes sb-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.7); opacity: 0.35; } }
 @keyframes sb-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
@@ -372,6 +395,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
       <span class="logo-mark">سيمبل</span>
     </a>
     <div class="user-menu" id="user-menu">
+      <button class="btn-push" id="btn-push" onclick="manualEnablePush()" title="تفعيل الإشعارات">
+        <span>🔔</span>
+        <span>فعّل الإشعارات</span>
+      </button>
       <div class="user-pill">
         <div class="user-avatar" id="user-initial">م</div>
         <span class="user-name" id="user-name">معلن</span>
@@ -755,10 +782,8 @@ async function startAutoNegotiation(application, campaign) {
 }
 
 function logout() {
-  if (confirm('متأكد من تسجيل الخروج؟')) {
-    clearCurrentUser();
-    window.location.href = '/';
-  }
+  clearCurrentUser();
+  window.location.href = '/';
 }
 
 init();
@@ -766,10 +791,47 @@ init();
 
 <script src="push-subscribe.js"></script>
 <script>
+  // فحص حالة إذن الإشعارات وعرض الزر إذا لزم
+  function refreshPushButton() {
+    const btn = document.getElementById('btn-push');
+    if (!btn) return;
+    if (typeof Notification === 'undefined') { btn.classList.remove('show'); return; }
+    if (Notification.permission === 'granted') {
+      btn.classList.remove('show');
+    } else {
+      btn.classList.add('show');
+    }
+  }
+
+  // الزر اليدوي: يستدعى من زر "فعّل الإشعارات" في الأعلى
+  async function manualEnablePush() {
+    const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
+    if (!user || !user.id) {
+      alert('سجّل دخول أولاً.');
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      alert('الإشعارات معطّلة في متصفّحك.\n\nلتفعيلها:\n1. اضغط أيقونة 🔒 يسار شريط العنوان\n2. اختر "الإشعارات" ← "السماح"\n3. حدّث الصفحة');
+      return;
+    }
+    const success = await subscribeToPush(user.id);
+    refreshPushButton();
+    if (success) {
+      try {
+        new Notification('سيمبل', {
+          body: 'تم تفعيل الإشعارات ✨ راح يوصلك تنبيه لكل حملة جديدة',
+          icon: '/icon-192.png',
+          dir: 'rtl'
+        });
+      } catch (e) {}
+    }
+  }
+
   (async function() {
     if (typeof tryRestoreSession === 'function') await tryRestoreSession();
     const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
     if (user && user.id && user.role === 'creator') {
+      refreshPushButton();
       showPushPermissionPrompt(user.id);
     }
   })();
