@@ -1,4 +1,4 @@
-// تفعيل Push Notifications للمؤثرة - تذكير ذكي عند كل دخول
+// تفعيل Push Notifications - يشتغل تلقائيًا على أي صفحة لأي مستخدم مسجّل
 
 const VAPID_PUBLIC_KEY = 'BGnZ74vZSsAwrRmrw6hcSfdZPjc30hzdqbxz8pfSNC90mwgJD_GdKB8S84kpYJV8QOmK0ZrCe5M2rKOQYkz9FVA';
 
@@ -54,33 +54,68 @@ async function subscribeToPush(userId) {
   }
 }
 
-// النقطة الرئيسية: يُستدعى عند كل دخول لصفحة المعلن
+// عرض/إخفاء زر التفعيل اليدوي حسب الحالة
+function refreshPushButton() {
+  const btn = document.getElementById('btn-push');
+  if (!btn) return;
+  if (typeof Notification === 'undefined') { btn.classList.remove('show'); return; }
+  if (Notification.permission === 'granted') {
+    btn.classList.remove('show');
+  } else {
+    btn.classList.add('show');
+  }
+}
+
+// التفعيل اليدوي من زر "🔔 فعّل الإشعارات"
+async function manualEnablePush() {
+  const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
+  if (!user || !user.id) {
+    alert('سجّل دخول أولاً.');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    alert('الإشعارات معطّلة في متصفّحك.\n\nلتفعيلها:\n1. اضغط أيقونة 🔒 يسار شريط العنوان\n2. اختر "الإشعارات" ← "السماح"\n3. حدّث الصفحة');
+    return;
+  }
+  const success = await subscribeToPush(user.id);
+  refreshPushButton();
+  if (success) {
+    try {
+      new Notification('سيمبل', {
+        body: 'تم تفعيل الإشعارات ✨ راح يوصلك تنبيه لكل حدث جديد',
+        icon: '/icon-192.png',
+        dir: 'rtl'
+      });
+    } catch (e) {}
+  }
+}
+
+// المطالبة بالإذن: تُستدعى تلقائيًا أو من زر
 function showPushPermissionPrompt(userId) {
   if (!userId) return;
   if (typeof Notification === 'undefined') return;
 
-  console.log('[Push] حالة الإذن الحالية:', Notification.permission);
+  console.log('[Push] حالة الإذن:', Notification.permission);
 
-  // مفعّل أصلاً → اشترك بصمت ولا تعرض شي
+  // مفعّل أصلاً → اشترك بصمت
   if (Notification.permission === 'granted') {
-    console.log('[Push] الإذن مفعّل، الاشتراك بصمت...');
     subscribeToPush(userId);
     return;
   }
 
-  // علامة الجلسة مربوطة بمستخدم محدّد — كل مستخدم يشوف التذكير مرة في جلسته
+  // عُرض البانر لهذا المستخدم في هذه الجلسة
   const sessionKey = 'simbl_push_reminded_' + userId;
-  if (sessionStorage.getItem(sessionKey)) {
-    console.log('[Push] التذكير اتعرض في هذه الجلسة لهذا المستخدم');
-    return;
-  }
+  if (sessionStorage.getItem(sessionKey)) return;
   sessionStorage.setItem(sessionKey, '1');
 
-  console.log('[Push] عرض بانر التذكير خلال 1.5 ثانية...');
-  setTimeout(() => showReminderBanner(userId), 1500);
+  showReminderBanner(userId);
 }
 
 function showReminderBanner(userId) {
+  // لو فيه بانر قديم، احذفه
+  const existing = document.getElementById('simbl-push-banner');
+  if (existing) existing.remove();
+
   const isDenied = Notification.permission === 'denied';
 
   const banner = document.createElement('div');
@@ -108,7 +143,7 @@ function showReminderBanner(userId) {
     banner.innerHTML = `
       <div style="flex:1; min-width:0">
         <div style="font-weight:600;margin-bottom:4px;font-size:15px;">🔔 فعّل الإشعارات</div>
-        <div style="font-size:13px;opacity:0.85;line-height:1.6;">ليصلك تنبيه فوري لكل حملة جديدة، حتى لو الموقع مقفول.</div>
+        <div style="font-size:13px;opacity:0.85;line-height:1.6;">ليصلك تنبيه فوري لكل جديد، حتى لو الموقع مقفول.</div>
       </div>
       <button id="push-enable-btn" style="background:#13B9B2;color:#fff;border:none;padding:10px 20px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .2s;flex-shrink:0;">تفعيل</button>
       <button id="push-dismiss-btn" style="background:transparent;color:#fff;border:none;padding:4px 8px;font-size:22px;cursor:pointer;opacity:0.7;line-height:1;flex-shrink:0;" aria-label="إغلاق">×</button>
@@ -118,10 +153,11 @@ function showReminderBanner(userId) {
     document.getElementById('push-enable-btn').onclick = async () => {
       banner.remove();
       const success = await subscribeToPush(userId);
+      refreshPushButton();
       if (success) {
         try {
           new Notification('سيمبل', {
-            body: 'أهلاً ✨ راح يوصلك تنبيه فوري لكل حملة جديدة',
+            body: 'أهلاً ✨ راح يوصلك تنبيه فوري لكل حدث جديد',
             icon: '/icon-192.png',
             dir: 'rtl'
           });
@@ -132,3 +168,27 @@ function showReminderBanner(userId) {
     document.getElementById('push-dismiss-btn').onclick = () => banner.remove();
   }
 }
+
+// ============= التشغيل التلقائي =============
+// أي صفحة تستدعي هذا الملف، بعد ثانيتين من تحميلها يطلب الإذن من المستخدم المسجّل
+(async function pushAutoInit() {
+  if (document.readyState === 'loading') {
+    await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+  }
+
+  // محاولة استعادة الجلسة لو كانت موجودة في cookie
+  if (typeof tryRestoreSession === 'function') {
+    try { await tryRestoreSession(); } catch (e) {}
+  }
+
+  // تحديث حالة الزر اليدوي فورًا (لو موجود)
+  refreshPushButton();
+
+  // بعد ثانيتين، اعرض المطالبة لأي مستخدم مسجّل (بدون تمييز الدور)
+  setTimeout(() => {
+    const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
+    if (user && user.id) {
+      showPushPermissionPrompt(user.id);
+    }
+  }, 2000);
+})();

@@ -790,52 +790,6 @@ init();
 </script>
 
 <script src="push-subscribe.js"></script>
-<script>
-  // فحص حالة إذن الإشعارات وعرض الزر إذا لزم
-  function refreshPushButton() {
-    const btn = document.getElementById('btn-push');
-    if (!btn) return;
-    if (typeof Notification === 'undefined') { btn.classList.remove('show'); return; }
-    if (Notification.permission === 'granted') {
-      btn.classList.remove('show');
-    } else {
-      btn.classList.add('show');
-    }
-  }
-
-  // الزر اليدوي: يستدعى من زر "فعّل الإشعارات" في الأعلى
-  async function manualEnablePush() {
-    const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
-    if (!user || !user.id) {
-      alert('سجّل دخول أولاً.');
-      return;
-    }
-    if (Notification.permission === 'denied') {
-      alert('الإشعارات معطّلة في متصفّحك.\n\nلتفعيلها:\n1. اضغط أيقونة 🔒 يسار شريط العنوان\n2. اختر "الإشعارات" ← "السماح"\n3. حدّث الصفحة');
-      return;
-    }
-    const success = await subscribeToPush(user.id);
-    refreshPushButton();
-    if (success) {
-      try {
-        new Notification('سيمبل', {
-          body: 'تم تفعيل الإشعارات ✨ راح يوصلك تنبيه لكل حملة جديدة',
-          icon: '/icon-192.png',
-          dir: 'rtl'
-        });
-      } catch (e) {}
-    }
-  }
-
-  (async function() {
-    if (typeof tryRestoreSession === 'function') await tryRestoreSession();
-    const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
-    if (user && user.id && user.role === 'creator') {
-      refreshPushButton();
-      showPushPermissionPrompt(user.id);
-    }
-  })();
-</script>
 
 </body>
 </html>
