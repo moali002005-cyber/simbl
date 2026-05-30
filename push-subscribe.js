@@ -59,17 +59,24 @@ function showPushPermissionPrompt(userId) {
   if (!userId) return;
   if (typeof Notification === 'undefined') return;
 
+  console.log('[Push] حالة الإذن الحالية:', Notification.permission);
+
   // مفعّل أصلاً → اشترك بصمت ولا تعرض شي
   if (Notification.permission === 'granted') {
+    console.log('[Push] الإذن مفعّل، الاشتراك بصمت...');
     subscribeToPush(userId);
     return;
   }
 
-  // التذكير ظهر مرة في هذه الجلسة، لا نكرر داخل نفس الجلسة
-  // (بس راح يظهر مرة ثانية في أي جلسة جديدة)
-  if (sessionStorage.getItem('simbl_push_reminded')) return;
-  sessionStorage.setItem('simbl_push_reminded', '1');
+  // علامة الجلسة مربوطة بمستخدم محدّد — كل مستخدم يشوف التذكير مرة في جلسته
+  const sessionKey = 'simbl_push_reminded_' + userId;
+  if (sessionStorage.getItem(sessionKey)) {
+    console.log('[Push] التذكير اتعرض في هذه الجلسة لهذا المستخدم');
+    return;
+  }
+  sessionStorage.setItem(sessionKey, '1');
 
+  console.log('[Push] عرض بانر التذكير خلال 1.5 ثانية...');
   setTimeout(() => showReminderBanner(userId), 1500);
 }
 
@@ -80,7 +87,6 @@ function showReminderBanner(userId) {
   banner.id = 'simbl-push-banner';
   banner.style.cssText = 'position:fixed;bottom:20px;left:16px;right:16px;background:#0a0a0a;color:#fff;padding:16px 18px;border-radius:18px;z-index:9999;max-width:500px;margin:0 auto;display:flex;gap:12px;align-items:center;box-shadow:0 12px 40px rgba(0,0,0,0.20);font-family:"IBM Plex Sans Arabic",sans-serif;animation:simblBannerIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);';
 
-  // أنيميشن دخول البانر
   if (!document.getElementById('simbl-push-banner-keyframes')) {
     const style = document.createElement('style');
     style.id = 'simbl-push-banner-keyframes';
@@ -89,7 +95,6 @@ function showReminderBanner(userId) {
   }
 
   if (isDenied) {
-    // الإشعارات مرفوضة من المتصفّح — لازم المستخدم يعدّل الإعدادات يدويًا
     banner.innerHTML = `
       <div style="flex:1; min-width:0">
         <div style="font-weight:600;margin-bottom:4px;font-size:15px;">🔕 الإشعارات معطّلة في متصفّحك</div>
@@ -100,7 +105,6 @@ function showReminderBanner(userId) {
     document.body.appendChild(banner);
     document.getElementById('push-dismiss-btn').onclick = () => banner.remove();
   } else {
-    // الإشعارات لم تُفعّل بعد — نسأل المستخدم
     banner.innerHTML = `
       <div style="flex:1; min-width:0">
         <div style="font-weight:600;margin-bottom:4px;font-size:15px;">🔔 فعّل الإشعارات</div>
