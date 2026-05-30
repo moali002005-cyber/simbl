@@ -859,8 +859,18 @@ async function confirmDelete() {
       }
     } catch (e) { console.warn('Dependent delete warning:', e); }
 
-    const { error } = await supabaseClient.from('campaigns').delete().eq('id', id);
+    // حذف الحملة مع .select() عشان نتأكد فعلاً انحذفت
+    const { data: deleted, error } = await supabaseClient
+      .from('campaigns')
+      .delete()
+      .eq('id', id)
+      .select();
+
     if (error) throw error;
+
+    if (!deleted || deleted.length === 0) {
+      throw new Error('لم يتم الحذف. تحقق من سياسات الحماية (RLS) في Supabase.');
+    }
 
     closeDelete();
     btn.disabled = false;
