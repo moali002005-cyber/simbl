@@ -485,6 +485,66 @@ body {
 .sa-btn:hover { background: var(--accent); transform: translateY(-1px); }
 .sa-btn:disabled { background: var(--ink-faint); cursor: not-allowed; }
 
+/* Form inside action card */
+.sa-form { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.sa-field { display: flex; flex-direction: column; gap: 6px; }
+.sa-field label { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+.sa-field input, .sa-field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: #fff;
+  color: var(--ink);
+  width: 100%;
+}
+.sa-field input:focus, .sa-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(19, 185, 178, 0.14);
+}
+.sa-field textarea { resize: vertical; min-height: 60px; }
+.sa-form .sa-btn { align-self: flex-start; margin-top: 4px; }
+
+/* Stage history */
+.stage-history {
+  margin-top: 10px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.stage-history h4 {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--ink-soft);
+}
+.history-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 9px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.history-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.history-item:first-child { padding-top: 0; }
+.history-item .hi-tick {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(19,185,178,0.15);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-weight: 600;
+}
+.hi-name { font-weight: 600; color: var(--ink); }
+.hi-fields { color: var(--ink-soft); font-size: 12px; margin-top: 2px; line-height: 1.6; }
+.hi-fields a { color: var(--accent-ink); text-decoration: underline; word-break: break-all; }
+
 @media (max-width: 640px) {
   .workflow-strip { padding: 18px 8px 14px; gap: 2px; }
   .ws-circle { width: 28px; height: 28px; font-size: 12px; }
@@ -879,7 +939,7 @@ function renderCampaigns() {
                   <div>${priceDisplay}</div>
                   <button class="btn-view" onclick="startNegotiation('${a.id}')">${buttonLabel}</button>
                 </div>
-                ${isClosed ? renderWorkflowStrip(a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'brand') : ''}
+                ${isClosed ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'brand') : ''}
               `;
             }).join('')}
           </div>
@@ -909,80 +969,139 @@ const WORKFLOW_STAGES = [
   { id: 1, name: 'العنوان' },
   { id: 2, name: 'الشحن' },
   { id: 3, name: 'الاستلام' },
-  { id: 4, name: 'المحتوى' },
-  { id: 5, name: 'الموافقة' },
-  { id: 6, name: 'النشر' },
-  { id: 7, name: 'مكتمل', isFinal: true }
+  { id: 4, name: 'البريف' },
+  { id: 5, name: 'المحتوى' },
+  { id: 6, name: 'الموافقة' },
+  { id: 7, name: 'النشر' },
+  { id: 8, name: 'مكتمل', isFinal: true }
 ];
 
 const STAGE_ACTIONS = {
   1: {
     responsible: 'creator',
-    creator: { label: '✓ تم إرسال العنوان', desc: 'بعد إرسال عنوانك للشركة عبر التفاوض، اضغط للانتقال للمرحلة التالية.' },
-    brand:   { desc: 'بانتظار إرسال المعلن لعنوانه عبر التفاوض.' }
+    creator: { label: '✓ تأكيد إرسال العنوان', desc: 'عبّئ تفاصيل العنوان للشحن، ثم أكّد للانتقال للمرحلة التالية.' },
+    brand:   { desc: 'بانتظار إرسال المعلن لعنوانه.' }
   },
   2: {
     responsible: 'brand',
-    brand:   { label: '✓ تأكيد الشحن', desc: 'بعد شحن المنتج للمعلن، اضغط لتأكيد الشحن.' },
+    brand:   { label: '✓ تأكيد الشحن', desc: 'بعد شحن المنتج، عبّئ بيانات الشحن وأكّد.' },
     creator: { desc: 'الشركة تجهّز المنتج لشحنه إليك.' }
   },
   3: {
     responsible: 'creator',
-    creator: { label: '✓ تأكيد الاستلام', desc: 'بعد وصول المنتج إليك، اضغط لتأكيد الاستلام.' },
+    creator: { label: '✓ تأكيد الاستلام', desc: 'بعد وصول المنتج إليك، أكّد الاستلام.' },
     brand:   { desc: 'المنتج في الطريق إلى المعلن.' }
   },
   4: {
-    responsible: 'creator',
-    creator: { label: '✓ تأكيد إرسال المحتوى', desc: 'بعد إرسال المحتوى للشركة للمراجعة، اضغط للتأكيد.' },
-    brand:   { desc: 'المعلن يجهّز المحتوى الإعلاني.' }
+    responsible: 'brand',
+    brand:   { label: '✓ إرسال البريف', desc: 'اكتب نص البريف الإعلاني (وضّح كيف تبي يكون الإعلان ومحتواه)، على أساسه المعلن يجهّز المحتوى.' },
+    creator: { desc: 'الشركة تجهّز البريف الإعلاني (نص يوضّح متطلبات الإعلان).' }
   },
   5: {
-    responsible: 'brand',
-    brand:   { label: '✓ الموافقة على المحتوى', desc: 'بعد مراجعة المحتوى والموافقة عليه، اضغط للموافقة.' },
-    creator: { desc: 'الشركة تراجع المحتوى الذي أرسلته.' }
+    responsible: 'creator',
+    creator: { label: '✓ تأكيد إرسال المحتوى', desc: 'بناءً على البريف، أرفق رابط المحتوى للمراجعة وأكّد للمرحلة التالية.' },
+    brand:   { desc: 'المعلن يجهّز المحتوى الإعلاني حسب البريف.' }
   },
   6: {
+    responsible: 'brand',
+    brand:   { label: '✓ الموافقة على المحتوى', desc: 'بعد مراجعة المحتوى، أضف ملاحظاتك (إن وُجدت) وأكّد الموافقة.' },
+    creator: { desc: 'الشركة تراجع المحتوى الذي أرسلته.' }
+  },
+  7: {
     responsible: 'creator',
-    creator: { label: '✓ تأكيد النشر', desc: 'بعد نشر المحتوى على المنصة، اضغط للتأكيد.' },
+    creator: { label: '✓ تأكيد النشر', desc: 'بعد نشر المحتوى، أرفق رابط المنشور وأكّد.' },
     brand:   { desc: 'بانتظار نشر المعلن للمحتوى المعتمد.' }
   }
 };
 
+const STAGE_FIELDS = {
+  1: [
+    { name: 'address', label: 'العنوان الكامل', placeholder: 'مثل: الرياض، حي العليا، شارع الأمير محمد...', type: 'textarea', required: true },
+    { name: 'phone',   label: 'رقم الجوال للتوصيل', placeholder: '966501234567', type: 'tel', required: true }
+  ],
+  2: [
+    { name: 'tracking', label: 'رقم التتبع (اختياري)', placeholder: 'رقم بوليصة الشحن', type: 'text', required: false },
+    { name: 'carrier',  label: 'شركة الشحن (اختياري)', placeholder: 'مثل: SMSA, Aramex', type: 'text', required: false }
+  ],
+  3: [
+    { name: 'note', label: 'ملاحظة (اختياري)', placeholder: 'مثلًا: وصل بحالة ممتازة', type: 'text', required: false }
+  ],
+  4: [
+    { name: 'brief', label: 'نص البريف الإعلاني', placeholder: 'وضّح للمعلن: المحاور الرئيسية، النقاط اللي تركّز عليها، نوع المحتوى المطلوب، الكلمات المفتاحية، أي مراجع أو أمثلة...', type: 'textarea', required: true }
+  ],
+  5: [
+    { name: 'content_link', label: 'رابط المحتوى للمراجعة', placeholder: 'رابط Google Drive، WeTransfer، أو نسخة للمراجعة', type: 'url', required: true },
+    { name: 'note',         label: 'ملاحظة (اختياري)', placeholder: 'تفاصيل أو ملاحظات للشركة', type: 'text', required: false }
+  ],
+  6: [
+    { name: 'feedback', label: 'ملاحظات (اختياري)', placeholder: 'أي ملاحظات...', type: 'text', required: false }
+  ],
+  7: [
+    { name: 'publish_link', label: 'رابط المنشور', placeholder: 'رابط البوست/الريل/الستوري', type: 'url', required: true }
+  ]
+};
+
 const STAGE_NOTIFICATIONS = {
-  1: { title: 'بداية الصفقة', body: 'الصفقة في مرحلة تأكيد العنوان' },
   2: { title: '📦 الشحن', body: 'تم تأكيد العنوان، الصفقة دخلت مرحلة الشحن' },
   3: { title: '🚚 الاستلام', body: 'تم الشحن، الصفقة في مرحلة الاستلام' },
-  4: { title: '🎬 المحتوى', body: 'تم استلام المنتج، بدأت مرحلة إعداد المحتوى' },
-  5: { title: '👀 المراجعة', body: 'المحتوى جاهز، الصفقة في مرحلة المراجعة والموافقة' },
-  6: { title: '🚀 النشر', body: 'تمت الموافقة، الصفقة في مرحلة النشر' },
-  7: { title: '🎉 صفقة مكتملة', body: 'تم اكتمال الصفقة بنجاح' }
+  4: { title: '📋 البريف', body: 'تم استلام المنتج، الشركة تجهّز البريف الإعلاني' },
+  5: { title: '🎬 المحتوى', body: 'البريف جاهز، الصفقة في مرحلة إعداد المحتوى' },
+  6: { title: '👀 المراجعة', body: 'المحتوى جاهز، الصفقة في مرحلة المراجعة والموافقة' },
+  7: { title: '🚀 النشر', body: 'تمت الموافقة، الصفقة في مرحلة النشر' },
+  8: { title: '🎉 صفقة مكتملة', body: 'تم اكتمال الصفقة بنجاح' }
 };
+
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function renderWorkflowStrip(currentStage) {
   const stages = WORKFLOW_STAGES.map(s => {
-    let cls = '';
-    let content = '';
+    let cls = '', content = '';
     if (s.id < currentStage) { cls = 'done'; content = '✓'; }
     else if (s.id === currentStage) { cls = 'current'; content = s.isFinal ? '✓' : toArabic(s.id); }
     else { cls = 'future'; content = s.isFinal ? '✓' : toArabic(s.id); }
-    return `
-      <div class="ws-step ${cls}" title="${s.name}">
-        <div class="ws-circle">${content}</div>
-        <div class="ws-label">${s.name}</div>
-      </div>
-    `;
+    return `<div class="ws-step ${cls}" title="${s.name}"><div class="ws-circle">${content}</div><div class="ws-label">${s.name}</div></div>`;
   }).join('');
   return `<div class="workflow-strip">${stages}</div>`;
 }
 
-function renderStageAction(applicationId, currentStage, viewerRole) {
-  if (currentStage >= 7) {
+function renderStageHistory(stageData, currentStage) {
+  if (!stageData) return '';
+  const completedStages = Object.keys(stageData)
+    .map(k => parseInt(k))
+    .filter(n => n < currentStage)
+    .sort((a, b) => a - b);
+  if (completedStages.length === 0) return '';
+
+  const items = completedStages.map(stageId => {
+    const data = stageData[stageId] || {};
+    const stageName = WORKFLOW_STAGES.find(s => s.id === stageId)?.name || '';
+    const fields = STAGE_FIELDS[stageId] || [];
+    const fieldsHtml = fields
+      .filter(f => data[f.name])
+      .map(f => {
+        const val = data[f.name];
+        const isUrl = f.type === 'url';
+        const display = isUrl ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>` : escHtml(val);
+        return `<div><strong>${f.label}:</strong> ${display}</div>`;
+      }).join('');
     return `
-      <div class="stage-action complete">
-        <div class="sa-title">🎉 صفقة مكتملة</div>
-        <div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div>
+      <div class="history-item">
+        <div class="hi-tick">✓</div>
+        <div style="min-width:0; flex:1;">
+          <div class="hi-name">${toArabic(stageId)}. ${stageName}</div>
+          ${fieldsHtml ? `<div class="hi-fields">${fieldsHtml}</div>` : ''}
+        </div>
       </div>
     `;
+  }).join('');
+  return `<div class="stage-history"><h4>سجلّ المراحل المكتملة</h4>${items}</div>`;
+}
+
+function renderStageAction(applicationId, currentStage, viewerRole) {
+  if (currentStage >= 8) {
+    return `<div class="stage-action complete"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
   }
   const info = STAGE_ACTIONS[currentStage];
   if (!info) return '';
@@ -991,20 +1110,26 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   const myInfo = info[viewerRole] || {};
 
   if (isMyTurn) {
+    const fields = STAGE_FIELDS[currentStage] || [];
+    const inputsHtml = fields.map(f => {
+      const fid = `sf-${applicationId}-${f.name}`;
+      if (f.type === 'textarea') {
+        return `<div class="sa-field"><label for="${fid}">${f.label}${f.required ? ' *' : ''}</label><textarea id="${fid}" name="${f.name}" placeholder="${escHtml(f.placeholder)}"${f.required ? ' required' : ''}></textarea></div>`;
+      }
+      return `<div class="sa-field"><label for="${fid}">${f.label}${f.required ? ' *' : ''}</label><input type="${f.type}" id="${fid}" name="${f.name}" placeholder="${escHtml(f.placeholder)}"${f.required ? ' required' : ''}></div>`;
+    }).join('');
     return `
       <div class="stage-action mine">
         <div class="sa-title">المرحلة الحالية: ${stageName}</div>
         <div class="sa-desc">${myInfo.desc || ''}</div>
-        <button class="sa-btn" onclick="advanceStage('${applicationId}', ${currentStage + 1})">${myInfo.label}</button>
+        <form class="sa-form" id="stage-form-${applicationId}" onsubmit="event.preventDefault(); submitStageForm('${applicationId}')">
+          ${inputsHtml}
+          <button type="submit" class="sa-btn">${myInfo.label}</button>
+        </form>
       </div>
     `;
   }
-  return `
-    <div class="stage-action waiting">
-      <div class="sa-title">⏳ المرحلة الحالية: ${stageName}</div>
-      <div class="sa-desc">${myInfo.desc || ''}</div>
-    </div>
-  `;
+  return `<div class="stage-action waiting"><div class="sa-title">⏳ المرحلة الحالية: ${stageName}</div><div class="sa-desc">${myInfo.desc || ''}</div></div>`;
 }
 
 function findAppById(applicationId) {
@@ -1016,54 +1141,59 @@ function findAppById(applicationId) {
   return { app: null, campaign: null };
 }
 
-async function advanceStage(applicationId, newStage) {
+async function submitStageForm(applicationId) {
   const { app, campaign } = findAppById(applicationId);
-  const oldStage = app?.stage || 1;
-  if (newStage <= oldStage) return;
+  if (!app) return;
+  const oldStage = app.stage || 1;
+  const newStage = oldStage + 1;
+
+  // اجمع بيانات النموذج
+  const form = document.getElementById(`stage-form-${applicationId}`);
+  const fd = new FormData(form);
+  const data = {};
+  for (const [key, value] of fd.entries()) {
+    if (value && value.toString().trim()) data[key] = value.toString().trim();
+  }
+
+  // ادمج مع البيانات الحالية في stage_data
+  const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
+  existing[oldStage] = { ...data, _at: new Date().toISOString() };
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const original = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'جاري الحفظ...';
 
   try {
-    const { data, error } = await supabaseClient
+    const { data: updated, error } = await supabaseClient
       .from('applications')
-      .update({ stage: newStage })
+      .update({ stage: newStage, stage_data: existing })
       .eq('id', applicationId)
       .select();
     if (error) throw error;
-    if (!data || data.length === 0) {
-      throw new Error('لم يتم التحديث. تحقق من سياسات الحماية في Supabase.');
+    if (!updated || updated.length === 0) {
+      throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
     }
 
     // إشعار المعلن (الطرف الآخر)
-    if (app?.creator_id) {
+    if (app.creator_id) {
       const notif = STAGE_NOTIFICATIONS[newStage];
       const campaignTitle = campaign?.title || 'صفقة';
       if (notif) {
-        createNotification(
-          app.creator_id,
-          'workflow_update',
-          notif.title,
-          `${campaignTitle}: ${notif.body}`,
-          '/creator.html'
-        ).catch(err => console.error(err));
-
+        createNotification(app.creator_id, 'workflow_update', notif.title, `${campaignTitle}: ${notif.body}`, '/creator.html').catch(console.error);
         fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + supabaseClient.supabaseKey
-          },
-          body: JSON.stringify({
-            title: notif.title,
-            body: `${campaignTitle}: ${notif.body}`,
-            url: '/creator.html',
-            target_users: [app.creator_id]
-          })
-        }).catch(err => console.error('Push error:', err));
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+          body: JSON.stringify({ title: notif.title, body: `${campaignTitle}: ${notif.body}`, url: '/creator.html', target_users: [app.creator_id] })
+        }).catch(console.error);
       }
     }
 
     await loadData();
   } catch (err) {
-    console.error('Failed to advance stage:', err);
+    console.error('Failed to submit stage:', err);
+    submitBtn.disabled = false;
+    submitBtn.textContent = original;
     alert('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'));
   }
 }
