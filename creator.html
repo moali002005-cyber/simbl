@@ -339,6 +339,89 @@ body {
 .status-closed { background: var(--ink); color: #fff; }
 .status-rejected { background: var(--cream-darker); color: var(--ink-muted); }
 
+/* ============ Workflow progress strip ============ */
+.workflow-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 18px 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-top: 8px;
+  position: relative;
+  gap: 4px;
+}
+.ws-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s;
+  min-width: 0;
+}
+.ws-step:hover { transform: translateY(-2px); }
+.ws-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--line-strong);
+  z-index: 0;
+}
+.ws-step.done::after { background: var(--accent); }
+.ws-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cream-darker);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  position: relative;
+  z-index: 1;
+  transition: all 0.25s;
+  border: 1.5px solid var(--line-strong);
+  font-family: var(--font-display);
+}
+.ws-step.done .ws-circle {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.ws-step.current .ws-circle {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(10, 10, 10, 0.08);
+}
+.ws-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 10px;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  text-align: center;
+}
+.ws-step.done .ws-label,
+.ws-step.current .ws-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+@media (max-width: 640px) {
+  .workflow-strip { padding: 18px 8px 14px; gap: 2px; }
+  .ws-circle { width: 28px; height: 28px; font-size: 12px; }
+  .ws-step:not(:last-child)::after { top: 13px; }
+  .ws-label { font-size: 10px; margin-top: 6px; }
+}
+
 .modal-backdrop {
   position: fixed; inset: 0;
   background: rgba(10, 10, 10, 0.5);
@@ -640,6 +723,7 @@ function renderApplications() {
   list.innerHTML = myApplications.map(a => {
     const campaignTitle = a.campaigns?.title || 'حملة';
     const brandName = a.campaigns?.users?.company_name || '';
+    const isClosed = a.status === 'closed';
     return `
       <div class="application-card" onclick="window.location.href='/campaign.html?app=${a.id}'" style="cursor: pointer">
         <div class="app-info">
@@ -648,8 +732,109 @@ function renderApplications() {
         </div>
         <span class="app-status status-${a.status}">${statusLabels[a.status]}</span>
       </div>
+      ${isClosed ? renderWorkflowStrip(a.id, a.stage || 1) : ''}
     `;
   }).join('');
+}
+
+// ============ Workflow stages ============
+const WORKFLOW_STAGES = [
+  { id: 1, name: 'العنوان' },
+  { id: 2, name: 'الشحن' },
+  { id: 3, name: 'الاستلام' },
+  { id: 4, name: 'المحتوى' },
+  { id: 5, name: 'الموافقة' },
+  { id: 6, name: 'النشر' },
+  { id: 7, name: 'مكتمل', isFinal: true }
+];
+
+const STAGE_NOTIFICATIONS = {
+  1: { title: 'بداية الصفقة', body: 'الصفقة في مرحلة تأكيد العنوان' },
+  2: { title: '📦 الشحن', body: 'تم تأكيد العنوان، الصفقة دخلت مرحلة الشحن' },
+  3: { title: '🚚 الاستلام', body: 'تم الشحن، الصفقة في مرحلة الاستلام' },
+  4: { title: '🎬 المحتوى', body: 'تم استلام المنتج، بدأت مرحلة إعداد المحتوى' },
+  5: { title: '👀 المراجعة', body: 'المحتوى جاهز، الصفقة في مرحلة المراجعة والموافقة' },
+  6: { title: '🚀 النشر', body: 'تمت الموافقة، الصفقة في مرحلة النشر' },
+  7: { title: '🎉 صفقة مكتملة', body: 'تم اكتمال الصفقة بنجاح، شكرًا لك' }
+};
+
+function renderWorkflowStrip(applicationId, currentStage) {
+  const stages = WORKFLOW_STAGES.map(s => {
+    let cls = '';
+    let content = '';
+    if (s.id < currentStage) {
+      cls = 'done';
+      content = '✓';
+    } else if (s.id === currentStage) {
+      cls = 'current';
+      content = s.isFinal ? '✓' : toArabic(s.id);
+    } else {
+      cls = 'future';
+      content = s.isFinal ? '✓' : toArabic(s.id);
+    }
+    return `
+      <div class="ws-step ${cls}" onclick="event.stopPropagation(); updateAppStage('${applicationId}', ${s.id})" title="${s.name}">
+        <div class="ws-circle">${content}</div>
+        <div class="ws-label">${s.name}</div>
+      </div>
+    `;
+  }).join('');
+  return `<div class="workflow-strip" onclick="event.stopPropagation()">${stages}</div>`;
+}
+
+async function updateAppStage(applicationId, newStage) {
+  // ابحث عن الصفقة الحالية لمعرفة المرحلة السابقة
+  const app = myApplications.find(a => a.id === applicationId);
+  const oldStage = app?.stage || 1;
+  if (newStage === oldStage) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .update({ stage: newStage })
+      .eq('id', applicationId)
+      .select('*, campaigns(brand_id, title)');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+    }
+
+    // إشعار الشركة فقط عند التقدّم للأمام
+    if (newStage > oldStage) {
+      const brandId = data[0]?.campaigns?.brand_id;
+      const campaignTitle = data[0]?.campaigns?.title || 'صفقة';
+      const notif = STAGE_NOTIFICATIONS[newStage];
+      if (brandId && notif) {
+        createNotification(
+          brandId,
+          'workflow_update',
+          notif.title,
+          `${campaignTitle}: ${notif.body}`,
+          '/brand.html'
+        ).catch(err => console.error(err));
+
+        // إشعار Push
+        fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + supabaseClient.supabaseKey
+          },
+          body: JSON.stringify({
+            title: notif.title,
+            body: `${campaignTitle}: ${notif.body}`,
+            url: '/brand.html',
+            target_users: [brandId]
+          })
+        }).catch(err => console.error('Push error:', err));
+      }
+    }
+
+    await loadData();
+  } catch (err) {
+    console.error('Failed to update stage:', err);
+    alert('حصل خطأ في تحديث المرحلة: ' + (err.message || 'حاول مرة أخرى'));
+  }
 }
 
 function switchTab(tab) {
