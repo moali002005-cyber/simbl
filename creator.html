@@ -357,12 +357,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  cursor: pointer;
   position: relative;
-  transition: transform 0.15s;
   min-width: 0;
 }
-.ws-step:hover { transform: translateY(-2px); }
 .ws-step:not(:last-child)::after {
   content: '';
   position: absolute;
@@ -415,6 +412,51 @@ body {
   color: var(--ink);
   font-weight: 500;
 }
+
+/* ============ Stage action card ============ */
+.stage-action {
+  margin-top: 10px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.stage-action.mine {
+  background: rgba(19, 185, 178, 0.05);
+  border-color: rgba(19, 185, 178, 0.30);
+}
+.stage-action.waiting { background: var(--cream-darker); }
+.stage-action.complete {
+  background: rgba(19, 185, 178, 0.08);
+  border-color: rgba(19, 185, 178, 0.35);
+}
+.sa-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.sa-desc {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  margin-bottom: 0;
+}
+.stage-action.mine .sa-desc { margin-bottom: 14px; }
+.sa-btn {
+  background: var(--ink);
+  color: #fff;
+  border: 0;
+  padding: 11px 22px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+}
+.sa-btn:hover { background: var(--accent); transform: translateY(-1px); }
 @media (max-width: 640px) {
   .workflow-strip { padding: 18px 8px 14px; gap: 2px; }
   .ws-circle { width: 28px; height: 28px; font-size: 12px; }
@@ -732,7 +774,7 @@ function renderApplications() {
         </div>
         <span class="app-status status-${a.status}">${statusLabels[a.status]}</span>
       </div>
-      ${isClosed ? renderWorkflowStrip(a.id, a.stage || 1) : ''}
+      ${isClosed ? renderWorkflowStrip(a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'creator') : ''}
     `;
   }).join('');
 }
@@ -748,6 +790,39 @@ const WORKFLOW_STAGES = [
   { id: 7, name: 'مكتمل', isFinal: true }
 ];
 
+const STAGE_ACTIONS = {
+  1: {
+    responsible: 'creator',
+    creator: { label: '✓ تم إرسال العنوان', desc: 'بعد إرسال عنوانك للشركة عبر التفاوض، اضغط للانتقال للمرحلة التالية.' },
+    brand:   { desc: 'بانتظار إرسال المعلن لعنوانه عبر التفاوض.' }
+  },
+  2: {
+    responsible: 'brand',
+    brand:   { label: '✓ تأكيد الشحن', desc: 'بعد شحن المنتج للمعلن، اضغط لتأكيد الشحن.' },
+    creator: { desc: 'الشركة تجهّز المنتج لشحنه إليك.' }
+  },
+  3: {
+    responsible: 'creator',
+    creator: { label: '✓ تأكيد الاستلام', desc: 'بعد وصول المنتج إليك، اضغط لتأكيد الاستلام.' },
+    brand:   { desc: 'المنتج في الطريق إلى المعلن.' }
+  },
+  4: {
+    responsible: 'creator',
+    creator: { label: '✓ تأكيد إرسال المحتوى', desc: 'بعد إرسال المحتوى للشركة للمراجعة، اضغط للتأكيد.' },
+    brand:   { desc: 'المعلن يجهّز المحتوى الإعلاني.' }
+  },
+  5: {
+    responsible: 'brand',
+    brand:   { label: '✓ الموافقة على المحتوى', desc: 'بعد مراجعة المحتوى والموافقة عليه، اضغط للموافقة.' },
+    creator: { desc: 'الشركة تراجع المحتوى الذي أرسلته.' }
+  },
+  6: {
+    responsible: 'creator',
+    creator: { label: '✓ تأكيد النشر', desc: 'بعد نشر المحتوى على المنصة، اضغط للتأكيد.' },
+    brand:   { desc: 'بانتظار نشر المعلن للمحتوى المعتمد.' }
+  }
+};
+
 const STAGE_NOTIFICATIONS = {
   1: { title: 'بداية الصفقة', body: 'الصفقة في مرحلة تأكيد العنوان' },
   2: { title: '📦 الشحن', body: 'تم تأكيد العنوان، الصفقة دخلت مرحلة الشحن' },
@@ -758,35 +833,59 @@ const STAGE_NOTIFICATIONS = {
   7: { title: '🎉 صفقة مكتملة', body: 'تم اكتمال الصفقة بنجاح، شكرًا لك' }
 };
 
-function renderWorkflowStrip(applicationId, currentStage) {
+function renderWorkflowStrip(currentStage) {
   const stages = WORKFLOW_STAGES.map(s => {
     let cls = '';
     let content = '';
-    if (s.id < currentStage) {
-      cls = 'done';
-      content = '✓';
-    } else if (s.id === currentStage) {
-      cls = 'current';
-      content = s.isFinal ? '✓' : toArabic(s.id);
-    } else {
-      cls = 'future';
-      content = s.isFinal ? '✓' : toArabic(s.id);
-    }
+    if (s.id < currentStage) { cls = 'done'; content = '✓'; }
+    else if (s.id === currentStage) { cls = 'current'; content = s.isFinal ? '✓' : toArabic(s.id); }
+    else { cls = 'future'; content = s.isFinal ? '✓' : toArabic(s.id); }
     return `
-      <div class="ws-step ${cls}" onclick="event.stopPropagation(); updateAppStage('${applicationId}', ${s.id})" title="${s.name}">
+      <div class="ws-step ${cls}" title="${s.name}">
         <div class="ws-circle">${content}</div>
         <div class="ws-label">${s.name}</div>
       </div>
     `;
   }).join('');
-  return `<div class="workflow-strip" onclick="event.stopPropagation()">${stages}</div>`;
+  return `<div class="workflow-strip">${stages}</div>`;
 }
 
-async function updateAppStage(applicationId, newStage) {
-  // ابحث عن الصفقة الحالية لمعرفة المرحلة السابقة
+function renderStageAction(applicationId, currentStage, viewerRole) {
+  if (currentStage >= 7) {
+    return `
+      <div class="stage-action complete">
+        <div class="sa-title">🎉 صفقة مكتملة</div>
+        <div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div>
+      </div>
+    `;
+  }
+  const info = STAGE_ACTIONS[currentStage];
+  if (!info) return '';
+  const stageName = WORKFLOW_STAGES.find(s => s.id === currentStage)?.name || '';
+  const isMyTurn = info.responsible === viewerRole;
+  const myInfo = info[viewerRole] || {};
+
+  if (isMyTurn) {
+    return `
+      <div class="stage-action mine" onclick="event.stopPropagation()">
+        <div class="sa-title">المرحلة الحالية: ${stageName}</div>
+        <div class="sa-desc">${myInfo.desc || ''}</div>
+        <button class="sa-btn" onclick="event.stopPropagation(); advanceStage('${applicationId}', ${currentStage + 1})">${myInfo.label}</button>
+      </div>
+    `;
+  }
+  return `
+    <div class="stage-action waiting" onclick="event.stopPropagation()">
+      <div class="sa-title">⏳ المرحلة الحالية: ${stageName}</div>
+      <div class="sa-desc">${myInfo.desc || ''}</div>
+    </div>
+  `;
+}
+
+async function advanceStage(applicationId, newStage) {
   const app = myApplications.find(a => a.id === applicationId);
   const oldStage = app?.stage || 1;
-  if (newStage === oldStage) return;
+  if (newStage <= oldStage) return;
 
   try {
     const { data, error } = await supabaseClient
@@ -799,41 +898,38 @@ async function updateAppStage(applicationId, newStage) {
       throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
     }
 
-    // إشعار الشركة فقط عند التقدّم للأمام
-    if (newStage > oldStage) {
-      const brandId = data[0]?.campaigns?.brand_id;
-      const campaignTitle = data[0]?.campaigns?.title || 'صفقة';
-      const notif = STAGE_NOTIFICATIONS[newStage];
-      if (brandId && notif) {
-        createNotification(
-          brandId,
-          'workflow_update',
-          notif.title,
-          `${campaignTitle}: ${notif.body}`,
-          '/brand.html'
-        ).catch(err => console.error(err));
+    // إشعار الشركة (الطرف الآخر)
+    const brandId = data[0]?.campaigns?.brand_id;
+    const campaignTitle = data[0]?.campaigns?.title || 'صفقة';
+    const notif = STAGE_NOTIFICATIONS[newStage];
+    if (brandId && notif) {
+      createNotification(
+        brandId,
+        'workflow_update',
+        notif.title,
+        `${campaignTitle}: ${notif.body}`,
+        '/brand.html'
+      ).catch(err => console.error(err));
 
-        // إشعار Push
-        fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + supabaseClient.supabaseKey
-          },
-          body: JSON.stringify({
-            title: notif.title,
-            body: `${campaignTitle}: ${notif.body}`,
-            url: '/brand.html',
-            target_users: [brandId]
-          })
-        }).catch(err => console.error('Push error:', err));
-      }
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + supabaseClient.supabaseKey
+        },
+        body: JSON.stringify({
+          title: notif.title,
+          body: `${campaignTitle}: ${notif.body}`,
+          url: '/brand.html',
+          target_users: [brandId]
+        })
+      }).catch(err => console.error('Push error:', err));
     }
 
     await loadData();
   } catch (err) {
-    console.error('Failed to update stage:', err);
-    alert('حصل خطأ في تحديث المرحلة: ' + (err.message || 'حاول مرة أخرى'));
+    console.error('Failed to advance stage:', err);
+    alert('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'));
   }
 }
 
