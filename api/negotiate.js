@@ -2,9 +2,37 @@
 // يحفظ المحادثة في Supabase + يفاوض عبر Claude
 // عند [DEAL_CLOSED]: يقفل التقديم ويحفظ السعر النهائي
 // يدعم وضعين: نصي (chat) وصوتي (voice)
+// + يوقف التفاوض تلقائياً لمّا يكتمل عدد المعلنين المطلوب (campaign_size)
 
 const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkenp6YXNieXp1Z3hvZ2Jnd3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDI5NjMsImV4cCI6MjA5NTI3ODk2M30.aS9lOVt7VyfwTV7bmsxxDUanWfs5v-TMBlGbwcDNomM';
+
+// ====== خرائط عرض الحقول (للبرومبت) ======
+const PLATFORM_LABELS = { tiktok: 'تيك توك', snapchat: 'سناب شات', x: 'إكس', instagram: 'انستقرام', youtube: 'يوتيوب' };
+const FOLLOWER_RANGE_LABELS = {
+  '20-50k': 'من ٢٠ ألف إلى ٥٠ ألف متابع',
+  '50-200k': 'من ٥٠ ألف إلى ٢٠٠ ألف متابع',
+  '200-500k': 'من ٢٠٠ ألف إلى ٥٠٠ ألف متابع',
+  '500k+': 'أكثر من ٥٠٠ ألف متابع'
+};
+const PUBLISH_TIMING_LABELS = {
+  '24h': 'خلال ٢٤ ساعة (مستعجل)',
+  '3d': 'خلال ٣ أيام',
+  '1w': 'خلال أسبوع',
+  '2w': 'خلال أسبوعين',
+  'custom': 'تاريخ محدّد'
+};
+const CITY_LABELS = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', all: 'كل المناطق' };
+function publishTimingTextSrv(c) {
+  if (!c) return 'غير محدد';
+  if (c.publish_timing === 'custom' && c.publish_date) return 'بتاريخ ' + c.publish_date;
+  return PUBLISH_TIMING_LABELS[c.publish_timing] || c.publish_timing || 'غير محدد';
+}
+function followerRangeTextSrv(c) {
+  if (!c || !c.follower_range) return '';
+  return String(c.follower_range).split(',').map(s => s.trim()).filter(Boolean)
+    .map(v => FOLLOWER_RANGE_LABELS[v] || v).join('، ');
+}
 
 async function supabaseInsert(table, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
@@ -43,6 +71,31 @@ async function supabaseUpdate(table, id, data) {
   return true;
 }
 
+// عدد الصفقات المقفلة لحملة معيّنة (لمعرفة هل اكتمل العدد المطلوب)
+async function supabaseCountClosedDeals(campaignId) {
+  if (!campaignId) return 0;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/applications?campaign_id=eq.${campaignId}&status=eq.closed&select=id`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      }
+    );
+    if (!res.ok) {
+      console.error('Supabase count error:', await res.text());
+      return 0;
+    }
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch (err) {
+    console.error('Count closed deals failed:', err);
+    return 0;
+  }
+}
+
 function extractFinalPrice(text) {
   const match = text.match(/(\d[\d,]*)\s*ر\.?\s*س/);
   if (match) {
@@ -71,9 +124,24 @@ export default async function handler(req, res) {
   // العرض المبدئي = الميزانية ناقص ٢٠٠ ر.س (أو ٥٠ كحد أدنى)
   // الحد الأقصى للإقفال = الميزانية نفسها (الحدّ المطلق)
   const creatorPrice = parseFloat(application.price) || 0;
-  const budget = parseFloat(campaign.budget) || 0;
-  const openingOffer = Math.max(50, budget - 200);
-  const finalCap = budget;
+  // الميزانية صارت نطاق نصّي مثل "800 - 1500" → نقرأ الحدّين.
+  // نتجاهل max_budget تماماً حسب طلب الشركة؛ السقف المطلق = أعلى رقم في النطاق.
+  const budgetNums = (String(campaign.budget || '').match(/\d[\d,]*/g) || [])
+    .map(n => parseInt(n.replace(/,/g, ''), 10)).filter(n => !isNaN(n));
+  const budgetLow = budgetNums.length ? Math.min(...budgetNums) : 0;
+  const budgetHigh = budgetNums.length ? Math.max(...budgetNums) : 0;
+  const finalCap = budgetHigh;                        // السقف المطلق = أعلى رقم في النطاق
+  const openingOffer = Math.max(50, budgetLow - 100); // العرض المبدئي قرب أدنى النطاق
+
+  // ============ حجم الحملة (عدد المعلنين المطلوب) ============
+  const campaignId = campaign.id || application.campaign_id;
+  const campaignSize = parseInt(campaign.campaign_size) || null;
+
+  // معلومات الحملة (الحقول الجديدة)
+  const platformLabel = PLATFORM_LABELS[campaign.platform] || campaign.platform || 'غير محدد';
+  const followerLabel = followerRangeTextSrv(campaign) || 'غير محدد';
+  const timingLabel = publishTimingTextSrv(campaign);
+  const cityLabel = CITY_LABELS[campaign.city] || campaign.city || 'غير محدد';
 
   if (creatorMessage) {
     try {
@@ -84,6 +152,29 @@ export default async function handler(req, res) {
       });
     } catch (err) {
       console.error('Failed to save creator message:', err);
+    }
+  }
+
+  // ============ إيقاف التفاوض لو اكتمل عدد المعلنين ============
+  if (campaignSize) {
+    const closedCount = await supabaseCountClosedDeals(campaignId);
+    if (closedCount >= campaignSize) {
+      const fullMsg = 'نعتذر منك، هذي الحملة اكتمل العدد المطلوب من المعلنين وما عاد فيه مكان حالياً. نشكر اهتمامك ونتمنى نتعامل معك في حملة قادمة.';
+      try {
+        await supabaseInsert('negotiations', {
+          application_id: application.id,
+          from_role: 'agent',
+          message: fullMsg
+        });
+      } catch (err) {
+        console.error('Failed to save campaign-full message:', err);
+      }
+      return res.status(200).json({
+        reply: fullMsg,
+        dealClosed: false,
+        dealDetails: null,
+        campaignFull: true
+      });
     }
   }
 
@@ -102,13 +193,14 @@ export default async function handler(req, res) {
 
   const systemPrompt = `أنت "وكيل سيمبل" — وكيل تفاوض ذكي ومحترف يمثّل شركة "${campaign.brand_name || 'الشركة'}" لإقفال صفقة إعلانية مع المؤثرة بأفضل سعر للشركة.
 ${voiceInstructions}
-## تفاصيل الحملة:
+## تفاصيل الإعلان:
 - العنوان: ${campaign.title}
 - الوصف: ${campaign.description}
-- الميزانية القصوى (لا تتجاوزها أبداً، ولا حتى بريال واحد): ${campaign.budget} ر.س
-- المدة: ${campaign.duration || 'غير محدد'}
-- الباقة المطلوبة: ${campaign.package || 'غير محدد'}
-- متطلبات أخرى: ${campaign.requirements || 'لا توجد'}
+- الميزانية القصوى (لا تتجاوزها أبداً، ولا حتى بريال واحد): ${finalCap} ر.س
+- موعد النشر المطلوب: ${timingLabel}
+- المنصة المطلوبة: ${platformLabel}
+- نطاق المتابعين المطلوب: ${followerLabel}
+- مدينة المعلن المطلوبة: ${cityLabel}
 
 ## عرض المؤثرة:
 - الاسم: ${application.creator_name}
@@ -118,21 +210,21 @@ ${voiceInstructions}
 - ملاحظتها: ${application.note || 'لم تترك ملاحظة'}
 
 ## مهمتك:
-إقفال الصفقة بأقل سعر ممكن للشركة. **يجب** إقفالها أقل من **${campaign.budget} ر.س** (الميزانية). لا تتجاوز الميزانية ولا بريال واحد، مهما حصل.
+إقفال الصفقة بأقل سعر ممكن للشركة. **يجب** إقفالها أقل من **${finalCap} ر.س** (الميزانية). لا تتجاوز الميزانية ولا بريال واحد، مهما حصل.
 
 ---
 
 ## ⚠️ القواعد الصارمة — التزم بها بدون استثناء:
 
 ### ١) الميزانية خط أحمر مطلق
-- لا تعرض ولا تقبل أبداً أي سعر فوق **${campaign.budget} ر.س** — ولا حتى بريال واحد.
+- لا تعرض ولا تقبل أبداً أي سعر فوق **${finalCap} ر.س** — ولا حتى بريال واحد.
 - اقفل دائماً تحت الميزانية، مش عندها بالضبط.
 - لا تذكر الميزانية كرقم، استعمل عبارات مثل "حدود ميزانيتنا".
 
-### ٢) الباقة محصورة — لا إضافات إطلاقاً
-المطلوب من المؤثرة **فقط**: ${campaign.package || campaign.requirements || 'كما هو محدد في الحملة'}.
-- ❌ ارفض أي اقتراح بستوريات أو منشورات أو نشر في حسابات أخرى — **حتى لو عُرضت مجاناً**.
-- لو قالت "بضيف ستوريز مجاناً": اشكرها بأدب وقل إن الحملة محصورة بالباقة المتفق عليها فقط، ولا تحتاج إضافات.
+### ٢) نطاق العمل محصور — لا إضافات إطلاقاً
+المطلوب من المؤثرة **فقط**: محتوى على ${platformLabel} حسب وصف الإعلان.
+- ❌ ارفض أي اقتراح بمحتوى إضافي، أو ستوريات/منشورات زيادة، أو نشر في منصات أو حسابات أخرى — **حتى لو عُرض مجاناً**.
+- لو قالت "بضيف ستوريز مجاناً": اشكرها بأدب وقل إن العمل محصور بالمطلوب فقط، ولا يحتاج إضافات.
 
 ### ٣) لا مزايا خاصة
 - ❌ لا أكواد خصم على منتجات الشركة للمؤثرة شخصياً
@@ -142,7 +234,7 @@ ${voiceInstructions}
 كل المؤثرين سواء.
 
 ### ٤) سوّق المنتج لإقناعها
-استخدم وصف الحملة (${campaign.description}) للإقناع. اذكر نقاط مثل: المنتج راقي / من الأكثر مبيعاً / العلامة موثوقة / تجربة تستاهل. التزم بالوصف ولا تخترع.
+استخدم وصف الإعلان (${campaign.description}) للإقناع. اذكر نقاط مثل: المنتج راقي / من الأكثر مبيعاً / العلامة موثوقة / تجربة تستاهل. التزم بالوصف ولا تخترع.
 
 ---
 
@@ -213,7 +305,7 @@ ${voiceInstructions}
 | "تعبت / محتاجة الفلوس" | "أقدّر وضعك صدق، بس الميزانية محدّدة من الشركة" |
 | "بنسحب لو ما رفعت" | "أحترم قرارك، عرضنا هو الأخير. لو ما يناسبك مافي مشكلة" |
 | "غيركم دفع لي ضعف" | "كل حملة وميزانيتها. عرضنا حسب قيمة هذي الحملة" |
-| "بضيف ستوريز ومنشورات" | "ما نحتاج إضافات. السعر مقابل الباقة المتفق عليها فقط" |
+| "بضيف ستوريز ومنشورات" | "ما نحتاج إضافات. السعر مقابل العمل المتفق عليه فقط" |
 | إصرار متكرّر بدون مبرّر | كرّر عرضك النهائي بنفس الكلمات بهدوء |
 | محاولة فتح باب جديد للنقاش بعد عرضك النهائي | "خلصنا للنقطة اللي نقدر نوصلها. الكرة في ملعبك" |
 
@@ -272,7 +364,7 @@ ${voiceInstructions}
 
 **ابقَ حازماً (مهم — لا ترفع السعر):**
 - العرض المالي ثابت بحدود الميزانية
-- الباقة محصورة على المحتوى المطلوب فقط
+- نطاق العمل محصور على المحتوى المطلوب فقط
 - لا مزايا خاصة
 
 **الفرق بين الحزم والتحجّر:**
@@ -300,9 +392,9 @@ ${voiceInstructions}
 - "خلني صريح معك: السعر ما يقدر يرتفع أكثر من كذا"
 
 **عند عرضه إضافات (ستوريز/منشورات) — اشكره ووضّح:**
-- "تسلم على الكرم، بس الشركة محتاجة الفيديو فقط، ما نبي نتعبك بأكثر"
+- "تسلم على الكرم، بس الشركة محتاجة المحتوى المطلوب فقط، ما نبي نتعبك بأكثر"
 - "أقدّر اقتراحك، بس الإضافات ما تغيّر السعر، الميزانية واحدة"
-- "كرمك واضح، بس الباقة محصورة على الفيديو، ما نحتاج زيادة"
+- "كرمك واضح، بس العمل محصور على المطلوب، ما نحتاج زيادة"
 
 **عند مقارنته بشركات أخرى — لا تخوض في المقارنة:**
 - "كل شركة لها ظروفها، ميزانيتنا هذي محسوبة على هذي الحملة بالذات"
@@ -327,10 +419,10 @@ ${voiceInstructions}
 
 ## ✅ إقفال الصفقة:
 لمّا تتفقون على سعر نهائي صريح من المؤثرة، أكّد الاتفاق ثم اكتب في آخر ردّك بالضبط:
-[DEAL_CLOSED] السعر النهائي: <العدد> ر.س مقابل ${campaign.package || 'الباقة المتفق عليها'}
+[DEAL_CLOSED] السعر النهائي: <العدد> ر.س مقابل المحتوى المتفق عليه على ${platformLabel}
 
 شروط الإقفال:
-- لازم السعر يكون **أقل من** ${campaign.budget} ر.س (الميزانية).
+- لازم السعر يكون **أقل من** ${finalCap} ر.س (الميزانية).
 - لا تصل للميزانية بالضبط، اقفل تحتها.
 - المؤثرة وافقت بشكل صريح (لا تخمّن).`;
 
@@ -407,8 +499,18 @@ ${voiceInstructions}
     let safeDealDetails = dealDetails;
     if (dealClosed && dealDetails) {
       const finalPrice = extractFinalPrice(dealDetails);
-      if (finalPrice && campaign.budget && finalPrice > campaign.budget) {
-        console.warn(`Agent attempted to close above budget: ${finalPrice} > ${campaign.budget}. Blocking.`);
+      if (finalPrice && finalCap && finalPrice > finalCap) {
+        console.warn(`Agent attempted to close above cap: ${finalPrice} > ${finalCap}. Blocking.`);
+        safeDealClosed = false;
+        safeDealDetails = null;
+      }
+    }
+
+    // حماية إضافية: لا تقفل لو الحملة اكتمل عددها (سباق محتمل بين عدة مفاوضات)
+    if (safeDealClosed && campaignSize) {
+      const closedNow = await supabaseCountClosedDeals(campaignId);
+      if (closedNow >= campaignSize) {
+        console.warn(`Campaign ${campaignId} reached size ${campaignSize}. Blocking extra close.`);
         safeDealClosed = false;
         safeDealDetails = null;
       }
@@ -419,8 +521,8 @@ ${voiceInstructions}
     const priceMatches = replyForCheck.match(/(\d{2,5})\s*(?:ر\.?\s*س|ريال)/g) || [];
     priceMatches.forEach(m => {
       const num = parseInt(m.match(/\d+/)[0]);
-      if (num > campaign.budget) {
-        console.warn(`⚠️ Agent mentioned price ${num} which is ABOVE budget ${campaign.budget}. App: ${application.id}`);
+      if (num > finalCap) {
+        console.warn(`⚠️ Agent mentioned price ${num} which is ABOVE cap ${finalCap}. App: ${application.id}`);
       }
     });
 
