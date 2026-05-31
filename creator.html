@@ -182,14 +182,26 @@ body {
 .hero-cta:hover { background: var(--accent); transform: translateY(-2px); }
 .hero-cta:active { transform: translateY(0); }
 .hero-link {
-  display: inline-block; margin-right: 16px;
-  font-size: 14px; cursor: pointer;
-  color: var(--ink-muted); transition: color .2s;
-  background: transparent; border: 0; font-family: var(--font-body);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 14px 26px; border-radius: 100px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all .2s;
+  background: #fff; color: var(--ink);
+  border: 1.5px solid rgba(10, 10, 10, 0.18);
+  margin-right: 12px;
 }
-.hero-link:hover { color: var(--accent); }
+.hero-link:hover {
+  border-color: var(--ink);
+  transform: translateY(-2px);
+}
+.hero-link:active { transform: translateY(0); }
 .hero-arr { display: inline-block; transition: transform .25s ease-out; }
-.hero-link:hover .hero-arr { transform: translateX(-5px); }
+.hero-link:hover .hero-arr { transform: translateX(-4px); }
+
+@media (max-width: 640px) {
+  .hero-link { margin-right: 0; margin-top: 10px; padding: 12px 22px; font-size: 13px; }
+  .hero-cta { padding: 13px 28px; font-size: 14px; }
+}
 
 .hero-features {
   display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
@@ -750,9 +762,9 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
     <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
     <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بك</span></h1>
     <p class="hero-sub">اطّلع على جميع الحملات الإعلانية المتاحة لك، واختر المناسب.</p>
-    <div>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
       <button class="hero-cta" onclick="goToBrowse()">تصفّح الحملات</button>
-      <button class="hero-link" onclick="goToApplications()">صفقاتي (<span id="hero-app-count">٠</span>) <span class="hero-arr">←</span></button>
+      <button class="hero-cta" onclick="goToApplications()">العروض المقدّمة (<span id="hero-app-count">٠</span>)</button>
     </div>
     <div class="hero-features">
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>تصلك الحملات</span>
@@ -770,7 +782,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
       <span class="count" id="count-browse">0</span>
     </button>
     <button class="tab" onclick="switchTab('applications')" id="tab-applications">
-      <span>صفقاتي</span>
+      <span>العروض المقدّمة</span>
       <span class="count" id="count-applications">0</span>
     </button>
   </div>
