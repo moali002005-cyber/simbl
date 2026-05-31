@@ -553,10 +553,12 @@ function render() {
       <h1>${campaign.title}</h1>
       <p class="desc">${campaign.description}</p>
       <div class="meta-grid">
+        ${isBrand ? `
         <div class="meta-item">
           <div class="label">الميزانية</div>
           <div class="val">${campaign.budget} ر.س</div>
         </div>
+        ` : ''}
         <div class="meta-item">
           <div class="label">المدة</div>
           <div class="val">${campaign.duration || '-'}</div>

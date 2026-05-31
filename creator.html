@@ -937,7 +937,6 @@ function renderCampaigns() {
             <div class="brand-avatar">${brandInitial}</div>
             <span>${brandName}</span>
           </div>
-          <div class="budget-tag">${c.budget} ر.س</div>
         </div>
         <h3>${c.title}</h3>
         <p class="desc">${c.description}</p>
@@ -1332,7 +1331,7 @@ function openApplyModal(campaignId) {
   const campaign = allCampaigns.find(c => c.id === campaignId);
   if (!campaign) return;
   document.getElementById('modal-title').textContent = 'تقديم على: ' + campaign.title;
-  document.getElementById('modal-sub').textContent = `${campaign.brand} · الميزانية: ${campaign.budget} ر.س`;
+  document.getElementById('modal-sub').textContent = `${campaign.brand} · حدّد السعر المناسب لك`;
   document.getElementById('apply-modal').classList.add('show');
 }
 
