@@ -1142,6 +1142,23 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 textarea { resize: vertical; min-height: 80px; }
 .hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
 
+/* ============ Platform selector ============ */
+.platform-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.platform-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 100px;
+  border: 1.5px solid var(--line-strong); background: #fff;
+  cursor: pointer; font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  color: var(--ink); transition: border-color .15s, background .15s; width: auto;
+}
+.platform-chip:hover { border-color: var(--ink-soft); }
+.platform-chip.active { border-color: var(--accent); background: rgba(19,185,178,0.06); color: var(--accent-ink); }
+.platform-chip .pf-ic {
+  width: 22px; height: 22px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 12px; font-weight: 700; flex-shrink: 0; line-height: 1;
+}
+
 .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
 .btn-secondary { flex: 1; padding: 12px; background: #fff; border: 1px solid var(--line-strong); color: var(--ink); border-radius: 100px; font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; }
 .btn-primary { flex: 1; padding: 12px; background: var(--ink); color: #fff; border: none; border-radius: 100px; font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; }
@@ -1198,13 +1215,13 @@ textarea { resize: vertical; min-height: 80px; }
   <section class="hero">
     <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
     <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بكم</span></h1>
-    <p class="hero-sub">أطلق حملتك، ودع الوكيل الذكي يتفاوض على العروض ويقفل الصفقات لصالحك.</p>
+    <p class="hero-sub">أطلق إعلانك، ودع الوكيل الذكي يتفاوض على العروض ويقفل الصفقات لصالحك.</p>
     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
-      <button class="hero-cta" onclick="openCampaignModal()">+ حملة جديدة</button>
+      <button class="hero-cta" onclick="openCampaignModal()">+ إعلان جديد</button>
       <button class="hero-cta" onclick="goToCampaigns()">صفقات أقفلها الوكيل (<span id="hero-closed-count">٠</span>)</button>
     </div>
     <div class="hero-features">
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الحملة</span>
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الإعلان</span>
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>يتفاوض الوكيل</span>
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>يقفل الصفقة</span>
     </div>
@@ -1219,17 +1236,17 @@ textarea { resize: vertical; min-height: 80px; }
 
 <div class="modal-backdrop" id="campaign-modal">
   <div class="modal">
-    <h3>إنشاء حملة جديدة</h3>
-    <p class="sub">عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.</p>
+    <h3>إنشاء إعلان جديد</h3>
+    <p class="sub">عبّئ تفاصيل الإعلان وراح يظهر للمؤثرين المسجّلين في سيمبل.</p>
 
     <form onsubmit="submitCampaign(event)">
       <div class="field">
-        <label>عنوان الحملة</label>
+        <label>عنوان الإعلان</label>
         <input type="text" name="title" required placeholder="مثل: إطلاق عطر العيد الجديد">
       </div>
 
       <div class="field">
-        <label>وصف الحملة</label>
+        <label>وصف الإعلان</label>
         <textarea name="description" required rows="3" placeholder="اشرح المنتج، الجمهور المستهدف، نوع المحتوى المطلوب..."></textarea>
       </div>
 
@@ -1247,27 +1264,74 @@ textarea { resize: vertical; min-height: 80px; }
           </select>
         </div>
         <div class="field">
-          <label>الميزانية (نطاق)</label>
+          <label>الميزانية للمعلن الواحد (نطاق)</label>
           <input type="text" name="budget" required placeholder="مثل: 800 - 1500">
-          <div class="hint">بالريال السعودي</div>
+          <div class="hint">المبلغ المخصّص لكل معلن، بالريال السعودي</div>
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>المدة</label>
-          <input type="text" name="duration" required placeholder="مثل: 30 يوم">
+          <label>موعد النشر المطلوب</label>
+          <select name="publish_timing" id="publish-timing" required onchange="togglePublishDate()">
+            <option value="">اختر الموعد</option>
+            <option value="24h">مستعجل — خلال ٢٤ ساعة</option>
+            <option value="3d">خلال ٣ أيام</option>
+            <option value="1w">خلال أسبوع</option>
+            <option value="2w">خلال أسبوعين</option>
+            <option value="custom">تاريخ محدّد</option>
+          </select>
         </div>
-        <div class="field">
-          <label>الباقة المطلوبة</label>
-          <input type="text" name="package" required placeholder="مثل: ريل + 3 ستوريز">
+        <div class="field" id="publish-date-field" style="display:none;">
+          <label>تاريخ النشر</label>
+          <input type="date" name="publish_date" id="publish-date">
+          <div class="hint">التاريخ اللي تبي المحتوى يُنشر فيه</div>
         </div>
       </div>
 
       <div class="field">
-        <label>متطلبات المؤثر</label>
-        <input type="text" name="requirements" placeholder="مثل: 50K+ متابع، مقيم بالرياض">
+        <label>حجم الحملة (عدد المعلنين)</label>
+        <select name="campaign_size" required>
+          <option value="">اختر عدد المعلنين</option>
+          <option value="10">١٠ معلنين</option>
+          <option value="30">٣٠ معلن</option>
+          <option value="50">٥٠ معلن</option>
+          <option value="100">١٠٠ معلن</option>
+          <option value="200">٢٠٠ معلن</option>
+        </select>
+        <div class="hint">عدد المعلنين اللي تبي توصل لهم — الوكيل يوقف التفاوض لمّا يكمل العدد</div>
       </div>
+
+      <div class="field">
+        <label>المنصة</label>
+        <div class="platform-grid" id="platform-grid">
+          <button type="button" class="platform-chip" data-value="tiktok" onclick="selectPlatform(this)"><span class="pf-ic" style="background:#010101">♪</span><span>تيك توك</span></button>
+          <button type="button" class="platform-chip" data-value="snapchat" onclick="selectPlatform(this)"><span class="pf-ic" style="background:#FFFC00; color:#111">S</span><span>سناب شات</span></button>
+          <button type="button" class="platform-chip" data-value="x" onclick="selectPlatform(this)"><span class="pf-ic" style="background:#010101">X</span><span>إكس</span></button>
+          <button type="button" class="platform-chip" data-value="instagram" onclick="selectPlatform(this)"><span class="pf-ic" style="background:linear-gradient(45deg,#feda75,#d62976,#4f5bd5)">◎</span><span>انستقرام</span></button>
+          <button type="button" class="platform-chip" data-value="youtube" onclick="selectPlatform(this)"><span class="pf-ic" style="background:#FF0000">▶</span><span>يوتيوب</span></button>
+        </div>
+        <input type="hidden" name="platform" id="platform-input">
+        <div class="hint">اختر المنصة المطلوب النشر عليها</div>
+      </div>
+
+      <div class="field">
+        <label>متطلبات المؤثر — نطاق المتابعين</label>
+        <div class="platform-grid" id="range-grid">
+          <button type="button" class="platform-chip" data-value="20-50k" onclick="selectFollowerRange(this)"><span>من ٢٠ ألف إلى ٥٠ ألف</span></button>
+          <button type="button" class="platform-chip" data-value="50-200k" onclick="selectFollowerRange(this)"><span>من ٥٠ ألف إلى ٢٠٠ ألف</span></button>
+          <button type="button" class="platform-chip" data-value="200-500k" onclick="selectFollowerRange(this)"><span>من ٢٠٠ ألف إلى ٥٠٠ ألف</span></button>
+          <button type="button" class="platform-chip" data-value="500k+" onclick="selectFollowerRange(this)"><span>أكثر من ٥٠٠ ألف</span></button>
+        </div>
+        <input type="hidden" name="follower_range" id="follower-range-input">
+        <div class="hint">تقدر تختار أكثر من نطاق</div>
+      </div>
+
+      <div class="field">
+        <label>ملاحظات إضافية (اختياري)</label>
+        <input type="text" name="requirements" placeholder="مثل: مقيم بالرياض، شروط أخرى...">
+      </div>
+
       <div class="field" style="grid-column: span 2;">
         <label>مدة الدفع (إجباري) - بعد إكمال الحملة، الدفع خلال:</label>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -1277,18 +1341,18 @@ textarea { resize: vertical; min-height: 80px; }
           <span>يوم</span>
         </div>
         <small style="color: var(--ink-muted); font-size: 12px; margin-top: 4px; display: block;">
-          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرين على حملتك.
+          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرين على إعلانك.
         </small>
       </div>
       <div class="field">
-        <label>الحد الأقصى للسعر (سقف الميزانية)</label>
+        <label>الحد الأقصى للسعر للمعلن الواحد (سقف الميزانية)</label>
         <input type="number" name="maxBudget" required placeholder="مثل: 2000">
-        <div class="hint">السقف اللي الوكيل الذكي ما يتجاوزه عند التفاوض</div>
+        <div class="hint">السقف اللي الوكيل الذكي ما يتجاوزه عند التفاوض، لكل معلن</div>
       </div>
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" onclick="closeModal()">إلغاء</button>
-        <button type="submit" class="btn-primary">نشر الحملة</button>
+        <button type="submit" class="btn-primary">نشر الإعلان</button>
       </div>
     </form>
   </div>
@@ -1297,8 +1361,8 @@ textarea { resize: vertical; min-height: 80px; }
 <!-- نافذة تأكيد الحذف -->
 <div class="modal-backdrop" id="delete-modal">
   <div class="modal" style="max-width: 460px">
-    <h3>حذف الحملة</h3>
-    <p class="sub" id="delete-modal-sub">متأكد من حذف هذه الحملة؟ سيتم حذف جميع العروض المرتبطة بها، ولن يمكن التراجع عن هذا الإجراء.</p>
+    <h3>حذف الإعلان</h3>
+    <p class="sub" id="delete-modal-sub">متأكد من حذف هذا الإعلان؟ سيتم حذف جميع العروض المرتبطة به، ولن يمكن التراجع عن هذا الإجراء.</p>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeDelete()">إلغاء</button>
       <button type="button" class="btn-primary btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">حذف نهائي</button>
@@ -1318,11 +1382,41 @@ let expandedAppId = null;
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
 
+// ====== خرائط عرض الحقول الجديدة ======
+const PUBLISH_TIMING_LABELS = {
+  '24h': 'خلال ٢٤ ساعة (مستعجل)',
+  '3d': 'خلال ٣ أيام',
+  '1w': 'خلال أسبوع',
+  '2w': 'خلال أسبوعين',
+  'custom': 'تاريخ محدّد'
+};
+const PLATFORM_LABELS = {
+  tiktok: 'تيك توك', snapchat: 'سناب شات', x: 'إكس', instagram: 'انستقرام', youtube: 'يوتيوب'
+};
+const FOLLOWER_RANGE_LABELS = {
+  '20-50k': 'من ٢٠ ألف إلى ٥٠ ألف متابع',
+  '50-200k': 'من ٥٠ ألف إلى ٢٠٠ ألف متابع',
+  '200-500k': 'من ٢٠٠ ألف إلى ٥٠٠ ألف متابع',
+  '500k+': 'أكثر من ٥٠٠ ألف متابع'
+};
+function publishTimingText(c) {
+  if (!c) return '-';
+  if (c.publish_timing === 'custom' && c.publish_date) {
+    try { return 'بتاريخ ' + new Date(c.publish_date).toLocaleDateString('ar-SA'); }
+    catch (e) { return c.publish_date; }
+  }
+  return PUBLISH_TIMING_LABELS[c.publish_timing] || c.publish_timing || '-';
+}
+function followerRangeText(c) {
+  if (!c || !c.follower_range) return '';
+  return String(c.follower_range).split(',').map(s => s.trim()).filter(Boolean)
+    .map(v => FOLLOWER_RANGE_LABELS[v] || v).join('، ');
+}
+
 function activeCampaignsLabel(n) {
-  if (n === 0) return 'لا حملات نشطة';
-  if (n === 1) return 'حملة نشطة';
-  if (n === 2) return 'حملتان نشطتان';
-  return `${toArabic(n)} حملات نشطة`;
+  if (n === 0) return 'لا إعلانات نشطة';
+  if (n === 1) return 'إعلان نشط';
+  return `${toArabic(n)} إعلانات نشطة`;
 }
 
 function closedDealsLabel(n) {
@@ -1334,6 +1428,31 @@ function closedDealsLabel(n) {
 
 function goToCampaigns() {
   document.getElementById('app-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ====== تحكّم نموذج الإعلان (تاريخ النشر + المنصة) ======
+function togglePublishDate() {
+  const sel = document.getElementById('publish-timing');
+  const field = document.getElementById('publish-date-field');
+  const input = document.getElementById('publish-date');
+  if (!sel || !field || !input) return;
+  const isCustom = sel.value === 'custom';
+  field.style.display = isCustom ? '' : 'none';
+  if (isCustom) { input.required = true; }
+  else { input.required = false; input.value = ''; }
+}
+function selectPlatform(btn) {
+  document.querySelectorAll('#platform-grid .platform-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  const input = document.getElementById('platform-input');
+  if (input) input.value = btn.dataset.value;
+}
+function selectFollowerRange(btn) {
+  btn.classList.toggle('active');
+  const grid = document.getElementById('range-grid');
+  const input = document.getElementById('follower-range-input');
+  const vals = Array.from(grid.querySelectorAll('.platform-chip.active')).map(c => c.dataset.value);
+  if (input) input.value = vals.join(',');
 }
 
 async function init() {
@@ -1399,7 +1518,7 @@ function renderStats() {
 
   document.getElementById('stats-row').innerHTML = `
     <div class="stat-card">
-      <div class="stat-label">حملات نشطة</div>
+      <div class="stat-label">إعلانات نشطة</div>
       <div class="stat-value">${activeCount}</div>
     </div>
     <div class="stat-card">
@@ -1426,21 +1545,21 @@ function renderCampaigns() {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">◌</div>
-        <h3>لم تنشئ أي حملة بعد</h3>
-        <p>ابدأ بنشر أول حملة وستظهر فوراً للمؤثرين</p>
-        <button class="hero-cta" onclick="openCampaignModal()">+ إنشاء حملة جديدة</button>
+        <h3>لم تنشئ أي إعلان بعد</h3>
+        <p>ابدأ بنشر أول إعلان وسيظهر فوراً للمؤثرين</p>
+        <button class="hero-cta" onclick="openCampaignModal()">+ إنشاء إعلان جديد</button>
       </div>`;
     return;
   }
 
-  // تأكد من أن الحملة المختارة موجودة في القائمة، وإلا اختر الأولى
+  // تأكد من أن الإعلان المختار موجود في القائمة، وإلا اختر الأول
   if (!selectedCampaignId || !myCampaigns.find(c => c.id === selectedCampaignId)) {
     selectedCampaignId = myCampaigns[0].id;
   }
 
   // ================== رسم الـ Pills ==================
   pillsContainer.innerHTML = `
-    <button class="pill-add" onclick="openCampaignModal()">+ حملة جديدة</button>
+    <button class="pill-add" onclick="openCampaignModal()">+ إعلان جديد</button>
     ${myCampaigns.map(c => {
       const apps = campaignApps[c.id] || [];
       const hasAwaitingApproval = apps.some(a => a.status === 'closed' && !a.brand_approved);
@@ -1455,7 +1574,7 @@ function renderCampaigns() {
     }).join('')}
   `;
 
-  // ================== رسم الحملة المختارة فقط ==================
+  // ================== رسم الإعلان المختار فقط ==================
   const selected = myCampaigns.find(c => c.id === selectedCampaignId);
   if (!selected) {
     list.innerHTML = '';
@@ -1469,7 +1588,7 @@ function selectCampaign(campaignId) {
   selectedCampaignId = campaignId;
   expandedAppId = null;
   renderCampaigns();
-  // مرّر الصفحة لأعلى تفاصيل الحملة (سلس)
+  // مرّر الصفحة لأعلى تفاصيل الإعلان (سلس)
   const list = document.getElementById('campaigns-list');
   if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1648,10 +1767,13 @@ function renderSingleCampaign(c) {
             <h3>${c.title}</h3>
             <p class="desc">${c.description}</p>
             <div class="campaign-meta">
-              <span><strong>الميزانية:</strong> ${c.budget} ر.س</span>
+              <span><strong>الميزانية للمعلن الواحد:</strong> ${c.budget} ر.س</span>
               <span><strong>السقف:</strong> ${(c.max_budget || 0).toLocaleString('ar-SA')} ر.س</span>
-              ${c.duration ? `<span><strong>المدة:</strong> ${c.duration}</span>` : ''}
-              ${c.package ? `<span><strong>الباقة:</strong> ${c.package}</span>` : ''}
+              ${c.publish_timing ? `<span><strong>موعد النشر:</strong> ${publishTimingText(c)}</span>` : ''}
+              ${c.platform ? `<span><strong>المنصة:</strong> ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
+              ${c.follower_range ? `<span><strong>المتابعين:</strong> ${followerRangeText(c)}</span>` : ''}
+              ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن</span>` : ''}
+              ${c.requirements ? `<span><strong>ملاحظات:</strong> ${escHtml(c.requirements)}</span>` : ''}
             </div>
           </div>
           <div class="campaign-actions">
@@ -1659,11 +1781,11 @@ function renderSingleCampaign(c) {
             <div class="action-menu" id="actions-${c.id}">
               <button class="action-item" onclick="openEditModal('${c.id}')">
                 <span class="ai-ic">✎</span>
-                <span>تعديل الحملة</span>
+                <span>تعديل الإعلان</span>
               </button>
               <button class="action-item action-danger" onclick="askDelete('${c.id}')">
                 <span class="ai-ic">×</span>
-                <span>حذف الحملة</span>
+                <span>حذف الإعلان</span>
               </button>
             </div>
           </div>
@@ -2073,32 +2195,50 @@ function setModalMode(mode, campaign) {
   const h3 = modal.querySelector('h3');
   const sub = modal.querySelector('.sub');
   const submitBtn = modal.querySelector('button[type="submit"]');
+  const form = modal.querySelector('form');
 
   if (mode === 'edit') {
-    h3.textContent = 'تعديل الحملة';
-    sub.textContent = 'عدّل تفاصيل الحملة وسيتم تحديثها فورًا للمؤثرين.';
+    h3.textContent = 'تعديل الإعلان';
+    sub.textContent = 'عدّل تفاصيل الإعلان وسيتم تحديثها فورًا للمؤثرين.';
     submitBtn.textContent = 'حفظ التعديلات';
 
-    const form = modal.querySelector('form');
     form.querySelector('[name="title"]').value = campaign.title || '';
     form.querySelector('[name="description"]').value = campaign.description || '';
     form.querySelector('[name="industry"]').value = campaign.brand_industry || '';
     form.querySelector('[name="budget"]').value = campaign.budget || '';
-    form.querySelector('[name="duration"]').value = campaign.duration || '';
-    form.querySelector('[name="package"]').value = campaign.package || '';
+    form.querySelector('[name="publish_timing"]').value = campaign.publish_timing || '';
+    togglePublishDate();
+    if (campaign.publish_date) form.querySelector('[name="publish_date"]').value = campaign.publish_date;
+    form.querySelector('[name="campaign_size"]').value = campaign.campaign_size || '';
+    // نطاقات المتابعين (اختيار متعدد)
+    const selectedRanges = (campaign.follower_range || '').split(',').map(s => s.trim()).filter(Boolean);
+    form.querySelectorAll('#range-grid .platform-chip').forEach(c => {
+      c.classList.toggle('active', selectedRanges.includes(c.dataset.value));
+    });
+    form.querySelector('#follower-range-input').value = selectedRanges.join(',');
     form.querySelector('[name="requirements"]').value = campaign.requirements || '';
     form.querySelector('[name="payment_min_days"]').value = campaign.payment_min_days || 7;
     form.querySelector('[name="payment_max_days"]').value = campaign.payment_max_days || 30;
     form.querySelector('[name="maxBudget"]').value = campaign.max_budget || '';
+    // المنصة (chips)
+    form.querySelectorAll('#platform-grid .platform-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.value === campaign.platform);
+    });
+    form.querySelector('#platform-input').value = campaign.platform || '';
   } else {
-    h3.textContent = 'إنشاء حملة جديدة';
-    sub.textContent = 'عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.';
-    submitBtn.textContent = 'نشر الحملة';
+    h3.textContent = 'إنشاء إعلان جديد';
+    sub.textContent = 'عبّئ تفاصيل الإعلان وراح يظهر للمؤثرين المسجّلين في سيمبل.';
+    submitBtn.textContent = 'نشر الإعلان';
 
-    const form = modal.querySelector('form');
     form.reset();
     form.querySelector('[name="payment_min_days"]').value = 7;
     form.querySelector('[name="payment_max_days"]').value = 30;
+    // صفّر المنصة وتاريخ النشر
+    form.querySelectorAll('#platform-grid .platform-chip').forEach(c => c.classList.remove('active'));
+    form.querySelector('#platform-input').value = '';
+    form.querySelectorAll('#range-grid .platform-chip').forEach(c => c.classList.remove('active'));
+    form.querySelector('#follower-range-input').value = '';
+    togglePublishDate();
   }
 }
 
@@ -2145,7 +2285,7 @@ function askDelete(campaignId) {
   const campaign = myCampaigns.find(c => c.id === campaignId);
   const sub = document.getElementById('delete-modal-sub');
   if (campaign) {
-    sub.innerHTML = `متأكد من حذف حملة "<strong>${campaign.title}</strong>"؟ سيتم حذف جميع العروض المرتبطة بها، ولن يمكن التراجع عن هذا الإجراء.`;
+    sub.innerHTML = `متأكد من حذف إعلان "<strong>${campaign.title}</strong>"؟ سيتم حذف جميع العروض المرتبطة به، ولن يمكن التراجع عن هذا الإجراء.`;
   }
   document.getElementById('delete-modal').classList.add('show');
 }
@@ -2175,7 +2315,7 @@ async function confirmDelete() {
       }
     } catch (e) { console.warn('Dependent delete warning:', e); }
 
-    // حذف الحملة مع .select() عشان نتأكد فعلاً انحذفت
+    // حذف الإعلان مع .select() عشان نتأكد فعلاً انحذف
     const { data: deleted, error } = await supabaseClient
       .from('campaigns')
       .delete()
@@ -2191,7 +2331,7 @@ async function confirmDelete() {
     closeDelete();
     btn.disabled = false;
     btn.textContent = original;
-    // إذا انحذفت الحملة المختارة، صفّر الاختيار حتى يختار renderCampaigns الأولى الباقية
+    // إذا انحذف الإعلان المختار، صفّر الاختيار حتى يختار renderCampaigns الأول الباقي
     if (selectedCampaignId === id) selectedCampaignId = null;
     await loadData();
   } catch (err) {
@@ -2207,19 +2347,37 @@ async function submitCampaign(event) {
   const form = event.target;
   const submitBtn = form.querySelector('button[type="submit"]');
   const original = submitBtn.textContent;
-  submitBtn.disabled = true;
-  submitBtn.textContent = editingCampaignId ? 'جاري الحفظ...' : 'جاري النشر...';
 
   const fd = new FormData(form);
   const industry = fd.get('industry');
+  const platform = fd.get('platform');
+  const followerRange = fd.get('follower_range');
+
+  // تحقق من اختيار المنصة (input مخفي لا يدعم required تلقائيًا)
+  if (!platform) {
+    alert('اختر المنصة المطلوبة للإعلان.');
+    return;
+  }
+  // تحقق من اختيار نطاق متابعين واحد على الأقل
+  if (!followerRange) {
+    alert('اختر نطاق متابعين واحد على الأقل.');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = editingCampaignId ? 'جاري الحفظ...' : 'جاري النشر...';
+
   const campaign = {
     title: fd.get('title'),
     description: fd.get('description'),
     brand_industry: industry,
     budget: fd.get('budget'),
     max_budget: parseInt(fd.get('maxBudget')),
-    duration: fd.get('duration'),
-    package: fd.get('package'),
+    publish_timing: fd.get('publish_timing'),
+    publish_date: fd.get('publish_date') || null,
+    platform: platform,
+    follower_range: fd.get('follower_range') || null,
+    campaign_size: parseInt(fd.get('campaign_size')) || null,
     requirements: fd.get('requirements') || null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
     payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
@@ -2269,7 +2427,7 @@ async function submitCampaign(event) {
             'Authorization': 'Bearer ' + supabaseClient.supabaseKey
           },
           body: JSON.stringify({
-            title: '🎯 حملة جديدة!',
+            title: '🎯 إعلان جديد!',
             body: (currentUser.company_name || 'شركة') + ': ' + campaign.title,
             url: '/creator.html',
             target_users: creators.map(c => c.id)
@@ -2281,7 +2439,7 @@ async function submitCampaign(event) {
     }
 
     await loadData();
-    setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرين الآن.'), 100);
+    setTimeout(() => alert('تم نشر الإعلان بنجاح! سيظهر للمؤثرين الآن.'), 100);
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;

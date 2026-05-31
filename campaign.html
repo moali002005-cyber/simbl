@@ -412,6 +412,37 @@ let approvedClose = false;
 let dealDetails = null;
 let pollInterval = null;
 
+// ====== خرائط عرض الحقول الجديدة ======
+const PUBLISH_TIMING_LABELS = {
+  '24h': 'خلال ٢٤ ساعة (مستعجل)',
+  '3d': 'خلال ٣ أيام',
+  '1w': 'خلال أسبوع',
+  '2w': 'خلال أسبوعين',
+  'custom': 'تاريخ محدّد'
+};
+const PLATFORM_LABELS = {
+  tiktok: 'تيك توك', snapchat: 'سناب شات', x: 'إكس', instagram: 'انستقرام', youtube: 'يوتيوب'
+};
+const FOLLOWER_RANGE_LABELS = {
+  '20-50k': 'من ٢٠ ألف إلى ٥٠ ألف متابع',
+  '50-200k': 'من ٥٠ ألف إلى ٢٠٠ ألف متابع',
+  '200-500k': 'من ٢٠٠ ألف إلى ٥٠٠ ألف متابع',
+  '500k+': 'أكثر من ٥٠٠ ألف متابع'
+};
+function publishTimingText(c) {
+  if (!c) return '-';
+  if (c.publish_timing === 'custom' && c.publish_date) {
+    try { return 'بتاريخ ' + new Date(c.publish_date).toLocaleDateString('ar-SA'); }
+    catch (e) { return c.publish_date; }
+  }
+  return PUBLISH_TIMING_LABELS[c.publish_timing] || c.publish_timing || '-';
+}
+function followerRangeText(c) {
+  if (!c || !c.follower_range) return '';
+  return String(c.follower_range).split(',').map(s => s.trim()).filter(Boolean)
+    .map(v => FOLLOWER_RANGE_LABELS[v] || v).join('، ');
+}
+
 async function init() {
   currentUser = getCurrentUser();
   if (!currentUser) {
@@ -560,15 +591,19 @@ function render() {
         </div>
         ` : ''}
         <div class="meta-item">
-          <div class="label">المدة</div>
-          <div class="val">${campaign.duration || '-'}</div>
+          <div class="label">موعد النشر</div>
+          <div class="val">${publishTimingText(campaign)}</div>
         </div>
         <div class="meta-item">
-          <div class="label">الباقة</div>
-          <div class="val">${campaign.package || '-'}</div>
+          <div class="label">المنصة</div>
+          <div class="val">${PLATFORM_LABELS[campaign.platform] || campaign.platform || '-'}</div>
         </div>
         <div class="meta-item">
-          <div class="label">المتطلبات</div>
+          <div class="label">المتابعين</div>
+          <div class="val">${followerRangeText(campaign) || '-'}</div>
+        </div>
+        <div class="meta-item">
+          <div class="label">ملاحظات</div>
           <div class="val">${campaign.requirements || 'لا توجد'}</div>
         </div>
       </div>
