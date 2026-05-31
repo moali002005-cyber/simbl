@@ -858,6 +858,7 @@ const FOLLOWER_RANGE_LABELS = {
   '200-500k': 'من ٢٠٠ ألف إلى ٥٠٠ ألف متابع',
   '500k+': 'أكثر من ٥٠٠ ألف متابع'
 };
+const CITY_LABELS = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', all: 'كل المناطق' };
 function publishTimingText(c) {
   if (!c) return '';
   if (c.publish_timing === 'custom' && c.publish_date) {
@@ -975,6 +976,7 @@ function renderCampaigns() {
           ${c.publish_timing ? `<div class="meta-item">⏱ ${publishTimingText(c)}</div>` : ''}
           ${c.platform ? `<div class="meta-item">◇ ${PLATFORM_LABELS[c.platform] || c.platform}</div>` : ''}
           ${c.follower_range ? `<div class="meta-item">◯ ${followerRangeText(c)}</div>` : ''}
+          ${c.city ? `<div class="meta-item">📍 ${CITY_LABELS[c.city] || c.city}</div>` : ''}
         </div>
         <div class="card-footer">
           <div class="tags-row">
@@ -1443,10 +1445,12 @@ async function startAutoNegotiation(application, campaign) {
       title: campaign.title,
       description: campaign.description,
       budget: campaign.budget,
-      max_budget: campaign.max_budget || campaign.budget,
-      duration: campaign.duration,
-      package: campaign.package,
-      requirements: campaign.requirements,
+      publish_timing: campaign.publish_timing,
+      publish_date: campaign.publish_date,
+      platform: campaign.platform,
+      follower_range: campaign.follower_range,
+      campaign_size: campaign.campaign_size,
+      city: campaign.city,
       brand_name: campaign.brand || '',
       brand_id: campaign.brand_id
     };

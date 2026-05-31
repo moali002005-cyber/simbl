@@ -429,6 +429,7 @@ const FOLLOWER_RANGE_LABELS = {
   '200-500k': 'من ٢٠٠ ألف إلى ٥٠٠ ألف متابع',
   '500k+': 'أكثر من ٥٠٠ ألف متابع'
 };
+const CITY_LABELS = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', all: 'كل المناطق' };
 function publishTimingText(c) {
   if (!c) return '-';
   if (c.publish_timing === 'custom' && c.publish_date) {
@@ -603,8 +604,8 @@ function render() {
           <div class="val">${followerRangeText(campaign) || '-'}</div>
         </div>
         <div class="meta-item">
-          <div class="label">ملاحظات</div>
-          <div class="val">${campaign.requirements || 'لا توجد'}</div>
+          <div class="label">المدينة</div>
+          <div class="val">${CITY_LABELS[campaign.city] || campaign.city || '-'}</div>
         </div>
       </div>
     </div>

@@ -1328,8 +1328,14 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="field">
-        <label>ملاحظات إضافية (اختياري)</label>
-        <input type="text" name="requirements" placeholder="مثل: مقيم بالرياض، شروط أخرى...">
+        <label>مدينة المعلن</label>
+        <select name="city" required>
+          <option value="">اختر المدينة</option>
+          <option value="riyadh">الرياض</option>
+          <option value="jeddah">جدة</option>
+          <option value="dammam">الدمام</option>
+          <option value="all">كل المناطق</option>
+        </select>
       </div>
 
       <div class="field" style="grid-column: span 2;">
@@ -1343,11 +1349,6 @@ textarea { resize: vertical; min-height: 80px; }
         <small style="color: var(--ink-muted); font-size: 12px; margin-top: 4px; display: block;">
           مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرين على إعلانك.
         </small>
-      </div>
-      <div class="field">
-        <label>الحد الأقصى للسعر للمعلن الواحد (سقف الميزانية)</label>
-        <input type="number" name="maxBudget" required placeholder="مثل: 2000">
-        <div class="hint">السقف اللي الوكيل الذكي ما يتجاوزه عند التفاوض، لكل معلن</div>
       </div>
 
       <div class="modal-actions">
@@ -1399,6 +1400,7 @@ const FOLLOWER_RANGE_LABELS = {
   '200-500k': 'من ٢٠٠ ألف إلى ٥٠٠ ألف متابع',
   '500k+': 'أكثر من ٥٠٠ ألف متابع'
 };
+const CITY_LABELS = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', all: 'كل المناطق' };
 function publishTimingText(c) {
   if (!c) return '-';
   if (c.publish_timing === 'custom' && c.publish_date) {
@@ -1768,12 +1770,11 @@ function renderSingleCampaign(c) {
             <p class="desc">${c.description}</p>
             <div class="campaign-meta">
               <span><strong>الميزانية للمعلن الواحد:</strong> ${c.budget} ر.س</span>
-              <span><strong>السقف:</strong> ${(c.max_budget || 0).toLocaleString('ar-SA')} ر.س</span>
               ${c.publish_timing ? `<span><strong>موعد النشر:</strong> ${publishTimingText(c)}</span>` : ''}
               ${c.platform ? `<span><strong>المنصة:</strong> ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
               ${c.follower_range ? `<span><strong>المتابعين:</strong> ${followerRangeText(c)}</span>` : ''}
               ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن</span>` : ''}
-              ${c.requirements ? `<span><strong>ملاحظات:</strong> ${escHtml(c.requirements)}</span>` : ''}
+              ${c.city ? `<span><strong>المدينة:</strong> ${CITY_LABELS[c.city] || c.city}</span>` : ''}
             </div>
           </div>
           <div class="campaign-actions">
@@ -2216,10 +2217,9 @@ function setModalMode(mode, campaign) {
       c.classList.toggle('active', selectedRanges.includes(c.dataset.value));
     });
     form.querySelector('#follower-range-input').value = selectedRanges.join(',');
-    form.querySelector('[name="requirements"]').value = campaign.requirements || '';
+    form.querySelector('[name="city"]').value = campaign.city || '';
     form.querySelector('[name="payment_min_days"]').value = campaign.payment_min_days || 7;
     form.querySelector('[name="payment_max_days"]').value = campaign.payment_max_days || 30;
-    form.querySelector('[name="maxBudget"]').value = campaign.max_budget || '';
     // المنصة (chips)
     form.querySelectorAll('#platform-grid .platform-chip').forEach(c => {
       c.classList.toggle('active', c.dataset.value === campaign.platform);
@@ -2372,13 +2372,12 @@ async function submitCampaign(event) {
     description: fd.get('description'),
     brand_industry: industry,
     budget: fd.get('budget'),
-    max_budget: parseInt(fd.get('maxBudget')),
     publish_timing: fd.get('publish_timing'),
     publish_date: fd.get('publish_date') || null,
     platform: platform,
     follower_range: fd.get('follower_range') || null,
     campaign_size: parseInt(fd.get('campaign_size')) || null,
-    requirements: fd.get('requirements') || null,
+    city: fd.get('city') || null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
     payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
     tags: [industry]
