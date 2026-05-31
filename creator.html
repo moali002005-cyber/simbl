@@ -842,7 +842,7 @@ const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
 
 function newCampaignsLabel(n) {
-  if (n === 0) return 'حملات بانتظارك';
+  if (n === 0) return 'لا يوجد لديك عروض حالياً';
   if (n === 1) return 'حملة جديدة لك اليوم';
   if (n === 2) return 'حملتان جديدتان لك اليوم';
   return `${toArabic(n)} حملات جديدة لك اليوم`;
@@ -971,7 +971,7 @@ function renderApplications() {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">◌</div>
-        <h3>لم تقدّم على أي حملة بعد</h3>
+        <h3>لا يوجد لديك عروض حالياً</h3>
         <p>تصفّح الحملات المتاحة وقدّم عرضك على ما يناسبك</p>
       </div>`;
     return;
