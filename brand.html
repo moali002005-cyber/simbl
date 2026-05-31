@@ -423,8 +423,10 @@ body {
   display: none;
   position: absolute;
   top: 44px;
-  inset-inline-start: 0;
+  inset-inline-end: 0;
+  inset-inline-start: auto;
   min-width: 200px;
+  max-width: calc(100vw - 32px);
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -437,6 +439,12 @@ body {
 @keyframes actionMenuIn {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 600px) {
+  .action-menu {
+    min-width: 180px;
+    inset-inline-end: 0;
+  }
 }
 .action-item {
   display: flex; align-items: center; gap: 12px;
