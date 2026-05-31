@@ -825,8 +825,16 @@ body {
 .swipe-track.done .swipe-hint { color: var(--accent-ink); }
 
 @media (max-width: 640px) {
-  .ag-top { grid-template-columns: 1fr; text-align: center; gap: 12px; }
-  .ag-icon { margin: 0 auto; }
+  .approval-gate { padding: 14px; gap: 10px; border-radius: 12px; }
+  .ag-top { grid-template-columns: auto 1fr; text-align: right; gap: 12px; }
+  .ag-icon { width: 36px; height: 36px; font-size: 18px; margin: 0; }
+  .ag-title { font-size: 11px; margin-bottom: 1px; }
+  .ag-price { font-size: 19px; margin-bottom: 3px; line-height: 1.1; }
+  .ag-desc { font-size: 11px; line-height: 1.45; }
+  /* مسار السحب مختصر */
+  .swipe-track { height: 52px; }
+  .swipe-thumb { width: 42px; height: 42px; font-size: 16px; top: 5px; right: 5px; }
+  .swipe-hint { font-size: 12px; }
 }
 
 @media (max-width: 640px) {
@@ -1727,7 +1735,7 @@ function renderSingleCampaign(c) {
                             <div class="ag-info">
                               <div class="ag-title">الوكيل توصّل لسعر نهائي:</div>
                               <div class="ag-price">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</div>
-                              <div class="ag-desc">اسحب الزر لاعتماد الصفقة وبدء التنفيذ مع المعلن.</div>
+                              <div class="ag-desc">اعتمد الصفقة وابدأ التنفيذ مع المعلن.</div>
                             </div>
                           </div>
                           <div class="swipe-track" data-app-id="${a.id}" onclick="event.stopPropagation()">
