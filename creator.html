@@ -846,7 +846,6 @@ const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? 
 function offersWaitingLabel(n) {
   if (n === 0) return 'لا يوجد لديك عروض حالياً';
   if (n === 1) return 'لديك عرض بانتظارك';
-  if (n === 2) return 'لديك عرضين بانتظارك';
   return `لديك ${toArabic(n)} عروض بانتظارك`;
 }
 
