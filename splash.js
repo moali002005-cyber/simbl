@@ -1,5 +1,7 @@
 // Splash Screen المشترك لكل صفحات سيمبل
 // يطلع شعار العين أول ما المستخدم يفتح أي صفحة لمدة ~٣ ثواني ثم يختفي بـ زووم
+// ملاحظة: هذا الملف يُستدعى داخل <head> قبل تحميل <body>، فنركّب السبلاش فورًا
+// على <html> (documentElement) عشان يغطّي الشاشة من أول لحظة قبل ظهور أي محتوى.
 
 (function() {
   // لا تظهر سبلاش لو المستخدم انتقل بين الصفحات بنفس الجلسة (تجربة أنعم)
@@ -10,6 +12,8 @@
   // إنشاء الـ CSS
   var style = document.createElement('style');
   style.textContent = `
+    /* إخفاء المحتوى تحت السبلاش حتى لا يبين قبل الشعار */
+    html.simbl-splash-active, html.simbl-splash-active body { overflow: hidden !important; }
     #simbl-splash {
       position: fixed;
       inset: 0;
@@ -57,13 +61,12 @@
     @keyframes simblSplashOut {
       to { opacity: 0; visibility: hidden; }
     }
-    body.simbl-splash-active { overflow: hidden; }
     @media (prefers-reduced-motion: reduce) {
       #simbl-splash .splash-eye { animation-duration: 0.5s; }
       #simbl-splash { animation-delay: 0.5s; }
     }
   `;
-  document.head.appendChild(style);
+  (document.head || document.documentElement).appendChild(style);
 
   // إنشاء عنصر السبلاش
   var splash = document.createElement('div');
@@ -80,19 +83,23 @@
     </svg>
   `;
 
-  // إضافة class عشان نمنع التمرير
-  function addSplash() {
-    document.body.classList.add('simbl-splash-active');
-    document.body.appendChild(splash);
-    setTimeout(function() {
-      document.body.classList.remove('simbl-splash-active');
-      if (splash.parentNode) splash.style.display = 'none';
-    }, 3050);
-  }
+  // نركّب السبلاش فورًا على <html> (موجود دائمًا)، بدون انتظار <body>
+  document.documentElement.classList.add('simbl-splash-active');
+  document.documentElement.appendChild(splash);
 
-  if (document.body) {
-    addSplash();
-  } else {
-    document.addEventListener('DOMContentLoaded', addSplash);
+  // إزالة السبلاش بعد انتهاء الأنيميشن
+  function removeSplash() {
+    document.documentElement.classList.remove('simbl-splash-active');
+    if (splash.parentNode) splash.style.display = 'none';
   }
+  setTimeout(removeSplash, 3050);
+
+  // احتياط: لو لأي سبب تعطّل المؤقّت، نشيل القفل عند تحميل الصفحة بفترة كافية
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      if (document.documentElement.classList.contains('simbl-splash-active')) {
+        removeSplash();
+      }
+    }, 3200);
+  });
 })();
