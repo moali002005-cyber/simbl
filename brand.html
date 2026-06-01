@@ -1215,13 +1215,13 @@ textarea { resize: vertical; min-height: 80px; }
   <section class="hero">
     <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
     <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بكم</span></h1>
-    <p class="hero-sub">أطلق إعلانك، ودع الوكيل الذكي يتفاوض على العروض ويقفل الصفقات لصالحك.</p>
+    <p class="hero-sub">أطلق حملتك، ودع الوكيل الذكي يتفاوض على العروض ويقفل الصفقات لصالحك.</p>
     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
-      <button class="hero-cta" onclick="openCampaignModal()">+ إعلان جديد</button>
+      <button class="hero-cta" onclick="openCampaignModal()">+ حملة جديدة</button>
       <button class="hero-cta" onclick="goToCampaigns()">صفقات أقفلها الوكيل (<span id="hero-closed-count">٠</span>)</button>
     </div>
     <div class="hero-features">
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الإعلان</span>
+      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الحملة</span>
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>يتفاوض الوكيل</span>
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>يقفل الصفقة</span>
     </div>
@@ -1236,17 +1236,17 @@ textarea { resize: vertical; min-height: 80px; }
 
 <div class="modal-backdrop" id="campaign-modal">
   <div class="modal">
-    <h3>إنشاء إعلان جديد</h3>
-    <p class="sub">عبّئ تفاصيل الإعلان وراح يظهر للمؤثرين المسجّلين في سيمبل.</p>
+    <h3>إنشاء حملة جديدة</h3>
+    <p class="sub">عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.</p>
 
     <form onsubmit="submitCampaign(event)">
       <div class="field">
-        <label>عنوان الإعلان</label>
+        <label>عنوان الحملة</label>
         <input type="text" name="title" required placeholder="مثل: إطلاق عطر العيد الجديد">
       </div>
 
       <div class="field">
-        <label>وصف الإعلان</label>
+        <label>وصف الحملة</label>
         <textarea name="description" required rows="3" placeholder="اشرح المنتج، الجمهور المستهدف، نوع المحتوى المطلوب..."></textarea>
       </div>
 
@@ -1347,13 +1347,13 @@ textarea { resize: vertical; min-height: 80px; }
           <span>يوم</span>
         </div>
         <small style="color: var(--ink-muted); font-size: 12px; margin-top: 4px; display: block;">
-          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرين على إعلانك.
+          مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرين على حملتك.
         </small>
       </div>
 
       <div class="modal-actions">
         <button type="button" class="btn-secondary" onclick="closeModal()">إلغاء</button>
-        <button type="submit" class="btn-primary">نشر الإعلان</button>
+        <button type="submit" class="btn-primary">نشر الحملة</button>
       </div>
     </form>
   </div>
@@ -1362,8 +1362,8 @@ textarea { resize: vertical; min-height: 80px; }
 <!-- نافذة تأكيد الحذف -->
 <div class="modal-backdrop" id="delete-modal">
   <div class="modal" style="max-width: 460px">
-    <h3>حذف الإعلان</h3>
-    <p class="sub" id="delete-modal-sub">متأكد من حذف هذا الإعلان؟ سيتم حذف جميع العروض المرتبطة به، ولن يمكن التراجع عن هذا الإجراء.</p>
+    <h3>حذف الحملة</h3>
+    <p class="sub" id="delete-modal-sub">متأكد من حذف هذه الحملة؟ سيتم حذف جميع العروض المرتبطة بها، ولن يمكن التراجع عن هذا الإجراء.</p>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeDelete()">إلغاء</button>
       <button type="button" class="btn-primary btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">حذف نهائي</button>
@@ -1416,9 +1416,9 @@ function followerRangeText(c) {
 }
 
 function activeCampaignsLabel(n) {
-  if (n === 0) return 'لا إعلانات نشطة';
-  if (n === 1) return 'إعلان نشط';
-  return `${toArabic(n)} إعلانات نشطة`;
+  if (n === 0) return 'لا حملات نشطة';
+  if (n === 1) return 'حملة نشطة';
+  return `${toArabic(n)} حملات نشطة`;
 }
 
 function closedDealsLabel(n) {
@@ -1520,7 +1520,7 @@ function renderStats() {
 
   document.getElementById('stats-row').innerHTML = `
     <div class="stat-card">
-      <div class="stat-label">إعلانات نشطة</div>
+      <div class="stat-label">حملات نشطة</div>
       <div class="stat-value">${activeCount}</div>
     </div>
     <div class="stat-card">
@@ -1547,9 +1547,9 @@ function renderCampaigns() {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">◌</div>
-        <h3>لم تنشئ أي إعلان بعد</h3>
-        <p>ابدأ بنشر أول إعلان وسيظهر فوراً للمؤثرين</p>
-        <button class="hero-cta" onclick="openCampaignModal()">+ إنشاء إعلان جديد</button>
+        <h3>لم تنشئ أي حملة بعد</h3>
+        <p>ابدأ بنشر أول حملة وستظهر فوراً للمؤثرين</p>
+        <button class="hero-cta" onclick="openCampaignModal()">+ إنشاء حملة جديدة</button>
       </div>`;
     return;
   }
@@ -1561,7 +1561,7 @@ function renderCampaigns() {
 
   // ================== رسم الـ Pills ==================
   pillsContainer.innerHTML = `
-    <button class="pill-add" onclick="openCampaignModal()">+ إعلان جديد</button>
+    <button class="pill-add" onclick="openCampaignModal()">+ حملة جديدة</button>
     ${myCampaigns.map(c => {
       const apps = campaignApps[c.id] || [];
       const hasAwaitingApproval = apps.some(a => a.status === 'closed' && !a.brand_approved);
@@ -1782,11 +1782,11 @@ function renderSingleCampaign(c) {
             <div class="action-menu" id="actions-${c.id}">
               <button class="action-item" onclick="openEditModal('${c.id}')">
                 <span class="ai-ic">✎</span>
-                <span>تعديل الإعلان</span>
+                <span>تعديل الحملة</span>
               </button>
               <button class="action-item action-danger" onclick="askDelete('${c.id}')">
                 <span class="ai-ic">×</span>
-                <span>حذف الإعلان</span>
+                <span>حذف الحملة</span>
               </button>
             </div>
           </div>
@@ -2199,8 +2199,8 @@ function setModalMode(mode, campaign) {
   const form = modal.querySelector('form');
 
   if (mode === 'edit') {
-    h3.textContent = 'تعديل الإعلان';
-    sub.textContent = 'عدّل تفاصيل الإعلان وسيتم تحديثها فورًا للمؤثرين.';
+    h3.textContent = 'تعديل الحملة';
+    sub.textContent = 'عدّل تفاصيل الحملة وسيتم تحديثها فورًا للمؤثرين.';
     submitBtn.textContent = 'حفظ التعديلات';
 
     form.querySelector('[name="title"]').value = campaign.title || '';
@@ -2226,9 +2226,9 @@ function setModalMode(mode, campaign) {
     });
     form.querySelector('#platform-input').value = campaign.platform || '';
   } else {
-    h3.textContent = 'إنشاء إعلان جديد';
-    sub.textContent = 'عبّئ تفاصيل الإعلان وراح يظهر للمؤثرين المسجّلين في سيمبل.';
-    submitBtn.textContent = 'نشر الإعلان';
+    h3.textContent = 'إنشاء حملة جديدة';
+    sub.textContent = 'عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.';
+    submitBtn.textContent = 'نشر الحملة';
 
     form.reset();
     form.querySelector('[name="payment_min_days"]').value = 7;
@@ -2285,7 +2285,7 @@ function askDelete(campaignId) {
   const campaign = myCampaigns.find(c => c.id === campaignId);
   const sub = document.getElementById('delete-modal-sub');
   if (campaign) {
-    sub.innerHTML = `متأكد من حذف إعلان "<strong>${campaign.title}</strong>"؟ سيتم حذف جميع العروض المرتبطة به، ولن يمكن التراجع عن هذا الإجراء.`;
+    sub.innerHTML = `متأكد من حذف حملة "<strong>${campaign.title}</strong>"؟ سيتم حذف جميع العروض المرتبطة بها، ولن يمكن التراجع عن هذا الإجراء.`;
   }
   document.getElementById('delete-modal').classList.add('show');
 }
@@ -2355,7 +2355,7 @@ async function submitCampaign(event) {
 
   // تحقق من اختيار المنصة (input مخفي لا يدعم required تلقائيًا)
   if (!platform) {
-    alert('اختر المنصة المطلوبة للإعلان.');
+    alert('اختر المنصة المطلوبة للحملة.');
     return;
   }
   // تحقق من اختيار نطاق متابعين واحد على الأقل
@@ -2438,7 +2438,7 @@ async function submitCampaign(event) {
     }
 
     await loadData();
-    setTimeout(() => alert('تم نشر الإعلان بنجاح! سيظهر للمؤثرين الآن.'), 100);
+    setTimeout(() => alert('تم نشر الحملة بنجاح! ستظهر للمؤثرين الآن.'), 100);
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
