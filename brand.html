@@ -2011,8 +2011,7 @@ function renderSingleCampaign(c) {
               const isApproved = isClosed && a.brand_approved === true;
               const awaitingApproval = isClosed && !isApproved;
               const isNegotiating = !isClosed;
-              const single = apps.length === 1;
-              const forcedExpand = single || awaitingApproval;
+              const forcedExpand = awaitingApproval; // بانتظار التعميد فقط يفتح تلقائياً
               const isExpanded = forcedExpand || expandedAppId === a.id;
               const expandable = !isNegotiating; // التفاوض: زر عرض المفاوضة يكفي
 
