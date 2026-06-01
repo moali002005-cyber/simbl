@@ -25,12 +25,26 @@ async function subscribeToPush(userId) {
     const registration = await navigator.serviceWorker.register('/push-sw.js');
     await navigator.serviceWorker.ready;
 
-    const subscription = await registration.pushManager.subscribe({
+    // لو فيه اشتراك قديم، نلغيه ونعيد الاشتراك (يضمن اشتراك حيّ غير منتهي)
+    let subscription = await registration.pushManager.getSubscription();
+    const oldEndpoint = subscription ? subscription.endpoint : null;
+    if (subscription) {
+      try { await subscription.unsubscribe(); } catch (e) {}
+    }
+    subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
 
     const subData = subscription.toJSON();
+
+    // احذف اشتراك هذا الجهاز القديم (لو تغيّر الـ endpoint) لتجنّب الإرسال لاشتراك ميت
+    try {
+      if (oldEndpoint && oldEndpoint !== subData.endpoint) {
+        await supabaseClient.from('push_subscriptions').delete().eq('endpoint', oldEndpoint);
+      }
+    } catch (e) { console.warn('تنظيف الاشتراك القديم:', e); }
+
     const { error } = await supabaseClient
       .from('push_subscriptions')
       .upsert({
@@ -46,11 +60,55 @@ async function subscribeToPush(userId) {
       return false;
     }
 
+    // تنظيف إضافي: احذف اشتراكات هذا الجهاز القديمة (نفس user_agent، endpoint مختلف)
+    try {
+      await supabaseClient
+        .from('push_subscriptions')
+        .delete()
+        .eq('user_id', userId)
+        .eq('user_agent', navigator.userAgent)
+        .neq('endpoint', subData.endpoint);
+    } catch (e) { console.warn('تنظيف اشتراكات الجهاز القديمة:', e); }
+
     console.log('✅ تم تفعيل الإشعارات بنجاح');
     return true;
   } catch (err) {
     console.error('خطأ في تفعيل الإشعارات:', err);
     return false;
+  }
+}
+
+// إعادة اشتراك صامتة عند كل فتح — تضمن بقاء الاشتراك حيّاً بدون تدخّل المستخدم
+async function ensurePushSubscription(userId) {
+  try {
+    if (!userId) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    const registration = await navigator.serviceWorker.register('/push-sw.js');
+    await navigator.serviceWorker.ready;
+
+    let subscription = await registration.pushManager.getSubscription();
+
+    // لو ما فيه اشتراك (انتهى/انلغى) → أعد الاشتراك بالكامل
+    if (!subscription) {
+      await subscribeToPush(userId);
+      return;
+    }
+
+    // فيه اشتراك حيّ → تأكّد إنه محفوظ ومربوط بالمستخدم الحالي (upsert خفيف)
+    const subData = subscription.toJSON();
+    await supabaseClient
+      .from('push_subscriptions')
+      .upsert({
+        user_id: userId,
+        endpoint: subData.endpoint,
+        p256dh: subData.keys.p256dh,
+        auth: subData.keys.auth,
+        user_agent: navigator.userAgent
+      }, { onConflict: 'endpoint' });
+  } catch (err) {
+    console.warn('ensurePushSubscription:', err);
   }
 }
 
@@ -97,9 +155,9 @@ function showPushPermissionPrompt(userId) {
 
   console.log('[Push] حالة الإذن:', Notification.permission);
 
-  // مفعّل أصلاً → اشترك بصمت
+  // مفعّل أصلاً → تأكّد من الاشتراك بصمت (يجدّده لو انتهى)
   if (Notification.permission === 'granted') {
-    subscribeToPush(userId);
+    ensurePushSubscription(userId);
     return;
   }
 
@@ -184,6 +242,12 @@ function showReminderBanner(userId) {
   // تحديث حالة الزر اليدوي فورًا (لو موجود)
   refreshPushButton();
 
+  // إعادة اشتراك صامتة فورية لو الإذن مفعّل (يجدّد أي اشتراك منتهي بدون تدخّل)
+  const u0 = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
+  if (u0 && u0.id && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    ensurePushSubscription(u0.id);
+  }
+
   // بعد ثانيتين، اعرض المطالبة لأي مستخدم مسجّل (بدون تمييز الدور)
   setTimeout(() => {
     const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
@@ -192,3 +256,12 @@ function showReminderBanner(userId) {
     }
   }, 2000);
 })();
+
+// إعادة فحص الاشتراك لمّا يرجع المستخدم للتطبيق (تبويب نشط) — يصلّح أي اشتراك انتهى
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
+  if (user && user.id && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    ensurePushSubscription(user.id);
+  }
+});
