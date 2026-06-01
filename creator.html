@@ -1674,7 +1674,8 @@ async function enterNegotiation(campaignId, btn) {
     }
 
     // شغّل أول رسالة من الوكيل، ثم انقل للمحادثة
-    await startAutoNegotiation(savedApplication, campaign);
+    // ملاحظة: لا نشغّل الوكيل هنا لتجنّب التكرار — صفحة المحادثة (campaign.html)
+    // هي اللي تشغّل أول رسالة لو ما فيه رسائل بعد.
     startNegotiation(savedApplication.id);
   } catch (err) {
     console.error(err);
