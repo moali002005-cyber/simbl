@@ -473,6 +473,7 @@ body {
   transition: border-color .2s, box-shadow .25s;
 }
 .ac-card.open { border-color: rgba(19,185,178,0.45); box-shadow: 0 0 0 3px rgba(19,185,178,0.07); }
+.ac-card.no-expand .ac-head { cursor: default; }
 .ac-head {
   width: 100%;
   background: transparent;
@@ -508,6 +509,15 @@ body {
   white-space: nowrap; display: flex; flex-direction: column; line-height: 1.15;
 }
 .ac-price-lbl { font-family: var(--font-body); font-size: 10px; font-weight: 400; color: var(--ink-faint); }
+.ac-chatbtn {
+  display: inline-flex; align-items: center;
+  background: var(--accent); color: #fff;
+  padding: 6px 13px; border-radius: 100px;
+  font-family: var(--font-body); font-size: 11px; font-weight: 500;
+  white-space: nowrap; cursor: pointer;
+  transition: background .2s, transform .15s;
+}
+.ac-chatbtn:hover { background: var(--accent-ink); transform: translateY(-1px); }
 .ac-chev { color: var(--ink-muted); font-size: 13px; transition: transform .25s; flex-shrink: 0; }
 .ac-card.open .ac-chev { transform: rotate(180deg); }
 .ac-miniwrap {
@@ -1280,6 +1290,11 @@ function renderApplications() {
     const isExpanded = expandedAppId === a.id;
     const price = (a.final_price && isClosed) ? a.final_price : a.price;
     const priceLabel = (a.final_price && isClosed) ? 'السعر النهائي' : 'عرضك';
+    const isNegotiating = !isClosed && a.status !== 'rejected'; // قيد المراجعة / تفاوض نشط
+    // في رأس البطاقة: زر المحادثة لحالة التفاوض، وإلا شارة الحالة
+    const headRight = isNegotiating
+      ? `<span class="ac-chatbtn" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 المحادثة مع الوكيل</span>`
+      : `<span class="app-status status-${statusKey}">${statusLabel}</span>`;
 
     // محتوى الجزء المتوسّع
     let expandedInner = '';
@@ -1299,14 +1314,14 @@ function renderApplications() {
       // قيد التفاوض: زر المحادثة مع الوكيل
       expandedInner = `
         <div class="ac-nego" onclick="event.stopPropagation()">
-          <p class="ac-nego-desc">الوكيل الذكي يفاوض الشركة على عرضك. افتح المحادثة لمتابعة التفاوض.</p>
-          <button class="ac-nego-btn" onclick="startNegotiation('${a.id}')">💬 المحادثة مع الوكيل</button>
+          <p class="ac-nego-desc">الوكيل الذكي في انتظارك للتفاوض على عرضك. اضغط "المحادثة مع الوكيل" بالأعلى وابدأ الآن.</p>
         </div>`;
     }
 
+    const expandable = !isNegotiating; // التفاوض: زر الرأس يكفي، ما يحتاج توسّع
     return `
-      <div class="ac-card ${isExpanded ? 'open' : ''}">
-        <button type="button" class="ac-head" onclick="toggleAppCard('${a.id}')">
+      <div class="ac-card ${isExpanded ? 'open' : ''} ${expandable ? '' : 'no-expand'}">
+        <button type="button" class="ac-head" ${expandable ? `onclick="toggleAppCard('${a.id}')"` : 'onclick="event.preventDefault()"'}>
           <div class="ac-avatar">${brandInitial}</div>
           <div class="ac-main">
             <div class="ac-title">${campaignTitle}</div>
@@ -1314,12 +1329,12 @@ function renderApplications() {
           </div>
           <div class="ac-side">
             <div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('ar-SA')} ر.س</div>
-            <span class="app-status status-${statusKey}">${statusLabel}</span>
+            ${headRight}
           </div>
-          <span class="ac-chev">▾</span>
+          ${expandable ? '<span class="ac-chev">▾</span>' : ''}
         </button>
         ${isApproved ? `<div class="ac-miniwrap">${miniProgress(a.stage || 1)}</div>` : ''}
-        ${isExpanded ? `<div class="ac-body" onclick="event.stopPropagation()">${expandedInner}</div>` : ''}
+        ${(expandable && isExpanded) ? `<div class="ac-body" onclick="event.stopPropagation()">${expandedInner}</div>` : ''}
       </div>
     `;
   }).join('');
