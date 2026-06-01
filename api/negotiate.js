@@ -124,10 +124,25 @@ export default async function handler(req, res) {
   // العرض المبدئي = الميزانية ناقص ٢٠٠ ر.س (أو ٥٠ كحد أدنى)
   // الحد الأقصى للإقفال = الميزانية نفسها (الحدّ المطلق)
   const creatorPrice = parseFloat(application.price) || 0;
-  // الميزانية صارت نطاق نصّي مثل "800 - 1500" → نقرأ الحدّين.
-  // نتجاهل max_budget تماماً حسب طلب الشركة؛ السقف المطلق = أعلى رقم في النطاق.
-  const budgetNums = (String(campaign.budget || '').match(/\d[\d,]*/g) || [])
-    .map(n => parseInt(n.replace(/,/g, ''), 10)).filter(n => !isNaN(n));
+  // الميزانية نصّ قد يكون "800 - 1500" أو "50000" أو "50,000" أو "٥٠٠٠٠".
+  // نطبّع النص أولاً: أرقام عربية→إنجليزية، ونوحّد الفواصل، ونزيل فواصل الآلاف،
+  // عشان ما نقرأ "50.000" أو "50 000" كرقمين (50 و 0).
+  function normalizeBudget(raw) {
+    let s = String(raw || '');
+    // أرقام عربية/فارسية → إنجليزية
+    const map = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+                  '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9' };
+    s = s.replace(/[٠-٩۰-۹]/g, d => map[d] || d);
+    // وحّد فاصل النطاق (إلى/-/–) لمسافة واضحة حول شرطة
+    s = s.replace(/\s*(?:الى|إلى|to|–|—|-)\s*/g, ' - ');
+    // أزل فواصل الآلاف: فاصلة أو نقطة أو مسافة بين أرقام (50,000 / 50.000 / 50 000 → 50000)
+    s = s.replace(/(\d)[,\.\s](?=\d{3}\b)/g, '$1');
+    return s;
+  }
+  const budgetClean = normalizeBudget(campaign.budget);
+  // الآن نقرأ الأرقام الصحيحة فقط
+  const budgetNums = (budgetClean.match(/\d+/g) || [])
+    .map(n => parseInt(n, 10)).filter(n => !isNaN(n) && n > 0);
   const budgetLow = budgetNums.length ? Math.min(...budgetNums) : 0;
   const budgetHigh = budgetNums.length ? Math.max(...budgetNums) : 0;
   const finalCap = budgetHigh;                        // السقف المطلق = أعلى رقم في النطاق
