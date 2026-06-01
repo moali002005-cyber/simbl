@@ -309,6 +309,87 @@ body {
 
 <script src="supabase-config.js"></script>
 <script>
+// ============ موجّه تثبيت التطبيق (PWA) ============
+(function installPrompt() {
+  // لا تظهر لو التطبيق مثبّت ومفتوح من الأيقونة أصلاً
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone) return;
+  // لا تظهر لو المستخدم رفضها قبل
+  if (localStorage.getItem('simbl_install_dismissed')) return;
+
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  var isAndroid = /Android/.test(ua);
+  // أجهزة الجوال فقط (الكمبيوتر ما يحتاج)
+  if (!isIOS && !isAndroid) return;
+
+  var deferredPrompt = null;
+
+  // أندرويد/كروم: نلتقط حدث التثبيت التلقائي
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    showBanner('android');
+  });
+
+  // آيفون: ما فيه حدث تلقائي، نعرض التعليمات بعد ثانيتين
+  if (isIOS) {
+    setTimeout(function(){ showBanner('ios'); }, 2500);
+  }
+
+  function dismiss(banner) {
+    localStorage.setItem('simbl_install_dismissed', '1');
+    if (banner) {
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateY(20px)';
+      setTimeout(function(){ banner.remove(); }, 300);
+    }
+  }
+
+  function showBanner(type) {
+    if (document.getElementById('simbl-install-banner')) return;
+
+    var banner = document.createElement('div');
+    banner.id = 'simbl-install-banner';
+    banner.style.cssText = 'position:fixed;bottom:18px;left:16px;right:16px;max-width:480px;margin:0 auto;background:#0a0a0a;color:#fff;border-radius:20px;padding:16px 18px;z-index:9998;display:flex;gap:14px;align-items:center;box-shadow:0 16px 48px rgba(0,0,0,0.28);font-family:"IBM Plex Sans Arabic",sans-serif;opacity:0;transform:translateY(20px);transition:opacity .35s cubic-bezier(0.22,1,0.36,1),transform .35s cubic-bezier(0.22,1,0.36,1);';
+
+    var eye = '<svg viewBox="0 0 200 200" style="width:38px;height:38px;flex-shrink:0;" aria-hidden="true"><g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#fff" stroke-width="9" transform="rotate(25 100 100)"/><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#fff" stroke-width="9" transform="rotate(-25 100 100)"/><path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#0a0a0a" stroke="#13B9B2" stroke-width="7"/><circle cx="100" cy="100" r="8" fill="#fff"/></g></svg>';
+
+    if (type === 'android') {
+      banner.innerHTML = eye +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:600;font-size:15px;margin-bottom:2px;">ثبّت سيمبل على جوالك</div>' +
+          '<div style="font-size:12px;opacity:0.8;line-height:1.5;">وصول أسرع وإشعارات فورية</div>' +
+        '</div>' +
+        '<button id="simbl-install-go" style="background:#13B9B2;color:#fff;border:none;padding:10px 20px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">تثبيت</button>' +
+        '<button id="simbl-install-x" style="background:transparent;color:#fff;border:none;padding:4px 6px;font-size:22px;cursor:pointer;opacity:0.6;line-height:1;flex-shrink:0;" aria-label="إغلاق">&times;</button>';
+      document.body.appendChild(banner);
+      requestAnimationFrame(function(){ banner.style.opacity = '1'; banner.style.transform = 'translateY(0)'; });
+
+      document.getElementById('simbl-install-go').onclick = async function() {
+        if (!deferredPrompt) { dismiss(banner); return; }
+        deferredPrompt.prompt();
+        try { await deferredPrompt.userChoice; } catch (e) {}
+        deferredPrompt = null;
+        dismiss(banner);
+      };
+      document.getElementById('simbl-install-x').onclick = function(){ dismiss(banner); };
+    } else {
+      // آيفون: تعليمات يدوية
+      banner.innerHTML = eye +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-weight:600;font-size:15px;margin-bottom:2px;">أضِف سيمبل لشاشتك</div>' +
+          '<div style="font-size:12px;opacity:0.85;line-height:1.6;">اضغط زر المشاركة <span style="display:inline-block;border:1px solid rgba(255,255,255,0.5);border-radius:5px;padding:0 5px;">&#8593;</span> بالأسفل، ثم اختر <strong>«إضافة إلى الشاشة الرئيسية»</strong></div>' +
+        '</div>' +
+        '<button id="simbl-install-x" style="background:transparent;color:#fff;border:none;padding:4px 6px;font-size:22px;cursor:pointer;opacity:0.6;line-height:1;flex-shrink:0;" aria-label="إغلاق">&times;</button>';
+      document.body.appendChild(banner);
+      requestAnimationFrame(function(){ banner.style.opacity = '1'; banner.style.transform = 'translateY(0)'; });
+      document.getElementById('simbl-install-x').onclick = function(){ dismiss(banner); };
+    }
+  }
+})();
+</script>
+<script>
 window.addEventListener('scroll', () => {
   document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
 });
