@@ -142,6 +142,11 @@ export default async function handler(req, res) {
   const followerLabel = followerRangeTextSrv(campaign) || 'غير محدد';
   const timingLabel = publishTimingTextSrv(campaign);
   const cityLabel = CITY_LABELS[campaign.city] || campaign.city || 'غير محدد';
+  const payMin = parseInt(campaign.payment_min_days) || null;
+  const payMax = parseInt(campaign.payment_max_days) || null;
+  const paymentLabel = (payMin && payMax)
+    ? `بعد إكمال العمل، خلال ${payMin} إلى ${payMax} يوم`
+    : (payMax ? `بعد إكمال العمل، خلال ${payMax} يوم` : 'بعد إكمال العمل حسب اتفاق الشركة');
 
   if (creatorMessage) {
     try {
@@ -201,6 +206,7 @@ ${voiceInstructions}
 - المنصة المطلوبة: ${platformLabel}
 - نطاق المتابعين المطلوب: ${followerLabel}
 - مدينة المعلن المطلوبة: ${cityLabel}
+- مدة الدفع: ${paymentLabel}
 
 ## عرض المؤثرة:
 - الاسم: ${application.creator_name}
@@ -414,8 +420,19 @@ ${voiceInstructions}
 - "حاولنا نلقى نقطة وسط بس ما توفّق هذي المرة. أحترم وجهتك ومشكور على وقتك"
 - "ما توصلنا لاتفاق، بس صدق نتمنى نتعامل معك في حملة قادمة"
 
-## 🎬 بداية المحادثة:
-أول رسالة: تحيّة بسيطة + تعريف نفسك + عرضك المبدئي المنخفض. **٢-٣ أسطر فقط**.
+## 🎬 بداية المحادثة (الرسالة الأولى فقط — استثناء):
+الرسالة الأولى مهمتها توضّح للمعلن تفاصيل العرض كاملة بشكل منظّم. هنا **يُسمح** بسرد منظّم بأسطر (خلافًا لباقي المحادثة):
+- ابدأ بتحية بسيطة وتعريف نفسك ("أنا وكيل سيمبل أفاوض نيابة عن ${campaign.brand_name || 'الشركة'}").
+- بعدها اسرد التفاصيل واضحة، كل معلومة بسطر:
+  • 💰 العرض المبدئي: ${openingOffer} ر.س
+  • 📅 موعد النشر المطلوب: ${timingLabel}
+  • 📱 المنصة: ${platformLabel}
+  • 👥 نطاق المتابعين: ${followerLabel}
+  • 📍 المدينة: ${cityLabel}
+  • 💳 الدفع: ${paymentLabel}
+- اختم بسؤال ودّي يفتح التفاوض (مثل "شرايك نبدأ؟" أو "إيش رأيك بالعرض؟").
+- ⚠️ هذا الاستثناء **للرسالة الأولى فقط**. باقي رسائلك: سطر-سطرين، بدون قوائم، محادثة طبيعية.
+- لا تذكر السقف الأقصى للميزانية أبداً — اعرض ${openingOffer} كعرض مبدئي فقط.
 
 ## ✅ إقفال الصفقة:
 لمّا تتفقون على سعر نهائي صريح من المؤثرة، أكّد الاتفاق ثم اكتب في آخر ردّك بالضبط:
@@ -431,7 +448,7 @@ ${voiceInstructions}
   if (!history || history.length === 0) {
     messages.push({
       role: 'user',
-      content: 'ابدأ التفاوض. قدم نفسك ورحب بالمؤثرة واطرح عرضك المبدئي. لا تنسى تخلي الرسالة قصيرة (٢-٣ أسطر).'
+      content: 'ابدأ التفاوض. هذي أول رسالة: عرّف نفسك واسرد للمعلن تفاصيل العرض كاملة بشكل منظّم (العرض المبدئي، موعد النشر، المنصة، نطاق المتابعين، المدينة، مدة الدفع) كل واحدة بسطر، واختم بسؤال يفتح التفاوض.'
     });
   } else {
     for (const msg of history) {
@@ -448,6 +465,7 @@ ${voiceInstructions}
     }
   }
 
+  const isFirstMessage = !history || history.length === 0;
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -458,7 +476,7 @@ ${voiceInstructions}
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: voiceMode ? 200 : 280,
+        max_tokens: voiceMode ? 200 : (isFirstMessage ? 450 : 280),
         system: systemPrompt,
         messages: messages
       })
