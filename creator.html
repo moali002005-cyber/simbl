@@ -1740,6 +1740,14 @@ function logout() {
   window.location.href = '/';
 }
 
+// لو رجع المستخدم للصفحة من ذاكرة المتصفح (back/forward)، أعد رسم القائمة
+// عشان أي زر عالق على "جاري الفتح..." يرجع طبيعي
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted && allCampaigns.length) {
+    renderUnified();
+  }
+});
+
 init();
 </script>
 
