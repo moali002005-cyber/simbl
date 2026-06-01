@@ -1266,7 +1266,7 @@ function renderOfferCard(c, a) {
           <div class="ac-brand">${brandName}</div>
         </div>
         <div class="ac-side">
-          <div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('ar-SA')} ر.س</div>
+          ${isNegotiating ? '' : `<div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('ar-SA')} ر.س</div>`}
           ${headRight}
         </div>
         ${expandable ? '<span class="ac-chev">▾</span>' : ''}
