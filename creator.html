@@ -463,6 +463,85 @@ body {
 .status-closed { background: var(--ink); color: #fff; }
 .status-rejected { background: var(--cream-darker); color: var(--ink-muted); }
 
+/* ============ Accordion offer cards (مختصرة + توسّع) ============ */
+.applications-list { gap: 12px; }
+.ac-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .25s;
+}
+.ac-card.open { border-color: rgba(19,185,178,0.45); box-shadow: 0 0 0 3px rgba(19,185,178,0.07); }
+.ac-head {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  text-align: right;
+  font-family: var(--font-body);
+}
+.ac-avatar {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(19,185,178,0.12);
+  color: var(--accent-ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 600; font-size: 16px;
+  flex-shrink: 0;
+}
+.ac-main { min-width: 0; }
+.ac-title {
+  font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ac-brand { font-size: 12px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-side { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.ac-price {
+  font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--accent);
+  white-space: nowrap; display: flex; flex-direction: column; line-height: 1.15;
+}
+.ac-price-lbl { font-family: var(--font-body); font-size: 10px; font-weight: 400; color: var(--ink-faint); }
+.ac-chev { color: var(--ink-muted); font-size: 13px; transition: transform .25s; flex-shrink: 0; }
+.ac-card.open .ac-chev { transform: rotate(180deg); }
+.ac-miniwrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px 12px;
+}
+.mini-prog { flex: 1; height: 5px; background: rgba(19,185,178,0.12); border-radius: 100px; overflow: hidden; }
+.mini-prog-fill { height: 100%; background: var(--accent); border-radius: 100px; transition: width .5s cubic-bezier(0.22,1,0.36,1); }
+.mini-prog-txt { font-family: var(--font-display); font-size: 11px; font-weight: 600; color: var(--accent-ink); white-space: nowrap; }
+.ac-body {
+  padding: 4px 16px 16px;
+  border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 10px;
+  animation: acIn .2s ease-out;
+}
+@keyframes acIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.ac-body .wf-card,
+.ac-body .stage-history,
+.ac-body .stage-action { margin-top: 0; }
+.ac-nego { display: flex; flex-direction: column; gap: 12px; padding-top: 6px; }
+.ac-nego-desc { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
+.ac-nego-btn {
+  align-self: flex-start;
+  background: var(--accent); color: #fff; border: 0;
+  padding: 10px 20px; border-radius: 100px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background .2s, transform .15s;
+}
+.ac-nego-btn:hover { background: var(--accent-ink); transform: translateY(-1px); }
+@media (max-width: 480px) {
+  .ac-head { grid-template-columns: auto 1fr auto; gap: 10px; }
+  .ac-chev { display: none; }
+}
+
 /* ============ Approval gate (deal waiting for brand confirmation) ============ */
 .approval-gate {
   margin-top: 8px;
@@ -555,6 +634,60 @@ body {
   font-weight: 500;
 }
 
+/* ============ Workflow progress (الخيار ١: حلقة + شريط رفيع) ============ */
+.wf-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-top: 12px;
+}
+.wf-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.wf-counter { font-size: 12px; color: var(--ink-muted); margin-bottom: 3px; }
+.wf-stage { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink); letter-spacing: -0.2px; }
+.wf-ring {
+  --p: 0;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: conic-gradient(var(--accent) calc(var(--p) * 1%), rgba(19,185,178,0.15) 0);
+  display: flex; align-items: center; justify-content: center;
+}
+.wf-ring span {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 600;
+  color: var(--accent-ink);
+}
+.wf-bar {
+  height: 7px;
+  background: rgba(19,185,178,0.12);
+  border-radius: 100px;
+  overflow: hidden;
+}
+.wf-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 100px;
+  transition: width .5s cubic-bezier(0.22,1,0.36,1);
+}
+.wf-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 7px;
+}
+
 /* ============ Stage action card ============ */
 .stage-action {
   margin-top: 10px;
@@ -622,14 +755,34 @@ body {
 .sa-field textarea { resize: vertical; min-height: 60px; }
 .sa-form .sa-btn { align-self: flex-start; margin-top: 4px; }
 
-/* Stage history */
+/* Stage history (قابل للطيّ) */
 .stage-history {
   margin-top: 10px;
-  padding: 14px 18px;
+  padding: 6px 18px 14px;
   border-radius: 14px;
   background: #fff;
   border: 1px solid var(--line);
 }
+.hist-toggle {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.hist-ic::before { content: '✓'; color: var(--accent); margin-left: 6px; font-weight: 700; }
+.hist-chev { transition: transform .25s; color: var(--ink-muted); font-size: 12px; }
+.stage-history.collapsed .hist-chev { transform: rotate(-90deg); }
+.stage-history.collapsed .hist-body { display: none; }
+.hist-body { padding-top: 6px; }
 .stage-history h4 {
   font-family: var(--font-display);
   font-size: 13px;
@@ -902,6 +1055,7 @@ let currentUser = null;
 let allCampaigns = [];
 let myApplications = [];
 let currentFilter = 'all';
+let expandedAppId = null;
 let currentCampaignId = null;
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
@@ -1078,6 +1232,20 @@ function renderCampaigns() {
   }).join('');
 }
 
+function toggleAppCard(appId) {
+  expandedAppId = (expandedAppId === appId) ? null : appId;
+  renderApplications();
+}
+
+// شريط تقدّم مصغّر للبطاقة المختصرة
+function miniProgress(stage) {
+  const total = WORKFLOW_STAGES.length;
+  const done = Math.min(Math.max(stage - 1, 0), total);
+  const pct = Math.round((done / total) * 100);
+  return `<div class="mini-prog"><div class="mini-prog-fill" style="width:${pct}%"></div></div>
+          <span class="mini-prog-txt">${toArabic(stage >= total ? total : stage)}/${toArabic(total)}</span>`;
+}
+
 function renderApplications() {
   const ca = document.getElementById('count-applications');
   if (ca) ca.textContent = myApplications.length;
@@ -1102,29 +1270,57 @@ function renderApplications() {
 
   list.innerHTML = myApplications.map(a => {
     const campaignTitle = a.campaigns?.title || 'إعلان';
-    const brandName = a.campaigns?.users?.company_name || '';
+    const brandName = a.campaigns?.users?.company_name || 'شركة';
+    const brandInitial = brandName[0] || '؟';
     const isClosed = a.status === 'closed';
     const isApproved = isClosed && a.brand_approved === true;
     const awaitingApproval = isClosed && !isApproved;
     const statusKey = awaitingApproval ? 'pending_approval' : a.status;
-    const statusLabel = awaitingApproval ? '⏳ بانتظار تعميد الشركة' : statusLabels[a.status];
-    return `
-      <div class="application-card" onclick="window.location.href='/campaign.html?app=${a.id}'" style="cursor: pointer">
-        <div class="app-info">
-          <h4>${campaignTitle}</h4>
-          <div class="meta">${brandName} · عرضك: ${a.price.toLocaleString('ar-SA')} ر.س · ${new Date(a.created_at).toLocaleDateString('ar-SA')}</div>
-        </div>
-        <span class="app-status status-${statusKey}">${statusLabel}</span>
-      </div>
-      ${awaitingApproval ? `
+    const statusLabel = awaitingApproval ? '⏳ بانتظار التعميد' : statusLabels[a.status];
+    const isExpanded = expandedAppId === a.id;
+    const price = (a.final_price && isClosed) ? a.final_price : a.price;
+    const priceLabel = (a.final_price && isClosed) ? 'السعر النهائي' : 'عرضك';
+
+    // محتوى الجزء المتوسّع
+    let expandedInner = '';
+    if (awaitingApproval) {
+      expandedInner = `
         <div class="approval-gate" onclick="event.stopPropagation()">
           <div class="ag-info">
             <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</span></div>
             <div class="ag-desc">تم التوصّل لاتفاق، بانتظار تعميد الشركة لبدء التنفيذ.</div>
           </div>
-        </div>
-      ` : ''}
-      ${isApproved ? renderWorkflowStrip(a.stage || 1) + renderStageHistory(a.stage_data, a.stage || 1) + renderStageAction(a.id, a.stage || 1, 'creator') : ''}
+        </div>`;
+    } else if (isApproved) {
+      expandedInner = renderWorkflowStrip(a.stage || 1)
+        + renderStageHistory(a.stage_data, a.stage || 1)
+        + renderStageAction(a.id, a.stage || 1, 'creator');
+    } else {
+      // قيد التفاوض: زر المحادثة مع الوكيل
+      expandedInner = `
+        <div class="ac-nego" onclick="event.stopPropagation()">
+          <p class="ac-nego-desc">الوكيل الذكي يفاوض الشركة على عرضك. افتح المحادثة لمتابعة التفاوض.</p>
+          <button class="ac-nego-btn" onclick="startNegotiation('${a.id}')">💬 المحادثة مع الوكيل</button>
+        </div>`;
+    }
+
+    return `
+      <div class="ac-card ${isExpanded ? 'open' : ''}">
+        <button type="button" class="ac-head" onclick="toggleAppCard('${a.id}')">
+          <div class="ac-avatar">${brandInitial}</div>
+          <div class="ac-main">
+            <div class="ac-title">${campaignTitle}</div>
+            <div class="ac-brand">${brandName}</div>
+          </div>
+          <div class="ac-side">
+            <div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('ar-SA')} ر.س</div>
+            <span class="app-status status-${statusKey}">${statusLabel}</span>
+          </div>
+          <span class="ac-chev">▾</span>
+        </button>
+        ${isApproved ? `<div class="ac-miniwrap">${miniProgress(a.stage || 1)}</div>` : ''}
+        ${isExpanded ? `<div class="ac-body" onclick="event.stopPropagation()">${expandedInner}</div>` : ''}
+      </div>
     `;
   }).join('');
 }
@@ -1234,14 +1430,32 @@ function escHtml(s) {
 }
 
 function renderWorkflowStrip(currentStage) {
-  const stages = WORKFLOW_STAGES.map(s => {
-    let cls = '', content = '';
-    if (s.id < currentStage) { cls = 'done'; content = '✓'; }
-    else if (s.id === currentStage) { cls = 'current'; content = s.isFinal ? '✓' : toArabic(s.id); }
-    else { cls = 'future'; content = s.isFinal ? '✓' : toArabic(s.id); }
-    return `<div class="ws-step ${cls}" title="${s.name}"><div class="ws-circle">${content}</div><div class="ws-label">${s.name}</div></div>`;
-  }).join('');
-  return `<div class="workflow-strip">${stages}</div>`;
+  const total = WORKFLOW_STAGES.length; // 9
+  const isComplete = currentStage >= total;
+  const current = WORKFLOW_STAGES.find(s => s.id === currentStage) || WORKFLOW_STAGES[total - 1];
+  // النسبة = المراحل المكتملة ÷ الإجمالي (المرحلة الحالية تُحتسب جارية مو مكتملة)
+  const doneCount = Math.min(currentStage - 1, total);
+  const pct = Math.round((doneCount / total) * 100);
+  const stepLabel = isComplete ? 'الصفقة مكتملة' : current.name;
+  const stepCounter = isComplete ? `كل المراحل (${toArabic(total)})` : `المرحلة ${toArabic(currentStage)} من ${toArabic(total)}`;
+  const ringPct = isComplete ? 100 : pct;
+  return `
+    <div class="wf-card">
+      <div class="wf-top">
+        <div class="wf-info">
+          <div class="wf-counter">${stepCounter}</div>
+          <div class="wf-stage">${stepLabel}</div>
+        </div>
+        <div class="wf-ring" style="--p:${ringPct}">
+          <span>${toArabic(ringPct)}٪</span>
+        </div>
+      </div>
+      <div class="wf-bar"><div class="wf-bar-fill" style="width:${ringPct}%"></div></div>
+      <div class="wf-ends">
+        <span>${toArabic(doneCount)} مكتملة</span>
+        <span>${isComplete ? 'تمّت بنجاح' : 'باقي ' + toArabic(total - doneCount)}</span>
+      </div>
+    </div>`;
 }
 
 function renderStageHistory(stageData, currentStage) {
@@ -1302,7 +1516,20 @@ function renderStageHistory(stageData, currentStage) {
       </div>
     `;
   }).join('');
-  return `<div class="stage-history" onclick="event.stopPropagation()"><h4>سجلّ المراحل المكتملة</h4>${items}</div>`;
+  const completedCount = completedStages.length;
+  const hid = 'hist-' + Math.random().toString(36).slice(2, 8);
+  return `<div class="stage-history collapsed" id="${hid}" onclick="event.stopPropagation()">
+    <button type="button" class="hist-toggle" onclick="event.stopPropagation(); toggleHistory('${hid}')">
+      <span><i class="hist-ic"></i> سجلّ المراحل المكتملة (${toArabic(completedCount)})</span>
+      <span class="hist-chev">▾</span>
+    </button>
+    <div class="hist-body">${items}</div>
+  </div>`;
+}
+
+function toggleHistory(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('collapsed');
 }
 
 function copyBrief(btn) {
