@@ -454,6 +454,9 @@ body {
 .status-active { background: rgba(19, 185, 178, 0.14); color: var(--accent-ink); }
 .status-closed { background: var(--ink); color: #fff; }
 .status-rejected { background: var(--cream-darker); color: var(--ink-muted); }
+.stage-badge { white-space: nowrap; }
+.stage-badge.mine { background: var(--accent); color: #fff; }
+.stage-badge.waiting { background: rgba(10,10,10,0.05); color: var(--ink-muted); }
 
 /* ============ Accordion offer cards (مختصرة + توسّع) ============ */
 .applications-list { gap: 12px; }
@@ -1214,6 +1217,28 @@ function renderBrowseCard(c) {
 }
 
 // بطاقة عرض قدّمته (حالة: تفاوض / بانتظار التعميد / معمّدة)
+// نص شارة المرحلة من منظور المعلن (المطلوب منه، أو انتظار الشركة)
+function creatorStageBadge(stage) {
+  const map = {
+    1: { creator: '📍 أرسل عنوانك' },
+    2: { brand: '⏳ بانتظار شحن المنتج لك' },
+    3: { creator: '📦 أكّد استلام المنتج' },
+    4: { brand: '⏳ بانتظار بريف الشركة' },
+    5: { creator: '🎬 أرسل المحتوى' },
+    6: { brand: '⏳ بانتظار مراجعة المحتوى' },
+    7: { creator: '🔗 أكّد نشر المحتوى' },
+    8: { creator: '💳 أرسل بياناتك البنكية' },
+    9: { done: '✓ الصفقة مكتملة' }
+  };
+  const entry = map[stage] || {};
+  return entry.creator || entry.brand || entry.done || 'مقفلة';
+}
+// هل المطلوب الحالي من المعلن (دوره) أو ينتظر الشركة؟
+function isCreatorTurn(stage) {
+  const action = STAGE_ACTIONS[stage];
+  return action && action.responsible === 'creator';
+}
+
 function renderOfferCard(c, a) {
   const brandName = c.brand || a.campaigns?.users?.company_name || 'شركة';
   const brandInitial = brandName[0] || '؟';
@@ -1229,9 +1254,17 @@ function renderOfferCard(c, a) {
   const price = (a.final_price && isClosed) ? a.final_price : a.price;
   const priceLabel = (a.final_price && isClosed) ? 'السعر النهائي' : 'عرضك';
 
-  const headRight = isNegotiating
-    ? `<span class="ac-chatbtn" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 المحادثة مع الوكيل</span>`
-    : `<span class="app-status status-${statusKey}">${statusLabel}</span>`;
+  // الشارة على اليمين: تفاوض=زر، بانتظار التعميد=شارة، معمّدة=المطلوب الحالي
+  let headRight;
+  if (isNegotiating) {
+    headRight = `<span class="ac-chatbtn" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 المحادثة مع الوكيل</span>`;
+  } else if (isApproved) {
+    const stg = a.stage || 1;
+    const myTurn = isCreatorTurn(stg);
+    headRight = `<span class="app-status stage-badge ${myTurn ? 'mine' : 'waiting'}">${creatorStageBadge(stg)}</span>`;
+  } else {
+    headRight = `<span class="app-status status-${statusKey}">${statusLabel}</span>`;
+  }
 
   let expandedInner = '';
   if (awaitingApproval) {
