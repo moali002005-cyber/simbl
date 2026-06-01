@@ -1041,30 +1041,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   <div class="unified-list" id="unified-list"></div>
 </main>
 
-<div class="modal-backdrop" id="apply-modal">
-  <div class="modal">
-    <h3 id="modal-title">تقديم عرض</h3>
-    <p class="sub" id="modal-sub">قدّم عرضك على هذا الإعلان. الوكيل الذكي راح يتفاوض معك بناءً على عرضك.</p>
-
-    <form onsubmit="submitApplication(event)">
-      <div class="field">
-        <label>السعر المعروض (ر.س)</label>
-        <input type="number" name="price" required placeholder="مثال: 800">
-      </div>
-
-      <div class="field">
-        <label>ملاحظة إضافية (اختياري)</label>
-        <textarea name="note" rows="3" placeholder="مثل: أقدر أصور خلال 3 أيام، أو لدي اقتراحات إضافية..."></textarea>
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" onclick="closeModal()">إلغاء</button>
-        <button type="submit" class="btn-primary">إرسال العرض</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script src="supabase-config.js"></script>
 <script src="notifications.js"></script>
 <script>
@@ -1073,7 +1049,6 @@ let allCampaigns = [];
 let myApplications = [];
 let currentFilter = 'all';
 let expandedAppId = null;
-let currentCampaignId = null;
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
@@ -1233,7 +1208,7 @@ function renderBrowseCard(c) {
           <div class="ac-brand">${brandName}</div>
         </div>
         <div class="ac-side">
-          <button class="ac-applybtn" onclick="openApplyModal('${c.id}')">قدّم عرضك</button>
+          <button class="ac-applybtn" onclick="enterNegotiation('${c.id}', this)">💬 التفاوض مع الوكيل</button>
         </div>
       </div>
       <div class="ac-metarow">
@@ -1657,69 +1632,54 @@ function filterCampaigns(filter, btn) {
   renderUnified();
 }
 
-function openApplyModal(campaignId) {
-  currentCampaignId = campaignId;
+// السعر المبدئي = أعلى رقم في نطاق ميزانية الشركة (سقف يفاوض الوكيل لتحته)
+function initialPriceFromBudget(campaign) {
+  const nums = (String(campaign.budget || '').match(/\d[\d,]*/g) || [])
+    .map(n => parseInt(n.replace(/,/g, ''), 10)).filter(n => !isNaN(n));
+  if (nums.length) return Math.max(...nums);
+  return 0;
+}
+
+// دخول التفاوض مباشرة: ينشئ العرض (بدون سعر من المعلن)، يشغّل أول رسالة للوكيل، ثم يفتح المحادثة
+async function enterNegotiation(campaignId, btn) {
   const campaign = allCampaigns.find(c => c.id === campaignId);
   if (!campaign) return;
-  document.getElementById('modal-title').textContent = 'تقديم على: ' + campaign.title;
-  document.getElementById('modal-sub').textContent = `${campaign.brand} · حدّد السعر المناسب لك`;
-  document.getElementById('apply-modal').classList.add('show');
-}
 
-function closeModal() {
-  document.getElementById('apply-modal').classList.remove('show');
-}
+  // لو فيه عرض سابق على نفس الإعلان، افتح محادثته مباشرة
+  const existingApp = myApplications.find(a => a.campaign_id === campaignId);
+  if (existingApp) { startNegotiation(existingApp.id); return; }
 
-async function submitApplication(event) {
-  event.preventDefault();
-  const form = event.target;
-  const submitBtn = form.querySelector('button[type="submit"]');
-  const original = submitBtn.textContent;
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'جاري الإرسال...';
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري الفتح...'; }
 
-  const fd = new FormData(form);
-  const price = parseInt(fd.get('price'));
-  const note = fd.get('note') || null;
   const applicationData = {
-    campaign_id: currentCampaignId,
+    campaign_id: campaignId,
     creator_id: currentUser.id,
-    price: price,
-    note: note,
+    price: initialPriceFromBudget(campaign), // سعر مبدئي من ميزانية الشركة، يحدّده الوكيل بالتفاوض
+    note: null,
     status: 'pending'
   };
-
-  const campaign = allCampaigns.find(c => c.id === currentCampaignId);
 
   try {
     const savedApplication = await dbApply(applicationData);
 
-    if (campaign && campaign.brand_id) {
+    // إشعار الشركة بوجود مفاوض جديد
+    if (campaign.brand_id) {
       createNotification(
         campaign.brand_id,
         'new_application',
-        `📨 ${currentUser.name || 'معلن'} قدّمت عرضاً`,
-        `على إعلان: ${campaign.title} · بسعر ${price} ر.س`,
+        `📨 ${currentUser.name || 'معلن'} دخل التفاوض`,
+        `على إعلان: ${campaign.title}`,
         '/brand.html'
       ).catch(err => console.error(err));
     }
 
-    closeModal();
-    form.reset();
-
-    startAutoNegotiation(savedApplication, campaign);
-
-    submitBtn.disabled = false;
-    submitBtn.textContent = original;
-
-    await loadData();
-
-    setTimeout(() => showToast('تم إرسال عرضك بنجاح! الوكيل الذكي بدأ التفاوض.'), 100);
+    // شغّل أول رسالة من الوكيل، ثم انقل للمحادثة
+    await startAutoNegotiation(savedApplication, campaign);
+    startNegotiation(savedApplication.id);
   } catch (err) {
     console.error(err);
-    submitBtn.disabled = false;
-    submitBtn.textContent = original;
-    showToast('حصل خطأ أثناء إرسال العرض. حاول مرة أخرى.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '💬 التفاوض مع الوكيل'; }
+    showToast('حصل خطأ أثناء فتح التفاوض. حاول مرة أخرى.', 'error');
   }
 }
 
