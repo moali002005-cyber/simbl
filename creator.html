@@ -332,6 +332,47 @@ body {
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
+/* ============ Section head (single-view switcher) ============ */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.section-head-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.3px;
+  flex: 1;
+}
+.section-browse, .section-back {
+  background: var(--ink);
+  color: #fff;
+  border: 0;
+  padding: 10px 20px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+  white-space: nowrap;
+}
+.section-browse:hover, .section-back:hover { background: var(--accent); transform: translateY(-1px); }
+.section-back {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+}
+.section-back:hover { background: var(--cream-darker); color: var(--ink); border-color: var(--ink-soft); }
+@media (max-width: 640px) {
+  .section-head-title { font-size: 17px; }
+  .section-browse, .section-back { padding: 9px 16px; font-size: 12px; }
+}
+
 .filter-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
 .filter-bar .label { font-size: 13px; color: var(--ink-muted); font-weight: 500; }
 .filter-pill {
@@ -395,6 +436,8 @@ body {
 }
 .btn-apply:hover { background: var(--accent); }
 .btn-apply.applied { background: var(--cream-darker); color: var(--ink-muted); cursor: not-allowed; }
+.btn-apply.chat { background: var(--accent); color: #fff; cursor: pointer; }
+.btn-apply.chat:hover { background: var(--accent-ink); }
 
 .empty { text-align: center; padding: 80px 32px; color: var(--ink-muted); }
 .empty .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
@@ -694,6 +737,32 @@ body {
   z-index: 100; padding: 20px;
 }
 .modal-backdrop.show { display: flex; }
+
+/* ============ Toast (إشعار لطيف يختفي تلقائياً) ============ */
+.toast-wrap {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 2000; display: flex; flex-direction: column; gap: 10px;
+  width: max-content; max-width: calc(100vw - 32px); pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; color: var(--ink);
+  border: 1px solid var(--line); border-right: 4px solid var(--accent);
+  border-radius: 14px; padding: 13px 18px;
+  font-family: var(--font-body); font-size: 14px; font-weight: 500; line-height: 1.5;
+  box-shadow: 0 14px 36px -12px rgba(10,10,10,0.28);
+  pointer-events: auto; opacity: 0; transform: translateY(-12px);
+  transition: opacity .28s cubic-bezier(0.22,1,0.36,1), transform .28s cubic-bezier(0.22,1,0.36,1);
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { border-right-color: #c93030; }
+.toast .toast-ic {
+  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(19,185,178,0.14); color: var(--accent-ink); font-size: 13px; font-weight: 700;
+}
+.toast.error .toast-ic { background: rgba(201,48,48,0.12); color: #c93030; }
+
 .modal { background: #fff; border-radius: 24px; padding: 36px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; }
 .modal h3 { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 8px; }
 .modal .sub { color: var(--ink-muted); font-size: 14px; margin-bottom: 24px; }
@@ -727,6 +796,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 </style>
 </head>
 <body>
+
+<div class="toast-wrap" id="toast-wrap"></div>
 
 <nav class="nav">
   <div class="container nav-inner">
@@ -776,18 +847,13 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   <!-- ============ APP CONTENT ============ -->
   <div id="app-section" class="section-divider"></div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('browse')" id="tab-browse">
-      <span>الإعلانات المتاحة</span>
-      <span class="count" id="count-browse">0</span>
-    </button>
-    <button class="tab" onclick="switchTab('applications')" id="tab-applications">
-      <span>العروض المقدّمة</span>
-      <span class="count" id="count-applications">0</span>
-    </button>
+  <div class="section-head" id="section-head">
+    <h2 class="section-head-title" id="section-head-title">العروض المقدّمة</h2>
+    <button class="section-back" id="section-back" onclick="switchTab('applications')" style="display:none;">→ رجوع للعروض</button>
+    <button class="section-browse" id="section-browse-btn" onclick="switchTab('browse')">تصفّح الإعلانات</button>
   </div>
 
-  <div class="tab-panel active" id="panel-browse">
+  <div class="tab-panel" id="panel-browse">
     <div class="filter-bar">
       <span class="label">التصنيف:</span>
       <button class="filter-pill active" onclick="filterCampaigns('all', this)">الكل</button>
@@ -800,7 +866,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
     <div class="campaigns-grid" id="campaigns-list"></div>
   </div>
 
-  <div class="tab-panel" id="panel-applications">
+  <div class="tab-panel active" id="panel-applications">
     <div class="applications-list" id="applications-list"></div>
   </div>
 </main>
@@ -840,6 +906,21 @@ let currentCampaignId = null;
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
+
+// ====== إشعار لطيف يختفي تلقائياً (بديل alert) ======
+function showToast(message, type = 'success', duration = 3500) {
+  const wrap = document.getElementById('toast-wrap');
+  if (!wrap) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (type === 'error' ? 'error' : '');
+  toast.innerHTML = `<span class="toast-ic">${type === 'error' ? '!' : '✓'}</span><span>${message}</span>`;
+  wrap.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 320);
+  }, duration);
+}
 
 // ====== خرائط عرض الحقول الجديدة ======
 const PUBLISH_TIMING_LABELS = {
@@ -889,6 +970,10 @@ function goToBrowse() {
 function goToApplications() {
   switchTab('applications');
   document.getElementById('app-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function startNegotiation(applicationId) {
+  window.location.href = '/campaign.html?app=' + applicationId;
 }
 
 async function init() {
@@ -944,7 +1029,8 @@ function renderCampaigns() {
     ? allCampaigns
     : allCampaigns.filter(c => c.brand_industry === currentFilter);
 
-  document.getElementById('count-browse').textContent = filtered.length;
+  const cb = document.getElementById('count-browse');
+  if (cb) cb.textContent = filtered.length;
   const list = document.getElementById('campaigns-list');
 
   if (filtered.length === 0) {
@@ -958,7 +1044,8 @@ function renderCampaigns() {
   }
 
   list.innerHTML = filtered.map(c => {
-    const applied = myApplications.some(a => a.campaign_id === c.id);
+    const myApp = myApplications.find(a => a.campaign_id === c.id);
+    const applied = !!myApp;
     const brandName = c.brand || 'شركة';
     const brandInitial = brandName[0];
     const tags = c.tags || [];
@@ -982,11 +1069,9 @@ function renderCampaigns() {
           <div class="tags-row">
             ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
           </div>
-          <button class="btn-apply ${applied ? 'applied' : ''}"
-                  onclick="${applied ? '' : `openApplyModal('${c.id}')`}"
-                  ${applied ? 'disabled' : ''}>
-            ${applied ? 'تم التقديم ✓' : 'قدّم عرضك'}
-          </button>
+          ${applied
+            ? `<button class="btn-apply chat" onclick="startNegotiation('${myApp.id}')">💬 المحادثة مع الوكيل</button>`
+            : `<button class="btn-apply" onclick="openApplyModal('${c.id}')">قدّم عرضك</button>`}
         </div>
       </div>
     `;
@@ -994,7 +1079,8 @@ function renderCampaigns() {
 }
 
 function renderApplications() {
-  document.getElementById('count-applications').textContent = myApplications.length;
+  const ca = document.getElementById('count-applications');
+  if (ca) ca.textContent = myApplications.length;
   const list = document.getElementById('applications-list');
 
   if (myApplications.length === 0) {
@@ -1342,15 +1428,26 @@ async function submitStageForm(applicationId) {
     console.error('Failed to submit stage:', err);
     submitBtn.disabled = false;
     submitBtn.textContent = original;
-    alert('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'));
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
   }
 }
 
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
+
+  const title = document.getElementById('section-head-title');
+  const backBtn = document.getElementById('section-back');
+  const browseBtn = document.getElementById('section-browse-btn');
+  if (tab === 'browse') {
+    if (title) title.textContent = 'الإعلانات المتاحة';
+    if (backBtn) backBtn.style.display = '';
+    if (browseBtn) browseBtn.style.display = 'none';
+  } else {
+    if (title) title.textContent = 'العروض المقدّمة';
+    if (backBtn) backBtn.style.display = 'none';
+    if (browseBtn) browseBtn.style.display = '';
+  }
 }
 
 function filterCampaigns(filter, btn) {
@@ -1417,12 +1514,12 @@ async function submitApplication(event) {
 
     await loadData();
 
-    setTimeout(() => alert('تم إرسال عرضك بنجاح! الوكيل الذكي بدأ التفاوض. افتح "صفقاتي" لمتابعة المحادثة.'), 100);
+    setTimeout(() => showToast('تم إرسال عرضك بنجاح! الوكيل الذكي بدأ التفاوض.'), 100);
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
     submitBtn.textContent = original;
-    alert('حصل خطأ أثناء إرسال العرض. حاول مرة أخرى.');
+    showToast('حصل خطأ أثناء إرسال العرض. حاول مرة أخرى.', 'error');
   }
 }
 
