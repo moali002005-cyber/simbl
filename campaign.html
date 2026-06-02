@@ -58,17 +58,42 @@ body {
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 /* ============ Claude-style chat ============ */
+/* وضع المحادثة: نثبّت ارتفاع الصفحة على ارتفاع الشاشة المرئي الفعلي.
+   --app-vh يحدّثه الجافاسكربت من visualViewport ليتعامل مع الكيبورد على الجوال. */
+body.chat-mode {
+  height: 100dvh;
+  height: var(--app-vh, 100dvh);
+  overflow: hidden;
+}
+body.chat-mode .page { padding: 0; }
+body.chat-mode .nav { flex-shrink: 0; }
+body.chat-mode .page,
+body.chat-mode .page > .container {
+  height: 100%;
+}
+body.chat-mode .page > .container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .chat-wrap {
   max-width: 720px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 130px);
+  flex: 1;
+  min-height: 0;
 }
 .messages {
   flex: 1;
-  padding: 24px 4px 16px;
+  padding: 20px 4px 8px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -107,7 +132,9 @@ body {
   line-height: 1.75;
   color: var(--ink);
   white-space: pre-wrap;
-  padding-right: 25px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding-inline-start: 25px;
 }
 .cmsg-bubble {
   background: var(--cream-darker);
@@ -132,15 +159,15 @@ body {
   30% { transform: translateY(-7px); opacity: 1; }
 }
 
-/* خانة الكتابة الثابتة تحت (زي كلود) */
+/* خانة الكتابة الثابتة تحت */
 .chat-input {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   background: var(--cream);
-  padding: 12px 0 18px;
+  padding: 12px 4px max(14px, env(safe-area-inset-bottom));
   display: flex;
   gap: 10px;
   align-items: flex-end;
+  border-top: 1px solid var(--line);
 }
 .chat-input textarea {
   flex: 1;
@@ -174,12 +201,13 @@ body {
 .chat-input button:disabled { background: var(--ink-faint); cursor: not-allowed; transform: none; }
 
 .chat-foot {
-  position: sticky; bottom: 0;
+  flex-shrink: 0;
   background: var(--cream);
-  padding: 16px 0 20px;
+  padding: 16px 4px max(20px, env(safe-area-inset-bottom));
   text-align: center;
   font-size: 13px;
   color: var(--ink-muted);
+  border-top: 1px solid var(--line);
 }
 .chat-foot.done { color: var(--accent-ink); font-weight: 500; }
 .chat-foot.awaiting { color: #0c4f4b; font-weight: 500; }
@@ -381,6 +409,30 @@ let approvedClose = false;
 let dealDetails = null;
 let pollInterval = null;
 
+// ====== وضع المحادثة: تثبيت الارتفاع + التعامل مع كيبورد الجوال ======
+// نقيس الارتفاع المرئي الفعلي (visualViewport) ونحدّث --app-vh،
+// عشان لما يطلع الكيبورد ما يصير فراغ ولا تختفي الرسائل.
+function updateAppHeight() {
+  const h = (window.visualViewport && window.visualViewport.height)
+    ? window.visualViewport.height
+    : window.innerHeight;
+  document.documentElement.style.setProperty('--app-vh', h + 'px');
+  // إبقاء آخر رسالة ظاهرة عند تغيّر الارتفاع (فتح/قفل الكيبورد)
+  const m = document.getElementById('messages');
+  if (m) m.scrollTop = m.scrollHeight;
+}
+function enableChatMode() {
+  document.body.classList.add('chat-mode');
+  updateAppHeight();
+  if (window.visualViewport && !window.__simblVVBound) {
+    window.__simblVVBound = true;
+    window.visualViewport.addEventListener('resize', updateAppHeight);
+    window.visualViewport.addEventListener('scroll', updateAppHeight);
+  }
+  window.addEventListener('resize', updateAppHeight);
+  window.addEventListener('orientationchange', () => setTimeout(updateAppHeight, 200));
+}
+
 // ====== خرائط عرض الحقول الجديدة ======
 const PUBLISH_TIMING_LABELS = {
   '24h': 'خلال ٢٤ ساعة (مستعجل)',
@@ -579,6 +631,7 @@ function render() {
     </div>
   `;
 
+  enableChatMode();
   scrollToBottom();
   initSwipeTracks();
 }
@@ -625,8 +678,10 @@ function formatTime(iso) {
 }
 
 function scrollToBottom() {
-  const m = document.getElementById('messages');
-  if (m) m.scrollTop = m.scrollHeight;
+  requestAnimationFrame(() => {
+    const m = document.getElementById('messages');
+    if (m) m.scrollTop = m.scrollHeight;
+  });
 }
 
 // ============ Swipe to approve handler ============
