@@ -418,13 +418,16 @@ let pollInterval = null;
 // نقيس الارتفاع المرئي الفعلي (visualViewport) ونحدّث --app-vh،
 // عشان لما يطلع الكيبورد ما يصير فراغ ولا تختفي الرسائل.
 function updateAppHeight() {
-  const h = (window.visualViewport && window.visualViewport.height)
-    ? window.visualViewport.height
-    : window.innerHeight;
-  document.documentElement.style.setProperty('--app-vh', h + 'px');
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-vh', Math.round(h) + 'px');
   // إبقاء آخر رسالة ظاهرة عند تغيّر الارتفاع (فتح/قفل الكيبورد)
-  const m = document.getElementById('messages');
-  if (m) m.scrollTop = m.scrollHeight;
+  requestAnimationFrame(() => {
+    const m = document.getElementById('messages');
+    if (m) m.scrollTop = m.scrollHeight;
+    // نعيد النافذة لأعلى عشان النافبار يبقى ظاهر (بعض المتصفحات تزحلق الصفحة)
+    window.scrollTo(0, 0);
+  });
 }
 function enableChatMode() {
   document.body.classList.add('chat-mode');
@@ -432,10 +435,12 @@ function enableChatMode() {
   if (window.visualViewport && !window.__simblVVBound) {
     window.__simblVVBound = true;
     window.visualViewport.addEventListener('resize', updateAppHeight);
-    window.visualViewport.addEventListener('scroll', updateAppHeight);
   }
-  window.addEventListener('resize', updateAppHeight);
-  window.addEventListener('orientationchange', () => setTimeout(updateAppHeight, 200));
+  if (!window.__simblResizeBound) {
+    window.__simblResizeBound = true;
+    window.addEventListener('resize', updateAppHeight);
+    window.addEventListener('orientationchange', () => setTimeout(updateAppHeight, 250));
+  }
 }
 
 // ====== خرائط عرض الحقول الجديدة ======
@@ -639,6 +644,16 @@ function render() {
   enableChatMode();
   scrollToBottom();
   initSwipeTracks();
+
+  // عند الضغط على خانة الكتابة (ظهور الكيبورد) نعيد ضبط الارتفاع والتمرير
+  const ta = document.getElementById('creator-input');
+  if (ta && !ta.dataset.focusBound) {
+    ta.dataset.focusBound = '1';
+    ta.addEventListener('focus', () => {
+      setTimeout(updateAppHeight, 100);
+      setTimeout(updateAppHeight, 350);
+    });
+  }
 }
 
 function renderMessages() {
