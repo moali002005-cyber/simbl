@@ -7,6 +7,12 @@
 const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkenp6YXNieXp1Z3hvZ2Jnd3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDI5NjMsImV4cCI6MjA5NTI3ODk2M30.aS9lOVt7VyfwTV7bmsxxDUanWfs5v-TMBlGbwcDNomM';
 
+// مفتاح service_role (يُقرأ من متغيّرات Vercel فقط — لا يُكتب في الكود ولا يصل للمتصفّح).
+// يتجاوز RLS بأمان لأن هذا كود خادم. نستخدمه لعمليات الكتابة (إقفال الصفقة، حفظ المفاوضات)
+// عشان نقدر نشدّد سياسات RLS للمتصفّح بدون ما نكسر عمل الوكيل.
+// لو ما كان موجوداً (مثلاً بيئة محلية)، نرجع للـ anon key.
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+
 // ====== خرائط عرض الحقول (للبرومبت) ======
 const PLATFORM_LABELS = { tiktok: 'تيك توك', snapchat: 'سناب شات', x: 'إكس', instagram: 'انستقرام', youtube: 'يوتيوب' };
 const FOLLOWER_RANGE_LABELS = {
@@ -38,8 +44,8 @@ async function supabaseInsert(table, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     },
@@ -57,8 +63,8 @@ async function supabaseUpdate(table, id, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
     method: 'PATCH',
     headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(data)
@@ -79,8 +85,8 @@ async function supabaseCountClosedDeals(campaignId) {
       `${SUPABASE_URL}/rest/v1/applications?campaign_id=eq.${campaignId}&status=eq.closed&select=id`,
       {
         headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
         }
       }
     );
