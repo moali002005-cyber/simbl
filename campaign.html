@@ -64,13 +64,12 @@ body {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  /* تملأ ارتفاع الشاشة (ناقص النافبار) عشان خانة الكتابة تنزل تحت طبيعياً */
-  min-height: calc(100vh - 82px);
-  min-height: calc(100dvh - 82px);
+  min-height: calc(100vh - 90px);
+  min-height: calc(100dvh - 90px);
 }
 .messages {
   flex: 1;
-  padding: 20px 4px 8px;
+  padding: 20px 4px 90px;
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -136,16 +135,23 @@ body {
   30% { transform: translateY(-7px); opacity: 1; }
 }
 
-/* خانة الكتابة تحت (sticky عادي) */
+/* خانة الكتابة عائمة فوق شوي من تحت (fixed) */
 .chat-input {
-  position: sticky;
-  bottom: 0;
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  max-width: 700px;
+  margin: 0 auto;
+  z-index: 50;
   background: var(--cream);
-  padding: 12px 4px max(14px, env(safe-area-inset-bottom));
+  padding: 8px;
   display: flex;
   gap: 10px;
   align-items: flex-end;
-  border-top: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: 0 6px 24px -8px rgba(10,10,10,0.18);
 }
 .chat-input textarea {
   flex: 1;
@@ -588,17 +594,6 @@ function render() {
 
   scrollToBottom();
   initSwipeTracks();
-
-  // لما يضغط المستخدم خانة الكتابة ويطلع الكيبورد، نمرّر آخر رسالة لتبقى ظاهرة فوق الكيبورد
-  const ta = document.getElementById('creator-input');
-  if (ta && !ta.dataset.focusBound) {
-    ta.dataset.focusBound = '1';
-    ta.addEventListener('focus', () => {
-      setTimeout(() => {
-        ta.scrollIntoView({ block: 'end', behavior: 'smooth' });
-      }, 300);
-    });
-  }
 }
 
 function renderMessages() {
