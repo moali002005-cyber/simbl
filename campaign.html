@@ -57,7 +57,7 @@ body {
 
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-/* ============ Claude-style chat (تخطيط عادي يتمرّر) ============ */
+/* ============ Claude-style chat ============ */
 .chat-wrap {
   max-width: 720px;
   width: 100%;
@@ -65,11 +65,10 @@ body {
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 90px);
-  min-height: calc(100dvh - 90px);
 }
 .messages {
   flex: 1;
-  padding: 20px 4px 90px;
+  padding: 16px 4px 8px;
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -135,23 +134,16 @@ body {
   30% { transform: translateY(-7px); opacity: 1; }
 }
 
-/* خانة الكتابة عائمة فوق شوي من تحت (fixed) */
+/* خانة الكتابة تحت */
 .chat-input {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  right: 16px;
-  max-width: 700px;
-  margin: 0 auto;
-  z-index: 50;
+  position: sticky;
+  bottom: 0;
   background: var(--cream);
-  padding: 8px;
+  padding: 10px 4px max(14px, env(safe-area-inset-bottom));
   display: flex;
   gap: 10px;
   align-items: flex-end;
-  border: 1px solid var(--line);
-  border-radius: 28px;
-  box-shadow: 0 6px 24px -8px rgba(10,10,10,0.18);
+  border-top: 1px solid var(--line);
 }
 .chat-input textarea {
   flex: 1;
