@@ -57,48 +57,16 @@ body {
 
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-/* ============ Claude-style chat ============ */
-/* وضع المحادثة: نثبّت ارتفاع الصفحة على ارتفاع الشاشة المرئي الفعلي.
-   --app-vh يحدّثه الجافاسكربت من visualViewport ليتعامل مع الكيبورد على الجوال. */
-body.chat-mode {
-  height: 100dvh;
-  height: var(--app-vh, 100dvh);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-body.chat-mode .page {
-  padding: 0;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-body.chat-mode .nav { flex-shrink: 0; }
-body.chat-mode .page > .container {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
+/* ============ Claude-style chat (تخطيط عادي يتمرّر) ============ */
 .chat-wrap {
   max-width: 720px;
   width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 .messages {
-  flex: 1;
   padding: 20px 4px 8px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -164,9 +132,10 @@ body.chat-mode .page > .container {
   30% { transform: translateY(-7px); opacity: 1; }
 }
 
-/* خانة الكتابة الثابتة تحت */
+/* خانة الكتابة تحت (sticky عادي) */
 .chat-input {
-  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
   background: var(--cream);
   padding: 12px 4px max(14px, env(safe-area-inset-bottom));
   display: flex;
@@ -206,7 +175,8 @@ body.chat-mode .page > .container {
 .chat-input button:disabled { background: var(--ink-faint); cursor: not-allowed; transform: none; }
 
 .chat-foot {
-  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
   background: var(--cream);
   padding: 16px 4px max(20px, env(safe-area-inset-bottom));
   text-align: center;
@@ -414,35 +384,6 @@ let approvedClose = false;
 let dealDetails = null;
 let pollInterval = null;
 
-// ====== وضع المحادثة: تثبيت الارتفاع + التعامل مع كيبورد الجوال ======
-// نقيس الارتفاع المرئي الفعلي (visualViewport) ونحدّث --app-vh،
-// عشان لما يطلع الكيبورد ما يصير فراغ ولا تختفي الرسائل.
-function updateAppHeight() {
-  const vv = window.visualViewport;
-  const h = vv ? vv.height : window.innerHeight;
-  document.documentElement.style.setProperty('--app-vh', Math.round(h) + 'px');
-  // إبقاء آخر رسالة ظاهرة عند تغيّر الارتفاع (فتح/قفل الكيبورد)
-  requestAnimationFrame(() => {
-    const m = document.getElementById('messages');
-    if (m) m.scrollTop = m.scrollHeight;
-    // نعيد النافذة لأعلى عشان النافبار يبقى ظاهر (بعض المتصفحات تزحلق الصفحة)
-    window.scrollTo(0, 0);
-  });
-}
-function enableChatMode() {
-  document.body.classList.add('chat-mode');
-  updateAppHeight();
-  if (window.visualViewport && !window.__simblVVBound) {
-    window.__simblVVBound = true;
-    window.visualViewport.addEventListener('resize', updateAppHeight);
-  }
-  if (!window.__simblResizeBound) {
-    window.__simblResizeBound = true;
-    window.addEventListener('resize', updateAppHeight);
-    window.addEventListener('orientationchange', () => setTimeout(updateAppHeight, 250));
-  }
-}
-
 // ====== خرائط عرض الحقول الجديدة ======
 const PUBLISH_TIMING_LABELS = {
   '24h': 'خلال ٢٤ ساعة (مستعجل)',
@@ -641,19 +582,8 @@ function render() {
     </div>
   `;
 
-  enableChatMode();
   scrollToBottom();
   initSwipeTracks();
-
-  // عند الضغط على خانة الكتابة (ظهور الكيبورد) نعيد ضبط الارتفاع والتمرير
-  const ta = document.getElementById('creator-input');
-  if (ta && !ta.dataset.focusBound) {
-    ta.dataset.focusBound = '1';
-    ta.addEventListener('focus', () => {
-      setTimeout(updateAppHeight, 100);
-      setTimeout(updateAppHeight, 350);
-    });
-  }
 }
 
 function renderMessages() {
@@ -699,8 +629,7 @@ function formatTime(iso) {
 
 function scrollToBottom() {
   requestAnimationFrame(() => {
-    const m = document.getElementById('messages');
-    if (m) m.scrollTop = m.scrollHeight;
+    window.scrollTo(0, document.body.scrollHeight);
   });
 }
 
