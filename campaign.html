@@ -588,6 +588,17 @@ function render() {
 
   scrollToBottom();
   initSwipeTracks();
+
+  // لما يضغط المستخدم خانة الكتابة ويطلع الكيبورد، نمرّر آخر رسالة لتبقى ظاهرة فوق الكيبورد
+  const ta = document.getElementById('creator-input');
+  if (ta && !ta.dataset.focusBound) {
+    ta.dataset.focusBound = '1';
+    ta.addEventListener('focus', () => {
+      setTimeout(() => {
+        ta.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      }, 300);
+    });
+  }
 }
 
 function renderMessages() {
