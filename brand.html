@@ -1334,11 +1334,72 @@ textarea { resize: vertical; min-height: 80px; }
   font-size: 13px; font-weight: 700;
 }
 .toast.error .toast-ic { background: rgba(201,48,48,0.12); color: #c93030; }
+
+/* ============ Launch radar overlay (بعد نشر الحملة) ============ */
+.launch-overlay {
+  position: fixed; inset: 0;
+  background: rgba(255,255,255,0.97);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 3000; padding: 28px; text-align: center;
+  opacity: 0; transition: opacity .4s ease;
+}
+.launch-overlay.show { display: flex; opacity: 1; }
+.lr-stage { position: relative; width: 220px; height: 220px; margin-bottom: 26px; }
+.lr-c { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+.lr-eye { width: 64px; height: 64px; z-index: 3; }
+.lr-ping { width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; animation: lr-ping 2.6s ease-out infinite; z-index: 1; }
+.lr-ping.b { animation-delay: 1.3s; }
+@keyframes lr-ping { 0% { transform: translate(-50%,-50%) scale(0.5); opacity: .65; } 100% { transform: translate(-50%,-50%) scale(2.9); opacity: 0; } }
+.lr-sweep { width: 100px; height: 2px; background: linear-gradient(90deg, var(--accent), rgba(19,185,178,0)); top: 50%; left: 50%; transform-origin: 0 50%; animation: lr-spin 2.4s linear infinite; z-index: 2; border-radius: 2px; }
+@keyframes lr-spin { from { transform: translateY(-50%) rotate(0); } to { transform: translateY(-50%) rotate(360deg); } }
+.lr-blip { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); opacity: 0; animation: lr-blip 2.4s ease-in-out infinite; z-index: 2; }
+@keyframes lr-blip { 0%, 100% { opacity: 0; transform: scale(.6); } 40%, 60% { opacity: 1; transform: scale(1); } }
+.lr-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--ink); margin-bottom: 18px; max-width: 360px; }
+.lr-steps { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 340px; }
+.lr-step { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 14px; font-size: 14px; color: var(--ink-soft); text-align: right; opacity: 0; transform: translateY(8px); transition: opacity .4s ease, transform .4s ease, border-color .3s, color .3s; }
+.lr-step.show { opacity: 1; transform: translateY(0); }
+.lr-step.done { border-color: rgba(19,185,178,0.4); color: var(--ink); }
+.lr-step .lr-ck { width: 24px; height: 24px; border-radius: 50%; background: var(--cream-darker); color: var(--ink-faint); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; transition: background .3s, color .3s; }
+.lr-step.done .lr-ck { background: var(--accent); color: #fff; }
+.lr-spin-ic { width: 14px; height: 14px; border: 2px solid rgba(19,185,178,0.25); border-top-color: var(--accent); border-radius: 50%; display: inline-block; animation: lr-rot .8s linear infinite; }
+@keyframes lr-rot { to { transform: rotate(360deg); } }
+.lr-done-btn { margin-top: 26px; background: var(--accent); color: #fff; border: 0; padding: 13px 30px; border-radius: 100px; font-family: var(--font-body); font-size: 15px; font-weight: 500; cursor: pointer; opacity: 0; transform: translateY(8px); transition: opacity .4s ease, transform .4s ease, background .2s; pointer-events: none; }
+.lr-done-btn.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.lr-done-btn:hover { background: var(--accent-ink); transform: translateY(-1px); }
 </style>
 </head>
 <body>
 
 <div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- ============ Launch radar overlay (بعد نشر الحملة) ============ -->
+<div class="launch-overlay" id="launch-overlay" aria-live="polite">
+  <div class="lr-stage">
+    <div class="lr-ping lr-c"></div>
+    <div class="lr-ping b lr-c"></div>
+    <div class="lr-sweep lr-c"></div>
+    <div class="lr-blip" style="top:34px; left:150px; animation-delay:.3s;"></div>
+    <div class="lr-blip" style="top:150px; left:46px; animation-delay:.9s;"></div>
+    <div class="lr-blip" style="top:52px; left:54px; animation-delay:1.5s;"></div>
+    <div class="lr-blip" style="top:160px; left:150px; animation-delay:2s;"></div>
+    <svg class="lr-eye lr-c" viewBox="0 0 200 200" aria-hidden="true">
+      <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
+        <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(25 100 100)"/>
+        <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(-25 100 100)"/>
+        <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/>
+        <circle cx="100" cy="100" r="8" fill="#0a0a0a"/>
+      </g>
+    </svg>
+  </div>
+  <div class="lr-title" id="lr-title">جاري نشر حملتك...</div>
+  <div class="lr-steps">
+    <div class="lr-step" id="lr-step-1"><span class="lr-ck" id="lr-ck-1"><span class="lr-spin-ic"></span></span><span>تم نشر حملتك</span></div>
+    <div class="lr-step" id="lr-step-2"><span class="lr-ck" id="lr-ck-2"><span class="lr-spin-ic"></span></span><span>جارٍ إشعار المعلنين المناسبين</span></div>
+    <div class="lr-step" id="lr-step-3"><span class="lr-ck" id="lr-ck-3"><span class="lr-spin-ic"></span></span><span>الوكيل جاهز للتفاوض</span></div>
+  </div>
+  <button class="lr-done-btn" id="lr-done-btn" onclick="hideLaunchRadar()">عرض حملتي</button>
+</div>
 
 <nav class="nav">
   <div class="container nav-inner">
@@ -1555,6 +1616,54 @@ function showToast(message, type = 'success', duration = 3500) {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 320);
   }, duration);
+}
+
+// ============ Launch radar overlay (بعد نشر الحملة) ============
+let launchRadarTimers = [];
+function showLaunchRadar(onDone) {
+  const ov = document.getElementById('launch-overlay');
+  if (!ov) { if (onDone) onDone(); return; }
+  // صفّر الحالة
+  launchRadarTimers.forEach(t => clearTimeout(t));
+  launchRadarTimers = [];
+  const titleEl = document.getElementById('lr-title');
+  const doneBtn = document.getElementById('lr-done-btn');
+  if (doneBtn) doneBtn.classList.remove('show');
+  for (let i = 1; i <= 3; i++) {
+    const step = document.getElementById('lr-step-' + i);
+    const ck = document.getElementById('lr-ck-' + i);
+    if (step) step.classList.remove('show', 'done');
+    if (ck) ck.innerHTML = '<span class="lr-spin-ic"></span>';
+  }
+  if (titleEl) titleEl.textContent = 'جاري نشر حملتك...';
+  ov.classList.add('show');
+
+  const showStep = (i) => {
+    const step = document.getElementById('lr-step-' + i);
+    if (step) step.classList.add('show');
+  };
+  const doneStep = (i) => {
+    const step = document.getElementById('lr-step-' + i);
+    const ck = document.getElementById('lr-ck-' + i);
+    if (step) step.classList.add('done');
+    if (ck) ck.innerHTML = '✓';
+  };
+
+  launchRadarTimers.push(setTimeout(() => showStep(1), 500));
+  launchRadarTimers.push(setTimeout(() => doneStep(1), 1300));
+  launchRadarTimers.push(setTimeout(() => showStep(2), 1500));
+  launchRadarTimers.push(setTimeout(() => doneStep(2), 2600));
+  launchRadarTimers.push(setTimeout(() => showStep(3), 2800));
+  launchRadarTimers.push(setTimeout(() => doneStep(3), 3900));
+  launchRadarTimers.push(setTimeout(() => {
+    if (titleEl) titleEl.textContent = 'تم! حملتك الآن أمام المعلنين';
+    if (doneBtn) doneBtn.classList.add('show');
+    if (onDone) onDone();
+  }, 4200));
+}
+function hideLaunchRadar() {
+  const ov = document.getElementById('launch-overlay');
+  if (ov) ov.classList.remove('show');
 }
 
 // ====== خرائط عرض الحقول الجديدة ======
@@ -2660,8 +2769,8 @@ async function submitCampaign(event) {
       console.error('Push failed:', pushErr);
     }
 
-    await loadData();
-    setTimeout(() => showToast('تم نشر الحملة بنجاح! ستظهر للمؤثرين الآن.'), 100);
+    // عرض رادار الإطلاق ثم تحديث البيانات بالخلفية
+    showLaunchRadar(() => { loadData().catch(console.error); });
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
