@@ -102,10 +102,20 @@ async function supabaseCountClosedDeals(campaignId) {
   }
 }
 
+// تحويل الأرقام العربية/الفارسية إلى إنجليزية (عشان نقدر نقرأها)
+function toAsciiDigits(s) {
+  const map = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+                '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9' };
+  return String(s || '').replace(/[٠-٩۰-۹]/g, d => map[d] || d);
+}
+
 function extractFinalPrice(text) {
-  const match = text.match(/(\d[\d,]*)\s*ر\.?\s*س/);
+  // طبّع الأرقام العربية→إنجليزية، وأزل فواصل الآلاف (إنجليزية أو عربية)
+  const t = toAsciiDigits(text).replace(/[,،٬]/g, '');
+  // يقبل "ر.س" أو "ر س" أو "رس" أو "ريال"
+  const match = t.match(/(\d+)\s*(?:ر\.?\s*س|ريال)/);
   if (match) {
-    return parseInt(match[1].replace(/,/g, ''));
+    return parseInt(match[1], 10);
   }
   return null;
 }
@@ -131,7 +141,7 @@ export default async function handler(req, res) {
   // الحد الأقصى للإقفال = الميزانية نفسها (الحدّ المطلق)
   const creatorPrice = parseFloat(application.price) || 0;
   // الميزانية نصّ قد يكون "800 - 1500" أو "50000" أو "50,000" أو "٥٠٠٠٠".
-  // نطبّع النص أولاً: أرقام عربية→إنجليزية، ونوحّد الفواصل، ونزيل فواصل الآلاف،
+  // نطبّع النص أولاً: أرقام عربية→إنجليزية, ونوحّد الفواصل، ونزيل فواصل الآلاف،
   // عشان ما نقرأ "50.000" أو "50 000" كرقمين (50 و 0).
   function normalizeBudget(raw) {
     let s = String(raw || '');
@@ -367,8 +377,8 @@ ${voiceInstructions}
       }
     }
 
-    // فحص الأرقام المذكورة في رسالة الوكيل (تنبيه للمراجعة)
-    const replyForCheck = cleanReply || agentReply;
+    // فحص الأرقام المذكورة في رسالة الوكيل (تنبيه للمراجعة) — يدعم الأرقام العربية
+    const replyForCheck = toAsciiDigits(cleanReply || agentReply);
     const priceMatches = replyForCheck.match(/(\d{2,5})\s*(?:ر\.?\s*س|ريال)/g) || [];
     priceMatches.forEach(m => {
       const num = parseInt(m.match(/\d+/)[0]);
