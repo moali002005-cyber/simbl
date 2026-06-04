@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الشروط والأحكام - سيمبل</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #ffffff;
+  --cream-darker: #f5f5f4;
+  --ink: #0a0a0a;
+  --ink-soft: #3a3a3a;
+  --ink-muted: #6b6b6b;
+  --ink-faint: #a0a0a0;
+  --accent: #13B9B2;
+  --accent-soft: #7fd6d2;
+  --accent-ink: #0c4f4b;
+  --accent-wash: #f1fbfa;
+  --line: rgba(10, 10, 10, 0.08);
+  --line-strong: rgba(10, 10, 10, 0.16);
+  --font-display: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--cream); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.85; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+
+/* Nav */
+.nav { background: var(--cream); padding: 16px 0; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 50; }
+.nav-inner { display: flex; justify-content: space-between; align-items: center; }
+.logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); }
+.logo-eye { width: 34px; height: 34px; display: block; flex-shrink: 0; }
+.logo-mark { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--ink); position: relative; padding-left: 10px; line-height: 1; }
+.logo-mark::after { content: ''; position: absolute; bottom: 0; left: 0; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; }
+.nav-back { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 14px; font-weight: 500; color: var(--ink-soft); border: 1px solid var(--line-strong); padding: 8px 16px; border-radius: 100px; transition: border-color .2s, color .2s; }
+.nav-back:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Hero */
+.doc-hero { padding: 56px 0 28px; border-bottom: 1px solid var(--line); }
+.doc-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--accent-ink); background: var(--accent-wash); border: 1px solid rgba(19,185,178,0.25); padding: 7px 16px; border-radius: 100px; margin-bottom: 18px; }
+.doc-kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.doc-hero h1 { font-family: var(--font-display); font-size: 38px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.doc-meta { margin-top: 12px; font-size: 14px; color: var(--ink-muted); }
+
+/* Body layout */
+.doc-wrap { display: grid; grid-template-columns: 240px 1fr; gap: 48px; padding: 40px 0 24px; align-items: start; }
+.toc { position: sticky; top: 88px; border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; background: #fff; }
+.toc h4 { font-family: var(--font-display); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-faint); margin-bottom: 12px; }
+.toc a { display: block; font-size: 13.5px; color: var(--ink-soft); text-decoration: none; padding: 6px 0; border-right: 2px solid transparent; padding-right: 10px; margin-right: -10px; transition: color .15s, border-color .15s; }
+.toc a:hover { color: var(--accent-ink); border-color: var(--accent); }
+
+.doc-body { max-width: 720px; }
+.doc-body .intro { font-size: 16.5px; color: var(--ink-soft); background: var(--cream-darker); border-radius: 14px; padding: 20px 22px; margin-bottom: 34px; line-height: 1.8; }
+.doc-section { margin-bottom: 36px; scroll-margin-top: 90px; }
+.doc-section h2 { font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: -0.3px; margin-bottom: 12px; display: flex; align-items: baseline; gap: 10px; }
+.doc-section h2 .num { color: var(--accent); font-size: 16px; font-weight: 600; flex-shrink: 0; }
+.doc-section p { color: var(--ink-soft); margin-bottom: 12px; }
+.doc-section ul { list-style: none; margin: 6px 0 12px; padding: 0; }
+.doc-section li { position: relative; padding-right: 22px; margin-bottom: 9px; color: var(--ink-soft); }
+.doc-section li::before { content: ''; position: absolute; right: 4px; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.doc-section strong { color: var(--ink); font-weight: 600; }
+.doc-section a { color: var(--accent-ink); text-decoration: underline; }
+.callout { border: 1px solid rgba(19,185,178,0.3); background: var(--accent-wash); border-radius: 14px; padding: 16px 20px; margin: 8px 0 12px; font-size: 14.5px; color: var(--accent-ink); }
+
+/* Footer */
+.footer { padding: 52px 0 40px; border-top: 1px solid var(--line); margin-top: 24px; }
+.footer-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 30px; }
+.footer-brand { max-width: 280px; }
+.footer-brand .logo { gap: 8px; margin-bottom: 12px; }
+.footer-brand .logo-eye { width: 30px; height: 30px; }
+.footer-brand p { font-size: 13px; color: var(--ink-muted); line-height: 1.7; }
+.footer-cols { display: flex; gap: 56px; flex-wrap: wrap; }
+.fcol h4 { font-family: var(--font-display); font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--ink); }
+.fcol a { display: block; font-size: 13px; color: var(--ink-muted); text-decoration: none; padding: 4px 0; transition: color .15s; }
+.fcol a:hover { color: var(--accent); }
+.footer-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-faint); text-align: center; }
+
+@media (max-width: 860px) {
+  .doc-wrap { grid-template-columns: 1fr; gap: 0; }
+  .toc { display: none; }
+}
+@media (max-width: 600px) {
+  .container { padding: 0 20px; }
+  .doc-hero h1 { font-size: 30px; }
+  .footer-cols { gap: 32px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo" aria-label="سيمبل">
+      <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(25 100 100)"/><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(-25 100 100)"/><path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/><circle cx="100" cy="100" r="8" fill="#0a0a0a"/></g></svg>
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <a href="/" class="nav-back">العودة للرئيسية</a>
+  </div>
+</nav>
+
+<header class="doc-hero">
+  <div class="container">
+    <span class="doc-kicker"><span class="dot"></span> مستند قانوني</span>
+    <h1>الشروط والأحكام</h1>
+    <div class="doc-meta">آخر تحديث: ٣ يونيو ٢٠٢٦</div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="doc-wrap">
+
+    <aside class="toc" aria-label="فهرس">
+      <h4>المحتوى</h4>
+      <a href="#intro">مقدمة</a>
+      <a href="#service">١. وصف الخدمة</a>
+      <a href="#eligibility">٢. الأهلية والحساب</a>
+      <a href="#role">٣. دور سيمبل كوسيط</a>
+      <a href="#workflow">٤. سير الصفقة والمدفوعات</a>
+      <a href="#conduct">٥. الاستخدام المقبول</a>
+      <a href="#ip">٦. الملكية الفكرية</a>
+      <a href="#liability">٧. إخلاء المسؤولية</a>
+      <a href="#changes">٨. تعديل الشروط والإنهاء</a>
+      <a href="#law">٩. القانون الحاكم</a>
+      <a href="#contact">١٠. التواصل</a>
+    </aside>
+
+    <div class="doc-body">
+
+      <p class="intro" id="intro">
+        مرحبًا بك في <strong>سيمبل (AgentSimple)</strong> — منصة سعودية تربط الشركات بالمؤثرين عبر وكيل تفاوض ذكي.
+        باستخدامك للمنصة عبر الموقع <strong>agentsimpleai.com</strong> أو أي من خدماتها، فإنك توافق على هذه الشروط والأحكام.
+        إذا كنت لا توافق عليها، يُرجى عدم استخدام المنصة. تُشير كلمات «نحن» و«المنصة» و«سيمبل» إلى الخدمة ومشغّليها،
+        وتُشير «أنت» إلى المستخدم سواء كان شركة (معلِن تجاري) أو مؤثرًا.
+      </p>
+
+      <section class="doc-section" id="service">
+        <h2><span class="num">١</span> وصف الخدمة</h2>
+        <p>سيمبل منصة وسيطة تتيح للشركات نشر حملات إعلانية، وتتيح للمؤثرين التقديم عليها. يقوم وكيل ذكي بالتفاوض على العروض نيابةً عن الطرفين للوصول إلى سعر مناسب، ثم يُعرض الاتفاق على الشركة لاعتماده. بعد الاعتماد، تمر الصفقة عبر سير عمل من عدة مراحل (العنوان، الشحن، الاستلام، البريف، المحتوى، الموافقة، النشر، البيانات البنكية، الإكمال).</p>
+        <p>قد نُحدّث ميزات المنصة أو نُعدّلها أو نوقف بعضها في أي وقت لتطوير الخدمة.</p>
+      </section>
+
+      <section class="doc-section" id="eligibility">
+        <h2><span class="num">٢</span> الأهلية والحساب</h2>
+        <ul>
+          <li>يجب أن يكون عمرك <strong>١٨ عامًا</strong> فأكثر، وأن تملك الأهلية النظامية لإبرام الاتفاقيات.</li>
+          <li>تلتزم بتقديم بيانات <strong>صحيحة ومحدّثة</strong> عند التسجيل وأثناء الاستخدام.</li>
+          <li>أنت مسؤول عن الحفاظ على سرية بيانات دخولك وعن جميع الأنشطة التي تتم عبر حسابك.</li>
+          <li>يحق لنا تعليق أو إيقاف أي حساب يخالف هذه الشروط أو يُستخدم بشكل مسيء.</li>
+        </ul>
+      </section>
+
+      <section class="doc-section" id="role">
+        <h2><span class="num">٣</span> دور سيمبل كوسيط</h2>
+        <p>سيمبل تُقدّم أدوات للتعارف والتفاوض وتتبّع تنفيذ الصفقة بين الشركة والمؤثر. <strong>سيمبل ليست طرفًا في الاتفاق</strong> الذي يُبرم بين الشركة والمؤثر، ولا تتحمّل مسؤولية تنفيذ أيٍّ منهما لالتزاماته.</p>
+        <div class="callout">
+          الاتفاق النهائي على المحتوى والتنفيذ والدفع هو بين الشركة والمؤثر مباشرةً. دور المنصة هو التسهيل والتنظيم فقط.
+        </div>
+      </section>
+
+      <section class="doc-section" id="workflow">
+        <h2><span class="num">٤</span> سير الصفقة والمدفوعات</h2>
+        <ul>
+          <li>بعد اعتماد الشركة للسعر، تنتقل الصفقة عبر مراحلها حتى الإكمال، ويُحدّث كل طرف بياناته في وقتها.</li>
+          <li>تُحدَّد <strong>مدة الدفع</strong> ضمن تفاصيل كل حملة، ويلتزم الطرفان بها.</li>
+          <li>في الوقت الحالي، تتم عملية الدفع <strong>مباشرةً بين الشركة والمؤثر</strong> خارج المنصة وفق ما يتفقان عليه؛ سيمبل لا تستلم أو تحتجز المبالغ. (قد يتغيّر ذلك مستقبلًا مع إضافة وسائل دفع داخل المنصة، وسنُحدّث الشروط حينها.)</li>
+          <li>أي نزاع مالي أو تعاقدي بين الطرفين يُحلّ بينهما؛ ويمكن للمنصة المساعدة بالمعلومات المتاحة لديها دون أن تكون مسؤولة عن النتيجة.</li>
+        </ul>
+      </section>
+
+      <section class="doc-section" id="conduct">
+        <h2><span class="num">٥</span> الاستخدام المقبول</h2>
+        <p>تلتزم بعدم القيام بما يلي:</p>
+        <ul>
+          <li>نشر محتوى مخالف للأنظمة أو مضلِّل أو ينتهك حقوق الغير.</li>
+          <li>انتحال هوية شخص أو جهة، أو تقديم بيانات مزيّفة.</li>
+          <li>محاولة الاحتيال، أو تجاوز التفاوض خارج المنصة بقصد الإضرار بها أو بالطرف الآخر.</li>
+          <li>إساءة استخدام المنصة تقنيًا (محاولات اختراق، إرسال برمجيات ضارة، أو جمع بيانات المستخدمين دون إذن).</li>
+        </ul>
+      </section>
+
+      <section class="doc-section" id="ip">
+        <h2><span class="num">٦</span> الملكية الفكرية</h2>
+        <p>اسم سيمبل وشعاره وتصميم المنصة وبرمجياتها مملوكة لنا. لا يجوز نسخها أو إعادة استخدامها دون إذن. أما المحتوى الذي يُنشئه المؤثر ضمن الحملة، فتُنظّمه الاتفاقية بين الشركة والمؤثر.</p>
+      </section>
+
+      <section class="doc-section" id="liability">
+        <h2><span class="num">٧</span> إخلاء المسؤولية وحدودها</h2>
+        <p>تُقدَّم المنصة «كما هي» دون ضمانات بعدم انقطاع الخدمة أو خلوّها من الأخطاء. بالقدر الذي تسمح به الأنظمة، لا تتحمّل سيمبل المسؤولية عن أي أضرار غير مباشرة أو خسائر ناتجة عن استخدام المنصة أو عن التعاملات بين الشركة والمؤثر.</p>
+      </section>
+
+      <section class="doc-section" id="changes">
+        <h2><span class="num">٨</span> تعديل الشروط والإنهاء</h2>
+        <p>قد نُحدّث هذه الشروط من وقت لآخر، وسيظهر «تاريخ آخر تحديث» في أعلى الصفحة. استمرارك في استخدام المنصة بعد التحديث يُعدّ موافقةً على النسخة المُحدّثة. يمكنك إنهاء استخدامك في أي وقت بإيقاف حسابك.</p>
+      </section>
+
+      <section class="doc-section" id="law">
+        <h2><span class="num">٩</span> القانون الحاكم</h2>
+        <p>تخضع هذه الشروط وتُفسَّر وفقًا لأنظمة <strong>المملكة العربية السعودية</strong>، وتختص الجهات المختصة فيها بالنظر في أي نزاع ينشأ عنها.</p>
+      </section>
+
+      <section class="doc-section" id="contact">
+        <h2><span class="num">١٠</span> التواصل</h2>
+        <p>لأي استفسار حول هذه الشروط، راسلنا على: <a href="mailto:hello@agentsimpleai.com">hello@agentsimpleai.com</a></p>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="logo" aria-label="سيمبل">
+          <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(25 100 100)"/><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="8" transform="rotate(-25 100 100)"/><path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="6"/><circle cx="100" cy="100" r="7" fill="#0a0a0a"/></g></svg>
+          <span class="logo-mark">سيمبل</span>
+        </a>
+        <p>منصة سعودية تربط الشركات بالمؤثرين عبر وكيل تفاوض ذكي.</p>
+      </div>
+      <div class="footer-cols">
+        <div class="fcol">
+          <h4>المنصة</h4>
+          <a href="/signup.html?role=brand">للشركات</a>
+          <a href="/signup.html?role=creator">للمعلنين</a>
+          <a href="/login.html">تسجيل الدخول</a>
+        </div>
+        <div class="fcol">
+          <h4>قانوني</h4>
+          <a href="/terms.html">الشروط والأحكام</a>
+          <a href="/privacy.html">سياسة الخصوصية</a>
+        </div>
+        <div class="fcol">
+          <h4>تواصل</h4>
+          <a href="mailto:hello@agentsimpleai.com">راسلنا</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year">2026</span> سيمبل · جميع الحقوق محفوظة</div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
