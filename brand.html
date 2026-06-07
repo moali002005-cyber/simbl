@@ -1761,9 +1761,45 @@ async function init() {
   document.getElementById('user-initial').textContent = companyName[0];
   document.getElementById('welcome-name').textContent = companyName;
 
+  // ====== بوابة الموافقة: الشركة لازم تكون مفعّلة قبل استخدام المنصة ======
+  // أي حالة غير 'pending'/'rejected' (بما فيها القديمة بدون قيمة) تُعتبر مفعّلة،
+  // عشان الحسابات الحالية والشركات المفعّلة ما تتأثر.
+  let approvalStatus = currentUser.approval_status;
+  try {
+    const { data: meRow } = await supabaseClient
+      .from('users').select('approval_status').eq('id', currentUser.id).maybeSingle();
+    if (meRow && meRow.approval_status) {
+      approvalStatus = meRow.approval_status;
+      currentUser.approval_status = approvalStatus;
+      saveCurrentUser(currentUser);
+    }
+  } catch (e) { /* نعتمد القيمة المخزّنة عند تعذّر الجلب */ }
+  if (approvalStatus === 'pending' || approvalStatus === 'rejected') {
+    showPendingScreen(approvalStatus);
+    return;
+  }
+
   initNotifications('user-menu');
 
   await loadData();
+}
+
+// شاشة "قيد المراجعة" / "غير مفعّل" — تمنع المحتوى حتى تفعيل الأدمن
+function showPendingScreen(status) {
+  const main = document.querySelector('main');
+  if (!main) return;
+  const rejected = status === 'rejected';
+  main.innerHTML = `
+    <section class="hero" style="padding-top:72px">
+      <div style="max-width:520px;margin:0 auto;text-align:center">
+        <div style="width:84px;height:84px;border-radius:50%;background:${rejected ? 'var(--cream-darker)' : 'rgba(19,185,178,0.12)'};display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:38px">${rejected ? '✕' : '🔎'}</div>
+        <h1 class="hero-title" style="font-size:30px">${rejected ? 'لم يتم تفعيل حسابكم' : 'حسابكم قيد المراجعة'}</h1>
+        <p class="hero-sub">${rejected
+          ? 'نعتذر، ما تم تفعيل حسابكم حاليًا. لأي استفسار تواصلوا مع فريق سيمبل عبر hello@agentsimpleai.com'
+          : 'فريق سيمبل يراجع حسابكم الآن للتأكد منه. بمجرد التفعيل بتقدرون تطلقون حملاتكم وتستقبلون العروض. شكرًا لصبركم 🌿'}</p>
+        ${rejected ? '' : '<p style="font-size:13px;color:var(--ink-muted);margin-top:6px">تقدرون ترجعون لاحقًا — حسابكم بيشتغل تلقائيًا فور التفعيل.</p>'}
+      </div>
+    </section>`;
 }
 
 async function loadData() {
