@@ -1165,6 +1165,34 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 textarea { resize: vertical; min-height: 80px; }
 .hint { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
 
+/* ============ Payment pledge consent (إقرار الشركة بالدفع) ============ */
+.pledge-box {
+  background: rgba(19, 185, 178, 0.05);
+  border: 1px solid rgba(19, 185, 178, 0.30);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.pledge-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  line-height: 1.7;
+  margin: 0;
+}
+.pledge-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 3px 0 0 0;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.pledge-label strong { color: var(--accent-ink); font-weight: 600; }
+
 /* ============ Platform selector ============ */
 .platform-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .platform-chip {
@@ -1568,6 +1596,15 @@ textarea { resize: vertical; min-height: 80px; }
         <small style="color: var(--ink-muted); font-size: 12px; margin-top: 4px; display: block;">
           مثال: من 7 إلى 30 يوم. كلما كانت المدة أقصر، كلما زاد إقبال المؤثرين على حملتك.
         </small>
+      </div>
+
+      <div class="field" style="grid-column: span 2;">
+        <div class="pledge-box">
+          <label class="pledge-label">
+            <input type="checkbox" name="payment_pledge" id="payment-pledge">
+            <span><strong>إقرار وتعهّد بالدفع:</strong> تتعهّد الشركة بدفع المبلغ المتفق عليه للمعلن خلال المدة المحددة أعلاه بعد إكمال الحملة، وتُقرّ بأنه في حال عدم إتمام الدفع خلال المدة يحق لسيمبل إيقاف حساب الشركة حتى تسوية المستحقّات.</span>
+          </label>
+        </div>
       </div>
 
       <div class="modal-actions">
@@ -2588,6 +2625,9 @@ function setModalMode(mode, campaign) {
     form.querySelector('[name="city"]').value = campaign.city || '';
     form.querySelector('[name="payment_min_days"]').value = campaign.payment_min_days || 7;
     form.querySelector('[name="payment_max_days"]').value = campaign.payment_max_days || 30;
+    // الإقرار بالدفع: الحملة موجودة أصلاً ومتعهّدة، نعتبره موافقًا عليه
+    const pledgeEl = form.querySelector('[name="payment_pledge"]');
+    if (pledgeEl) pledgeEl.checked = true;
     // المنصة (chips)
     form.querySelectorAll('#platform-grid .platform-chip').forEach(c => {
       c.classList.toggle('active', c.dataset.value === campaign.platform);
@@ -2601,6 +2641,8 @@ function setModalMode(mode, campaign) {
     form.reset();
     form.querySelector('[name="payment_min_days"]').value = 7;
     form.querySelector('[name="payment_max_days"]').value = 30;
+    const pledgeEl = form.querySelector('[name="payment_pledge"]');
+    if (pledgeEl) pledgeEl.checked = false;
     // صفّر المنصة وتاريخ النشر
     form.querySelectorAll('#platform-grid .platform-chip').forEach(c => c.classList.remove('active'));
     form.querySelector('#platform-input').value = '';
@@ -2729,6 +2771,12 @@ async function submitCampaign(event) {
   // تحقق من اختيار نطاق متابعين واحد على الأقل
   if (!followerRange) {
     showToast('اختر نطاق متابعين واحد على الأقل.', 'error');
+    return;
+  }
+  // تحقق من موافقة الشركة على إقرار الدفع (إجباري قبل النشر)
+  const pledgeEl = form.querySelector('[name="payment_pledge"]');
+  if (!pledgeEl || !pledgeEl.checked) {
+    showToast('لازم توافق على إقرار الدفع قبل نشر الحملة.', 'error');
     return;
   }
 
