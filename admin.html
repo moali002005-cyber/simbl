@@ -131,6 +131,19 @@ tbody tr.clickable:hover{background:var(--panel2)}
 .ins.good i{color:var(--good)} .ins.warn i{color:var(--warn)} .ins.info i{color:var(--accent)}
 .ins .it{font-size:13.5px;line-height:1.6}
 .note{font-size:12px;color:var(--faint);margin-top:10px;display:flex;align-items:flex-start;gap:6px}
+.appr-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.appr-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.appr-name{font-size:15px;font-weight:600}
+.appr-meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.appr-meta span{display:inline-flex;align-items:center;gap:5px}
+.appr-link{color:var(--accent-dim);font-weight:500;word-break:break-all}
+.appr-actions{display:flex;gap:10px}
+.btn-appr{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;border:1px solid;font-family:var(--font);font-size:13.5px;font-weight:500;cursor:pointer;transition:.15s}
+.btn-ok{background:var(--accent);border-color:var(--accent);color:#04211f}
+.btn-ok:hover{background:#15cdc5}
+.btn-no{background:transparent;border-color:var(--line2);color:var(--danger)}
+.btn-no:hover{border-color:var(--danger);background:rgba(210,59,59,.06)}
+#pending-count .pending-badge{background:var(--danger);color:#fff;font-size:11px;border-radius:100px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
 
 /* ===== drawer ===== */
 .drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 16px;overflow-y:auto}
@@ -201,6 +214,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
+    <button class="tab" data-tab="approvals">طلبات التفعيل<span id="pending-count"></span></button>
     <button class="tab" data-tab="analytics">تحليلات</button>
     <button class="tab" data-tab="insights">رؤى</button>
     <button class="tab" data-tab="users">المستخدمون</button>
@@ -318,6 +332,14 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
         <h2><i class="ti ti-coin"></i> أكثر الشركات إنفاقًا</h2>
         <div class="tbl-wrap"><table><thead><tr><th>الشركة</th><th>صفقات</th><th>إنفاق</th></tr></thead><tbody id="top-brands"></tbody></table></div>
       </div>
+    </div>
+  </div>
+
+  <!-- approvals -->
+  <div class="panel" id="panel-approvals">
+    <div class="section">
+      <h2><i class="ti ti-user-check"></i> طلبات التفعيل (معلنون قيد المراجعة)</h2>
+      <div id="approvals-list"></div>
     </div>
   </div>
 
@@ -453,7 +475,7 @@ async function loadAll(silent){
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
     $('#err-box').style.display='none';
-    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderUsers(); renderCampaigns(); renderDeals();
+    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderUsers(); renderCampaigns(); renderDeals();
     updateUpd();
   }catch(err){
     console.error(err);
@@ -662,6 +684,44 @@ function renderInsights(){
     '<div class="ins '+lvl+'"><i class="ti '+ic+'"></i><div class="it">'+esc(txt)+'</div></div>').join('') :
     '<div class="empty">لسه ما فيه بيانات كافية للرؤى — كمّل تشغيل المنصة وبتظهر تلقائيًا</div>';
 }
+
+// ===== approvals =====
+function renderApprovals(){
+  const pend=USERS.filter(u=>u.role==='creator' && u.approval_status==='pending');
+  const badge=$('#pending-count');
+  if(badge) badge.innerHTML = pend.length?('<span class="pending-badge">'+num(pend.length)+'</span>'):'';
+  const el=$('#approvals-list'); if(!el) return;
+  if(!pend.length){ el.innerHTML='<div class="empty">ما فيه طلبات قيد المراجعة حاليًا</div>'; return; }
+  el.innerHTML = pend.map(u=>{
+    const safeLink=(u.website && /^https?:\/\//i.test(u.website))?u.website:null;
+    const linkHtml = safeLink
+      ? '<div style="margin-bottom:12px;font-size:13px"><i class="ti ti-link"></i> <a class="appr-link" href="'+esc(safeLink)+'" target="_blank" rel="noopener">'+esc(safeLink)+'</a></div>'
+      : (u.website ? '<div style="margin-bottom:12px;font-size:13px" class="dim">الرابط: '+esc(u.website)+'</div>' : '<div class="dim" style="margin-bottom:12px;font-size:13px">لا يوجد رابط</div>');
+    return '<div class="appr-card">'+
+      '<div class="appr-head"><div class="appr-name">'+esc(u.name||'—')+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</div>'+
+      '<span class="dim" style="font-size:12px">'+fmtDate(u.created_at)+'</span></div>'+
+      '<div class="appr-meta">'+
+        '<span><i class="ti ti-device-mobile"></i>'+esc(PLATFORM[u.platform]||u.platform||'—')+'</span>'+
+        '<span><i class="ti ti-users"></i>'+(u.followers?num(u.followers):'—')+' متابع</span>'+
+        '<span><i class="ti ti-category"></i>'+esc(CATEGORY[u.category]||u.category||'—')+'</span>'+
+        '<span><i class="ti ti-mail"></i>'+esc(u.email||'—')+'</span>'+
+        (u.whatsapp?'<span><i class="ti ti-phone"></i>'+esc(u.whatsapp)+'</span>':'')+
+      '</div>'+ linkHtml +
+      '<div class="appr-actions">'+
+        '<button class="btn-appr btn-ok" onclick="approveUser(\''+esc(String(u.id))+'\')"><i class="ti ti-check"></i> تأكيد التفعيل</button>'+
+        '<button class="btn-appr btn-no" onclick="rejectUser(\''+esc(String(u.id))+'\')"><i class="ti ti-x"></i> رفض</button>'+
+      '</div></div>';
+  }).join('');
+}
+async function setApproval(id,status){
+  try{
+    const { error } = await sb.from('users').update({ approval_status: status }).eq('id', id);
+    if(error) throw error;
+    await loadAll(true);
+  }catch(e){ alert('تعذّر تحديث الحالة: '+(e.message||e)); }
+}
+function approveUser(id){ setApproval(id,'approved'); }
+function rejectUser(id){ if(confirm('تأكيد رفض هذا الحساب؟ المعلن ما راح يقدر يستخدم المنصة.')) setApproval(id,'rejected'); }
 
 // ===== derived per-campaign / per-app =====
 function appsOfCampaign(cid){ return APPS.filter(a=>a.campaign_id===cid); }
