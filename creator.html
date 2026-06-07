@@ -594,6 +594,32 @@ body {
   padding: 4px 12px;
 }
 
+/* ============ Payment tracking card (بعد إكمال الحملة) ============ */
+.pay-deadline {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 8px;
+}
+.pay-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.pay-btn-ghost {
+  background: #fff;
+  color: var(--ink-soft);
+  border: 1px solid var(--line-strong);
+  padding: 11px 20px;
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+.pay-btn-ghost:hover { border-color: #c93030; color: #c93030; }
+
 /* ============ Workflow progress strip ============ */
 .workflow-strip {
   display: flex;
@@ -1627,9 +1653,78 @@ function toggleBrief(id, btn) {
   btn.textContent = isExpanded ? 'إخفاء ↑' : 'قراءة المزيد ↓';
 }
 
+// آخر موعد للدفع = وقت الإكمال + payment_max_days (لو متوفّرة)
+function paymentDeadlineText(app) {
+  const c = app && app.campaigns;
+  const days = c ? parseInt(c.payment_max_days, 10) : NaN;
+  if (!app || !app.completed_at || isNaN(days) || days <= 0) return '';
+  const d = new Date(app.completed_at);
+  if (isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + days);
+  try { return d.toLocaleDateString('ar-SA'); } catch (e) { return ''; }
+}
+
+// بطاقة الدفع (تظهر بعد المرحلة ٩) — جهة المعلن
+function renderPaymentCard(app) {
+  if (!app) {
+    return `<div class="stage-action complete" onclick="event.stopPropagation()"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
+  }
+  const status = app.payment_status || 'unpaid';
+  const deadline = paymentDeadlineText(app);
+  const deadlineLine = deadline ? `<div class="pay-deadline">آخر موعد متوقّع للدفع: ${deadline}</div>` : '';
+
+  if (status === 'confirmed') {
+    return `<div class="stage-action complete" onclick="event.stopPropagation()">
+      <div class="sa-title">🎉 اكتملت الصفقة والدفع</div>
+      <div class="sa-desc">أكّدت استلام المبلغ. تمت الصفقة بالكامل — شكرًا لك.</div>
+    </div>`;
+  }
+  if (status === 'disputed') {
+    return `<div class="stage-action" onclick="event.stopPropagation()" style="background:rgba(201,48,48,0.05);border-color:rgba(201,48,48,0.3)">
+      <div class="sa-title">⚠️ أبلغت بعدم الاستلام</div>
+      <div class="sa-desc">فريق سيمبل يراجع الحالة مع الشركة. لو وصلك المبلغ بعد كذا، اضغط «استلمت المبلغ».</div>
+      <div class="pay-actions"><button class="sa-btn" onclick="event.stopPropagation(); setCreatorPayment('${app.id}','confirmed')">استلمت المبلغ ✓</button></div>
+    </div>`;
+  }
+  if (status === 'marked_paid') {
+    return `<div class="stage-action mine" onclick="event.stopPropagation()">
+      <div class="sa-title">💸 الشركة حوّلت المبلغ</div>
+      <div class="sa-desc">الشركة أبلغت أنها حوّلت المبلغ المتفق عليه. تأكّد من حسابك البنكي وأكّد الحالة:</div>
+      ${deadlineLine}
+      <div class="pay-actions">
+        <button class="sa-btn" onclick="event.stopPropagation(); setCreatorPayment('${app.id}','confirmed')">استلمت المبلغ ✓</button>
+        <button class="pay-btn-ghost" onclick="event.stopPropagation(); setCreatorPayment('${app.id}','disputed')">لم أستلم بعد</button>
+      </div>
+    </div>`;
+  }
+  // unpaid (الافتراضي)
+  return `<div class="stage-action complete" onclick="event.stopPropagation()">
+    <div class="sa-title">🎉 صفقة مكتملة — بانتظار الدفع</div>
+    <div class="sa-desc">خلّصت كل المراحل. الشركة متعهّدة بتحويل المبلغ، وبتقدر تأكّد الاستلام هنا أول ما يوصلك.</div>
+    ${deadlineLine}
+  </div>`;
+}
+
+async function setCreatorPayment(applicationId, newStatus) {
+  const patch = { payment_status: newStatus };
+  if (newStatus === 'confirmed') patch.received_confirmed_at = new Date().toISOString();
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications').update(patch).eq('id', applicationId).select();
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+    await loadData();
+    showToast(newStatus === 'confirmed' ? 'تم تأكيد استلام المبلغ ✓' : 'تم إبلاغ سيمبل بعدم الاستلام.');
+  } catch (err) {
+    console.error('Payment update error:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
 function renderStageAction(applicationId, currentStage, viewerRole) {
   if (currentStage >= 9) {
-    return `<div class="stage-action complete" onclick="event.stopPropagation()"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
+    const app = myApplications.find(a => a.id === applicationId);
+    return renderPaymentCard(app);
   }
   const info = STAGE_ACTIONS[currentStage];
   if (!info) return '';
@@ -1684,10 +1779,16 @@ async function submitStageForm(applicationId) {
   submitBtn.disabled = true;
   submitBtn.textContent = 'جاري الحفظ...';
 
+  // عند الوصول للمرحلة ٩ (مكتمل) نسجّل وقت الإكمال — منه تُحسب مهلة الدفع
+  const stageUpdate = { stage: newStage, stage_data: existing };
+  if (newStage >= 9) {
+    stageUpdate.completed_at = new Date().toISOString();
+  }
+
   try {
     const { data: updated, error } = await supabaseClient
       .from('applications')
-      .update({ stage: newStage, stage_data: existing })
+      .update(stageUpdate)
       .eq('id', applicationId)
       .select('*, campaigns(brand_id, title)');
     if (error) throw error;
