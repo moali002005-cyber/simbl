@@ -704,7 +704,9 @@ function renderApprovals(){
       meta = '<div class="appr-meta">'+
         '<span><i class="ti ti-building"></i>'+esc(INDUSTRY[u.industry]||u.industry||'—')+'</span>'+
         (u.size?'<span><i class="ti ti-users-group"></i>'+esc(SIZE[u.size]||u.size)+'</span>':'')+
-        '<span><i class="ti ti-id-badge-2"></i>السجل: '+esc(u.cr_number||'—')+'</span>'+
+        ((u.cr_number && /^https?:\/\//i.test(u.cr_number))
+          ? '<span><i class="ti ti-file-text"></i><a class="appr-link" href="'+esc(u.cr_number)+'" target="_blank" rel="noopener">مستند السجل التجاري</a></span>'
+          : '<span><i class="ti ti-id-badge-2"></i>السجل: '+esc(u.cr_number||'—')+'</span>')+
         (u.name?'<span><i class="ti ti-user"></i>'+esc(u.name)+(u.position?' · '+esc(u.position):'')+'</span>':'')+
         '<span><i class="ti ti-mail"></i>'+esc(u.email||'—')+'</span>'+
         (u.phone?'<span><i class="ti ti-phone"></i>'+esc(u.phone)+'</span>':'')+
