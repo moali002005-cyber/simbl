@@ -580,6 +580,20 @@ body {
 .ag-price .num { color: var(--accent); font-size: 16px; }
 .ag-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.6; }
 
+/* ============ Payment pledge note (تعهّد الدفع — يظهر للمعلن) ============ */
+.pay-pledge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-ink);
+  background: rgba(19, 185, 178, 0.10);
+  border: 1px solid rgba(19, 185, 178, 0.28);
+  border-radius: 100px;
+  padding: 4px 12px;
+}
+
 /* ============ Workflow progress strip ============ */
 .workflow-strip {
   display: flex;
@@ -1095,6 +1109,21 @@ function followerRangeText(c) {
     .map(v => FOLLOWER_RANGE_LABELS[v] || v).join('، ');
 }
 
+// ====== تعهّد الدفع: نص يظهر للمعلن (نطاق أيام الدفع بعد إكمال الحملة) ======
+function paymentPledgeText(c) {
+  if (!c) return '';
+  const mn = parseInt(c.payment_min_days, 10);
+  const mx = parseInt(c.payment_max_days, 10);
+  const hasMn = !isNaN(mn) && mn > 0;
+  const hasMx = !isNaN(mx) && mx > 0;
+  if (!hasMn && !hasMx) return '';
+  if (hasMn && hasMx && mn !== mx) {
+    return `الدفع خلال ${toArabic(mn)}–${toArabic(mx)} يوم بعد إكمال الحملة`;
+  }
+  const d = hasMx ? mx : mn;
+  return `الدفع خلال ${toArabic(d)} يوم بعد إكمال الحملة`;
+}
+
 // نص الـ pill يعتمد على عدد العروض المقدّمة (غير المرفوضة):
 // لا يظهر "لا يوجد لديك عروض حالياً" إلا إذا كان العدد صفر فعلاً.
 function offersWaitingLabel(n) {
@@ -1230,6 +1259,7 @@ function renderUnified() {
 function renderBrowseCard(c) {
   const brandName = c.brand || 'شركة';
   const brandInitial = brandName[0] || '؟';
+  const pledge = paymentPledgeText(c);
   return `
     <div class="ac-card no-expand">
       <div class="ac-head" style="cursor:default;">
@@ -1247,6 +1277,7 @@ function renderBrowseCard(c) {
         ${c.platform ? `<span class="meta-item">◇ ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
         ${c.follower_range ? `<span class="meta-item">◯ ${followerRangeText(c)}</span>` : ''}
         ${c.city ? `<span class="meta-item">📍 ${CITY_LABELS[c.city] || c.city}</span>` : ''}
+        ${pledge ? `<span class="pay-pledge">💸 ${pledge}</span>` : ''}
       </div>
     </div>
   `;
