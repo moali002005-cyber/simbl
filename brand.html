@@ -1193,6 +1193,28 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .pledge-label strong { color: var(--accent-ink); font-weight: 600; }
 
+/* ============ Payment tracking card (بعد إكمال الحملة) — جهة الشركة ============ */
+.pay-bank-box {
+  background: var(--cream-darker);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.9;
+}
+.pay-bank-box .pbk-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pay-bank-box strong { color: var(--ink); font-weight: 600; }
+.pay-bank-box .iban-val {
+  font-family: var(--font-display);
+  letter-spacing: 0.5px;
+  word-break: break-all;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.pay-deadline { font-size: 12px; color: var(--ink-muted); margin-top: 8px; }
+.pay-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
 /* ============ Platform selector ============ */
 .platform-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .platform-chip {
@@ -2493,9 +2515,96 @@ function toggleHistory(id) {
   if (el) el.classList.toggle('collapsed');
 }
 
+// آخر موعد للدفع = وقت الإكمال + payment_max_days (لو متوفّرة)
+function paymentDeadlineTextBrand(app, campaign) {
+  const days = campaign ? parseInt(campaign.payment_max_days, 10) : NaN;
+  if (!app || !app.completed_at || isNaN(days) || days <= 0) return '';
+  const d = new Date(app.completed_at);
+  if (isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + days);
+  try { return d.toLocaleDateString('ar-SA'); } catch (e) { return ''; }
+}
+
+// بطاقة الدفع (تظهر بعد المرحلة ٩) — جهة الشركة
+function renderBrandPaymentCard(app, campaign) {
+  if (!app) {
+    return `<div class="stage-action complete"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
+  }
+  const status = app.payment_status || 'unpaid';
+  const amount = (app.final_price || app.price || 0).toLocaleString('ar-SA');
+  const sd = (typeof app.stage_data === 'object' && app.stage_data) ? app.stage_data : {};
+  const bank = sd[8] || sd['8'] || {};
+  const deadline = paymentDeadlineTextBrand(app, campaign);
+  const deadlineLine = deadline ? `<div class="pay-deadline">آخر موعد للدفع المتفق عليه: ${deadline}</div>` : '';
+  const bankBox = (bank.iban || bank.account_holder) ? `<div class="pay-bank-box">
+      ${bank.account_holder ? `<div class="pbk-row"><strong>اسم صاحب الحساب:</strong> ${escHtml(bank.account_holder)}</div>` : ''}
+      ${bank.iban ? `<div class="pbk-row"><strong>الآيبان:</strong> <span class="iban-val">${escHtml(bank.iban)}</span></div>` : ''}
+      ${bank.bank_name ? `<div class="pbk-row"><strong>البنك:</strong> ${escHtml(bank.bank_name)}</div>` : ''}
+    </div>` : '';
+
+  if (status === 'confirmed') {
+    return `<div class="stage-action complete"><div class="sa-title">🎉 اكتمل الدفع</div><div class="sa-desc">المعلن أكّد استلام المبلغ. تمت الصفقة بالكامل.</div></div>`;
+  }
+  if (status === 'disputed') {
+    return `<div class="stage-action" style="background:rgba(201,48,48,0.05);border-color:rgba(201,48,48,0.3)">
+      <div class="sa-title">⚠️ المعلن أبلغ بعدم استلام المبلغ</div>
+      <div class="sa-desc">تواصل مع المعلن وتأكّد من التحويل. بعد ما تتأكّد، اضغط «تم التحويل» مرة ثانية.</div>
+      ${bankBox}
+      <div class="pay-actions"><button class="sa-btn" onclick="setBrandPaid('${app.id}')">تم التحويل ✓</button></div>
+    </div>`;
+  }
+  if (status === 'marked_paid') {
+    return `<div class="stage-action complete">
+      <div class="sa-title">💸 تم تسجيل التحويل</div>
+      <div class="sa-desc">سجّلنا أنك حوّلت المبلغ (${amount} ر.س). بانتظار تأكيد المعلن استلامه.</div>
+      ${deadlineLine}
+    </div>`;
+  }
+  // unpaid (الافتراضي)
+  return `<div class="stage-action mine">
+    <div class="sa-title">💸 حان موعد الدفع</div>
+    <div class="sa-desc">الحملة اكتملت. حوّل المبلغ المتفق عليه (<strong>${amount} ر.س</strong>) لحساب المعلن، ثم اضغط «تم التحويل».</div>
+    ${bankBox}
+    ${deadlineLine}
+    <div class="pay-actions"><button class="sa-btn" onclick="setBrandPaid('${app.id}')">تم التحويل ✓</button></div>
+  </div>`;
+}
+
+async function setBrandPaid(applicationId) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .update({ payment_status: 'marked_paid', paid_marked_at: new Date().toISOString() })
+      .eq('id', applicationId)
+      .select();
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+
+    // إشعار المعلن إن الشركة حوّلت
+    const { app, campaign } = findAppById(applicationId);
+    if (app && app.creator_id) {
+      const title = '💸 تم تحويل مستحقاتك';
+      const body = `${campaign?.title || 'صفقة'}: الشركة أبلغت بتحويل المبلغ. افتح صفقتك وأكّد الاستلام.`;
+      createNotification(app.creator_id, 'payment_marked', title, body, '/creator.html').catch(console.error);
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body, url: '/creator.html', target_users: [app.creator_id] })
+      }).catch(console.error);
+    }
+
+    await loadData();
+    showToast('تم تسجيل التحويل ✓ — بانتظار تأكيد المعلن.');
+  } catch (err) {
+    console.error('Brand paid error:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
 function renderStageAction(applicationId, currentStage, viewerRole) {
   if (currentStage >= 9) {
-    return `<div class="stage-action complete"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
+    const found = findAppById(applicationId);
+    return renderBrandPaymentCard(found.app, found.campaign);
   }
   const info = STAGE_ACTIONS[currentStage];
   if (!info) return '';
