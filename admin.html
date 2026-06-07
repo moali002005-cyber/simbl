@@ -687,7 +687,7 @@ function renderInsights(){
 
 // ===== approvals =====
 function renderApprovals(){
-  const pend=USERS.filter(u=>u.role==='creator' && u.approval_status==='pending');
+  const pend=USERS.filter(u=>(u.role==='creator'||u.role==='brand') && u.approval_status==='pending');
   const badge=$('#pending-count');
   if(badge) badge.innerHTML = pend.length?('<span class="pending-badge">'+num(pend.length)+'</span>'):'';
   const el=$('#approvals-list'); if(!el) return;
@@ -697,16 +697,31 @@ function renderApprovals(){
     const linkHtml = safeLink
       ? '<div style="margin-bottom:12px;font-size:13px"><i class="ti ti-link"></i> <a class="appr-link" href="'+esc(safeLink)+'" target="_blank" rel="noopener">'+esc(safeLink)+'</a></div>'
       : (u.website ? '<div style="margin-bottom:12px;font-size:13px" class="dim">الرابط: '+esc(u.website)+'</div>' : '<div class="dim" style="margin-bottom:12px;font-size:13px">لا يوجد رابط</div>');
-    return '<div class="appr-card">'+
-      '<div class="appr-head"><div class="appr-name">'+esc(u.name||'—')+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</div>'+
-      '<span class="dim" style="font-size:12px">'+fmtDate(u.created_at)+'</span></div>'+
-      '<div class="appr-meta">'+
+
+    let head, meta;
+    if(u.role==='brand'){
+      head = '<div class="appr-name"><span class="badge b-brand">شركة</span> '+esc(u.company_name||u.name||'—')+'</div>';
+      meta = '<div class="appr-meta">'+
+        '<span><i class="ti ti-building"></i>'+esc(INDUSTRY[u.industry]||u.industry||'—')+'</span>'+
+        (u.size?'<span><i class="ti ti-users-group"></i>'+esc(SIZE[u.size]||u.size)+'</span>':'')+
+        '<span><i class="ti ti-id-badge-2"></i>السجل: '+esc(u.cr_number||'—')+'</span>'+
+        (u.name?'<span><i class="ti ti-user"></i>'+esc(u.name)+(u.position?' · '+esc(u.position):'')+'</span>':'')+
+        '<span><i class="ti ti-mail"></i>'+esc(u.email||'—')+'</span>'+
+        (u.phone?'<span><i class="ti ti-phone"></i>'+esc(u.phone)+'</span>':'')+
+      '</div>';
+    } else {
+      head = '<div class="appr-name"><span class="badge b-creator">معلن</span> '+esc(u.name||'—')+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</div>';
+      meta = '<div class="appr-meta">'+
         '<span><i class="ti ti-device-mobile"></i>'+esc(PLATFORM[u.platform]||u.platform||'—')+'</span>'+
         '<span><i class="ti ti-users"></i>'+(u.followers?num(u.followers):'—')+' متابع</span>'+
         '<span><i class="ti ti-category"></i>'+esc(CATEGORY[u.category]||u.category||'—')+'</span>'+
         '<span><i class="ti ti-mail"></i>'+esc(u.email||'—')+'</span>'+
         (u.whatsapp?'<span><i class="ti ti-phone"></i>'+esc(u.whatsapp)+'</span>':'')+
-      '</div>'+ linkHtml +
+      '</div>';
+    }
+    return '<div class="appr-card">'+
+      '<div class="appr-head">'+head+'<span class="dim" style="font-size:12px">'+fmtDate(u.created_at)+'</span></div>'+
+      meta + linkHtml +
       '<div class="appr-actions">'+
         '<button class="btn-appr btn-ok" onclick="approveUser(\''+esc(String(u.id))+'\')"><i class="ti ti-check"></i> تأكيد التفعيل</button>'+
         '<button class="btn-appr btn-no" onclick="rejectUser(\''+esc(String(u.id))+'\')"><i class="ti ti-x"></i> رفض</button>'+
