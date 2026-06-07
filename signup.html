@@ -409,6 +409,18 @@ textarea { resize: vertical; min-height: 80px; }
         </div>
       </div>
 
+      <div class="field">
+        <label>رقم السجل التجاري</label>
+        <input type="text" name="cr_number" required placeholder="مثال: 1010xxxxxx" inputmode="numeric">
+        <div class="hint">نتحقق من الشركة عبر السجل التجاري لتأكيد التفعيل.</div>
+      </div>
+
+      <div class="field">
+        <label>رابط حساب الشركة</label>
+        <input type="url" name="company_url" required placeholder="رابط تيك توك / انستقرام / الموقع">
+        <div class="hint">رابط حسابكم الرسمي (تيك توك أو انستقرام أو الموقع الإلكتروني).</div>
+      </div>
+
       <div class="form-section-title" style="margin-top:32px">بيانات المسؤول</div>
 
       <div class="field">
@@ -438,11 +450,6 @@ textarea { resize: vertical; min-height: 80px; }
         <div class="hint">تستخدمها لتسجيل الدخول لاحقاً.</div>
       </div>
 
-      <div class="field">
-        <label>الموقع الإلكتروني (اختياري)</label>
-        <input type="text" name="website" placeholder="https://example.com">
-      </div>
-
       <div class="checkbox-row">
         <input type="checkbox" id="brand-terms" required>
         <label for="brand-terms">أوافق على <a href="/terms.html" target="_blank">الشروط والأحكام</a> و<a href="/privacy.html" target="_blank">سياسة الخصوصية</a> الخاصة بسيمبل</label>
@@ -463,9 +470,9 @@ textarea { resize: vertical; min-height: 80px; }
 
   <div class="success-screen" id="success-brand">
     <div class="success-icon">✓</div>
-    <h2>أهلاً بكم في سيمبل</h2>
-    <p>تم إنشاء حساب شركتكم بنجاح. ابدؤوا بإنشاء أول حملة لاستقطاب المعلنين المناسبة.</p>
-    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('brand')">دخول لوحة الشركة</button>
+    <h2>تم استلام طلبكم!</h2>
+    <p>سيتم مراجعة حسابكم وتأكيده من قبل فريق سيمبل. بنبلّغكم عند تفعيل الحساب لتبدؤوا بإطلاق حملاتكم.</p>
+    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('brand')">الدخول للمنصة</button>
   </div>
 </main>
 
@@ -516,7 +523,9 @@ async function submitForm(event, role) {
     userData.position = fd.get('position');
     userData.phone = fd.get('phone');
     userData.email = email;
-    userData.website = fd.get('website') || null;
+    userData.cr_number = fd.get('cr_number') || null;
+    userData.website = fd.get('company_url') || null;
+    userData.approval_status = 'pending';
   }
 
   try {
