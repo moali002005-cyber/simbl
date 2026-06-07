@@ -126,6 +126,11 @@ tbody tr.clickable:hover{background:var(--panel2)}
 .upd{font-size:12px;color:var(--good);display:inline-flex;align-items:center;gap:6px}
 .upd::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ins{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);margin-bottom:10px}
+.ins i{font-size:18px;flex-shrink:0;margin-top:1px}
+.ins.good i{color:var(--good)} .ins.warn i{color:var(--warn)} .ins.info i{color:var(--accent)}
+.ins .it{font-size:13.5px;line-height:1.6}
+.note{font-size:12px;color:var(--faint);margin-top:10px;display:flex;align-items:flex-start;gap:6px}
 
 /* ===== drawer ===== */
 .drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 16px;overflow-y:auto}
@@ -197,6 +202,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
     <button class="tab" data-tab="analytics">تحليلات</button>
+    <button class="tab" data-tab="insights">رؤى</button>
     <button class="tab" data-tab="users">المستخدمون</button>
     <button class="tab" data-tab="campaigns">الحملات</button>
     <button class="tab" data-tab="deals">الصفقات</button>
@@ -259,6 +265,58 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
       <div class="section">
         <h2><i class="ti ti-bolt"></i> الفعالية</h2>
         <div class="mini-grid" id="activity-rates"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- insights -->
+  <div class="panel" id="panel-insights">
+    <div class="section">
+      <h2><i class="ti ti-bulb"></i> رؤى تلقائية (توصيات)</h2>
+      <div id="insights"></div>
+    </div>
+
+    <div class="section">
+      <h2><i class="ti ti-activity-heartbeat"></i> التفاعل والسلوك</h2>
+      <div class="mini-grid" id="engagement"></div>
+      <p class="note"><i class="ti ti-info-circle"></i> هذي مؤشرات تفاعل حقيقية من بياناتك. «مدة الجلسة» الفعلية تحتاج تتبّعًا تحليليًا غير مفعّل بعد — أقدر أبنيه لك كخطوة لاحقة.</p>
+    </div>
+
+    <div class="section">
+      <h2><i class="ti ti-stairs-up"></i> قمع المراحل (وين تتوقف الصفقات)</h2>
+      <div id="stage-funnel"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <h2><i class="ti ti-device-mobile"></i> نسبة الإغلاق حسب المنصة</h2>
+        <div id="conv-platform"></div>
+      </div>
+      <div class="section">
+        <h2><i class="ti ti-category"></i> نسبة الإغلاق حسب التصنيف</h2>
+        <div id="conv-category"></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <h2><i class="ti ti-repeat"></i> الاحتفاظ والتكرار</h2>
+        <div class="mini-grid" id="retention"></div>
+      </div>
+      <div class="section">
+        <h2><i class="ti ti-clock-hour-4"></i> أنشط الأوقات (عروض)</h2>
+        <div id="top-hours"></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <h2><i class="ti ti-trophy"></i> أكثر المعلنين إغلاقًا</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>المعلن</th><th>صفقات</th><th>إجمالي</th></tr></thead><tbody id="top-creators"></tbody></table></div>
+      </div>
+      <div class="section">
+        <h2><i class="ti ti-coin"></i> أكثر الشركات إنفاقًا</h2>
+        <div class="tbl-wrap"><table><thead><tr><th>الشركة</th><th>صفقات</th><th>إنفاق</th></tr></thead><tbody id="top-brands"></tbody></table></div>
       </div>
     </div>
   </div>
@@ -395,7 +453,7 @@ async function loadAll(silent){
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
     $('#err-box').style.display='none';
-    renderKPIs(); renderOverview(); renderAnalytics(); renderUsers(); renderCampaigns(); renderDeals();
+    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderUsers(); renderCampaigns(); renderDeals();
     updateUpd();
   }catch(err){
     console.error(err);
@@ -494,6 +552,115 @@ function renderAnalytics(){
     mini('معلنون خاملون',num(Math.max(0,creators.length-activeCreators)),'ti-user-off') +
     mini('شركات نشطة',num(activeBrands)+'<small> / '+num(brands.length)+'</small>','ti-building-store',true) +
     mini('شركات خاملة',num(Math.max(0,brands.length-activeBrands)),'ti-building-off');
+}
+
+// ===== insights helpers =====
+function fmtDur(h){ if(!h||h<=0) return '—'; if(h<1) return Math.round(h*60)+' دقيقة'; if(h<48) return (Math.round(h*10)/10)+' ساعة'; return Math.round(h/24)+' يوم'; }
+function barPct(entries){
+  if(!entries.length) return '<div class="empty">لا بيانات</div>';
+  return entries.map(([lbl,pct])=>{
+    const w=Math.max(0,Math.min(100,Math.round(pct)));
+    return '<div class="bar-row"><span class="bl">'+esc(lbl)+'</span><span class="bt"><span class="bf" style="width:'+w+'%"></span></span><span class="bn">'+w+'%</span></div>';
+  }).join('');
+}
+
+function renderInsights(){
+  const brands=USERS.filter(u=>u.role==='brand');
+  const creators=USERS.filter(u=>u.role==='creator');
+  const closed=APPS.filter(isClosed);
+
+  // ---- engagement ----
+  const closedWithTimes=closed.filter(a=>a.created_at&&a.closed_at);
+  const avgCloseH=closedWithTimes.length?closedWithTimes.reduce((s,a)=>s+(new Date(a.closed_at)-new Date(a.created_at))/3600000,0)/closedWithTimes.length:0;
+  const appCreator={}; APPS.forEach(a=>appCreator[a.id]=a.creator_id);
+  const msgPerCreator={}; let totalMsgsLinked=0;
+  NEGS.forEach(n=>{ const cid=appCreator[n.application_id]; if(cid==null) return; msgPerCreator[cid]=(msgPerCreator[cid]||0)+1; totalMsgsLinked++; });
+  const creatorsWithMsgs=Object.keys(msgPerCreator).length;
+  const avgMsgPerCreator=creatorsWithMsgs?(totalMsgsLinked/creatorsWithMsgs).toFixed(1):'0';
+  const appsWithMsgsSet=new Set(NEGS.map(n=>n.application_id));
+  const startedApps=APPS.filter(a=>appsWithMsgsSet.has(a.id));
+  const avgRoundsPerDeal=startedApps.length?(NEGS.length/startedApps.length).toFixed(1):'0';
+  const abandoned=startedApps.filter(a=>!isClosed(a));
+  const abandonRate=startedApps.length?Math.round(abandoned.length/startedApps.length*100):0;
+  $('#engagement').innerHTML =
+    mini('متوسط زمن الإغلاق',fmtDur(avgCloseH),'ti-clock-play',true) +
+    mini('متوسط جولات/معلن',avgMsgPerCreator,'ti-messages',true) +
+    mini('متوسط جولات/صفقة',avgRoundsPerDeal,'ti-arrows-exchange') +
+    mini('تفاوضات مهجورة',num(abandoned.length)+'<small> ('+abandonRate+'%)</small>','ti-door-exit');
+
+  // ---- stage funnel ----
+  const stageCounts={}; for(let s=1;s<=9;s++) stageCounts[s]=0;
+  APPS.forEach(a=>{ const s=Number(a.stage); if(s>=1&&s<=9) stageCounts[s]++; });
+  const maxStage=Math.max(1,...Object.values(stageCounts));
+  $('#stage-funnel').innerHTML = Object.keys(stageCounts).map(s=>{
+    const v=stageCounts[s], w=Math.round(v/maxStage*100);
+    return '<div class="bar-row"><span class="bl">'+s+' · '+esc(STAGE[s])+'</span><span class="bt"><span class="bf" style="width:'+w+'%"></span></span><span class="bn">'+num(v)+'</span></div>';
+  }).join('');
+
+  // ---- close rate by segment ----
+  function rateBy(field){
+    const st={};
+    APPS.forEach(a=>{ const u=usersById[a.creator_id]; const k=u&&u[field]; if(!k) return; (st[k]=st[k]||{t:0,c:0}); st[k].t++; if(isClosed(a)) st[k].c++; });
+    return Object.entries(st).filter(([k,v])=>v.t>0).map(([k,v])=>[ (field==='platform'?PLATFORM[k]:CATEGORY[k])||k, v.c/v.t*100, v.t ])
+      .sort((a,b)=>b[1]-a[1]).map(r=>[ r[0]+' ('+r[2]+')', r[1] ]);
+  }
+  $('#conv-platform').innerHTML = barPct(rateBy('platform'));
+  $('#conv-category').innerHTML = barPct(rateBy('category'));
+
+  // ---- retention ----
+  const appsByCreator={}; APPS.forEach(a=>appsByCreator[a.creator_id]=(appsByCreator[a.creator_id]||0)+1);
+  const actCreators=Object.keys(appsByCreator).length;
+  const repCreators=Object.values(appsByCreator).filter(n=>n>1).length;
+  const repCreatorPct=actCreators?Math.round(repCreators/actCreators*100):0;
+  const campsByBrand={}; CAMPAIGNS.forEach(c=>campsByBrand[c.brand_id]=(campsByBrand[c.brand_id]||0)+1);
+  const actBrands=Object.keys(campsByBrand).length;
+  const repBrands=Object.values(campsByBrand).filter(n=>n>1).length;
+  const repBrandPct=actBrands?Math.round(repBrands/actBrands*100):0;
+  $('#retention').innerHTML =
+    mini('معلنون متكررون',num(repCreators)+'<small> ('+repCreatorPct+'%)</small>','ti-repeat',true) +
+    mini('شركات متكررة',num(repBrands)+'<small> ('+repBrandPct+'%)</small>','ti-repeat',true) +
+    mini('عروض/معلن (متوسط)',(actCreators?(APPS.length/actCreators).toFixed(1):'0'),'ti-send') +
+    mini('حملات/شركة (متوسط)',(actBrands?(CAMPAIGNS.length/actBrands).toFixed(1):'0'),'ti-rocket');
+
+  // ---- active hours ----
+  const hourC={}; APPS.forEach(a=>{ if(!a.created_at) return; const h=new Date(a.created_at).getHours(); if(isNaN(h)) return; hourC[h]=(hourC[h]||0)+1; });
+  const hourMap={}; Object.entries(hourC).sort((a,b)=>b[1]-a[1]).slice(0,6).forEach(([h,v])=>{ hourMap[String(h).padStart(2,'0')+':00']=v; });
+  $('#top-hours').innerHTML = barRows(hourMap);
+
+  // ---- leaderboards ----
+  const cl={}; closed.forEach(a=>{ const c=a.creator_id; (cl[c]=cl[c]||{n:0,g:0}); cl[c].n++; cl[c].g+=Number(a.final_price)||0; });
+  const topC=Object.entries(cl).sort((a,b)=>b[1].n-a[1].n||b[1].g-a[1].g).slice(0,6);
+  $('#top-creators').innerHTML = topC.length?topC.map(([id,v])=>{
+    const u=usersById[id]; return '<tr><td>'+esc(u?(u.name||u.company_name||'—'):'—')+'</td><td class="mono">'+num(v.n)+'</td><td class="mono">'+money(v.g)+'</td></tr>';
+  }).join('') : '<tr><td colspan="3" class="empty">لا بيانات</td></tr>';
+  const bg={}; closed.forEach(a=>{ const c=campsById[a.campaign_id]; if(!c) return; const b=c.brand_id; (bg[b]=bg[b]||{n:0,g:0}); bg[b].n++; bg[b].g+=Number(a.final_price)||0; });
+  const topB=Object.entries(bg).sort((a,b)=>b[1].g-a[1].g).slice(0,6);
+  $('#top-brands').innerHTML = topB.length?topB.map(([id,v])=>{
+    const u=usersById[id]; return '<tr><td>'+esc(u?(u.company_name||u.name||'—'):'—')+'</td><td class="mono">'+num(v.n)+'</td><td class="mono">'+money(v.g)+'</td></tr>';
+  }).join('') : '<tr><td colspan="3" class="empty">لا بيانات</td></tr>';
+
+  // ---- auto insights ----
+  const closeRate=APPS.length?Math.round(closed.length/APPS.length*100):0;
+  const campsWithApps=new Set(APPS.map(a=>a.campaign_id)).size;
+  const campsZero=Math.max(0,CAMPAIGNS.length-campsWithApps);
+  const ins=[];
+  if(startedApps.length>=3 && abandonRate>40)
+    ins.push(['warn','ti-alert-triangle','هجر التفاوض مرتفع: '+abandonRate+'% من التفاوضات ما تُقفل. راجع تسعير الوكيل أو طول المحادثة.']);
+  const prog={}; for(let s=1;s<=8;s++) prog[s]=stageCounts[s]||0;
+  const stalled=Object.entries(prog).sort((a,b)=>b[1]-a[1])[0];
+  if(stalled && stalled[1]>0)
+    ins.push(['info','ti-stairs','أكثر الصفقات الجارية متوقفة عند مرحلة «'+STAGE[stalled[0]]+'» ('+stalled[1]+'). حسّن هالخطوة عشان تسرّع الإكمال.']);
+  const pr=rateBy('platform');
+  if(pr.length)
+    ins.push(['good','ti-trophy','أعلى تحويل من منصة «'+pr[0][0].split(' (')[0]+'» ('+Math.round(pr[0][1])+'%). ركّز استقطاب معلنين منها.']);
+  if(campsZero>0)
+    ins.push(['warn','ti-mood-empty',num(campsZero)+' حملة بدون أي عرض. راجع وضوح عناوينها وميزانيتها.']);
+  if(actCreators>=3)
+    ins.push([repCreatorPct>=30?'good':'info','ti-repeat','تكرار المعلنين '+repCreatorPct+'%'+(repCreatorPct>=30?' — ممتاز، فيه ولاء.':' — اشتغل على إبقائهم يرجعون.')]);
+  ins.push(['info','ti-target-arrow','نسبة الإغلاق العامة '+closeRate+'%، ومتوسط زمن الإغلاق '+fmtDur(avgCloseH)+'.']);
+  $('#insights').innerHTML = ins.length?ins.map(([lvl,ic,txt])=>
+    '<div class="ins '+lvl+'"><i class="ti '+ic+'"></i><div class="it">'+esc(txt)+'</div></div>').join('') :
+    '<div class="empty">لسه ما فيه بيانات كافية للرؤى — كمّل تشغيل المنصة وبتظهر تلقائيًا</div>';
 }
 
 // ===== derived per-campaign / per-app =====
