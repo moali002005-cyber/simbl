@@ -341,6 +341,12 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
       <h2><i class="ti ti-user-check"></i> طلبات التفعيل (معلنون قيد المراجعة)</h2>
       <div id="approvals-list"></div>
     </div>
+    <div class="section">
+      <h2><i class="ti ti-download"></i> نسخة احتياطية لمستندات السجل التجاري</h2>
+      <p class="dim" style="font-size:13px;margin-bottom:14px;line-height:1.7">مستندات السجل المرفوعة <b>لا تُحفظ</b> ضمن النسخ الاحتياطية التلقائية. اضغط الزر لتنزيل كل المستندات على جهازك كنسخة احتياطية مستقلة (يُفضّل أسبوعيًا).</p>
+      <button class="btn btn-primary" id="cr-backup-btn" onclick="backupCrDocs()"><i class="ti ti-download"></i> تنزيل كل مستندات السجل</button>
+      <div id="cr-backup-status" class="dim" style="font-size:13px;margin-top:12px"></div>
+    </div>
   </div>
 
   <!-- users -->
@@ -740,6 +746,53 @@ async function openCrDoc(ev, path){
     if(data && data.signedUrl){ window.open(data.signedUrl, '_blank', 'noopener'); }
     else throw new Error('لا يوجد رابط');
   }catch(e){ alert('تعذّر فتح المستند: '+(e.message||e)); }
+}
+
+// تنزيل كل مستندات السجل التجاري كنسخة احتياطية على جهاز الأدمن
+async function backupCrDocs(){
+  const btn = $('#cr-backup-btn');
+  const status = $('#cr-backup-status');
+  if(btn){ btn.disabled = true; }
+  const setStatus = (t)=>{ if(status) status.textContent = t; };
+  setStatus('جارٍ قراءة قائمة الملفات…');
+  try{
+    // اجمع كل ملفات السجل من جدول users (الأدق: نخزّن المسار في cr_number)
+    const paths = USERS
+      .filter(u => u.role==='brand' && u.cr_number && /^cr\//.test(u.cr_number))
+      .map(u => ({ path: u.cr_number, company: (u.company_name||u.name||'شركة') }));
+
+    if(paths.length === 0){
+      setStatus('ما فيه مستندات مرفوعة للتنزيل.');
+      if(btn) btn.disabled = false;
+      return;
+    }
+
+    let done = 0, failed = 0;
+    for(const item of paths){
+      setStatus('جارٍ التنزيل… ('+num(done+1)+' من '+num(paths.length)+')');
+      try{
+        const { data: blob, error } = await sb.storage.from('cr-docs').download(item.path);
+        if(error) throw error;
+        // اسم ملف واضح: الشركة + امتداد الملف الأصلي
+        const ext = (item.path.split('.').pop()||'dat');
+        const safeCompany = String(item.company).replace(/[\\/:*?"<>|]+/g,'_').slice(0,40);
+        const fname = 'CR_' + safeCompany + '_' + item.path.split('/').pop();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        done++;
+        await new Promise(r=>setTimeout(r, 400)); // فاصل بسيط حتى المتصفح ما يحجب التنزيلات
+      }catch(e){ console.error('backup fail', item.path, e); failed++; }
+    }
+    setStatus('تم تنزيل '+num(done)+' مستند'+(failed?(' · فشل '+num(failed)):'')+'. احفظها في مكان آمن.');
+  }catch(e){
+    console.error('backupCrDocs error', e);
+    setStatus('حصل خطأ: '+(e.message||e));
+  }finally{
+    if(btn) btn.disabled = false;
+  }
 }
 async function setApproval(id,status){
   try{
