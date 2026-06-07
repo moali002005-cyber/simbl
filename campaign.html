@@ -121,6 +121,23 @@ body {
   white-space: pre-wrap;
 }
 
+/* ============ Payment pledge banner (تعهّد الشركة بالدفع — يظهر للطرفين أثناء التفاوض) ============ */
+.pay-pledge-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(19, 185, 178, 0.08);
+  border: 1px solid rgba(19, 185, 178, 0.28);
+  border-radius: 14px;
+  padding: 11px 16px;
+  margin: 4px 4px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--accent-ink);
+}
+.pay-pledge-banner .ppb-ic { font-size: 16px; flex-shrink: 0; line-height: 1; }
+.pay-pledge-banner strong { font-weight: 600; }
+
 .typing {
   display: flex; gap: 5px;
   padding: 4px 25px 0;
@@ -418,6 +435,24 @@ function followerRangeText(c) {
     .map(v => FOLLOWER_RANGE_LABELS[v] || v).join('، ');
 }
 
+// ====== تعهّد الدفع: نطاق المدة بالأرقام العربية (هذه الصفحة ما فيها toArabic، فنحوّل محليًا) ======
+const __arDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+function toArabicNum(n) {
+  return String(n).split('').map(d => __arDigits[parseInt(d)] ?? d).join('');
+}
+// يرجّع نص المدّة مثل «٧–٣٠ يوم» أو «٣٠ يوم»، أو '' لو ما فيه قيم (حملات قديمة)
+function paymentRangeText(c) {
+  if (!c) return '';
+  const mn = parseInt(c.payment_min_days, 10);
+  const mx = parseInt(c.payment_max_days, 10);
+  const hasMn = !isNaN(mn) && mn > 0;
+  const hasMx = !isNaN(mx) && mx > 0;
+  if (!hasMn && !hasMx) return '';
+  if (hasMn && hasMx && mn !== mx) return `${toArabicNum(mn)}–${toArabicNum(mx)} يوم`;
+  const d = hasMx ? mx : mn;
+  return `${toArabicNum(d)} يوم`;
+}
+
 async function init() {
   currentUser = getCurrentUser();
   if (!currentUser) {
@@ -550,6 +585,12 @@ function render() {
   const isAwaiting = dealClosed && !approvedClose;
   const isFullyClosed = dealClosed && approvedClose;
 
+  // بانر تعهّد الدفع (يظهر للطرفين طول ما الصفقة ما اكتملت تسليمها)
+  const pledgeRange = paymentRangeText(campaign);
+  const pledgeBanner = pledgeRange
+    ? `<div class="pay-pledge-banner"><span class="ppb-ic">💸</span><span><strong>الشركة متعهّدة بالدفع</strong> خلال ${pledgeRange} بعد إكمال الحملة.</span></div>`
+    : '';
+
   let footer;
   if (isFullyClosed) {
     footer = `<div class="chat-foot done">✓ تم إقفال الاتفاق${dealDetails ? ' — ' + escapeHtml(dealDetails) : ''}
@@ -579,6 +620,7 @@ function render() {
 
   document.getElementById('content').innerHTML = `
     <div class="chat-wrap">
+      ${pledgeBanner}
       <div class="messages" id="messages">${renderMessages()}</div>
       ${footer}
     </div>
