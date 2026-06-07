@@ -706,7 +706,9 @@ function renderApprovals(){
         (u.size?'<span><i class="ti ti-users-group"></i>'+esc(SIZE[u.size]||u.size)+'</span>':'')+
         ((u.cr_number && /^https?:\/\//i.test(u.cr_number))
           ? '<span><i class="ti ti-file-text"></i><a class="appr-link" href="'+esc(u.cr_number)+'" target="_blank" rel="noopener">مستند السجل التجاري</a></span>'
-          : '<span><i class="ti ti-id-badge-2"></i>السجل: '+esc(u.cr_number||'—')+'</span>')+
+          : (u.cr_number
+              ? '<span><i class="ti ti-file-text"></i><a class="appr-link" href="#" onclick="openCrDoc(event,\''+esc(u.cr_number)+'\')">عرض مستند السجل</a></span>'
+              : '<span><i class="ti ti-id-badge-2"></i>السجل: —</span>'))+
         (u.name?'<span><i class="ti ti-user"></i>'+esc(u.name)+(u.position?' · '+esc(u.position):'')+'</span>':'')+
         '<span><i class="ti ti-mail"></i>'+esc(u.email||'—')+'</span>'+
         (u.phone?'<span><i class="ti ti-phone"></i>'+esc(u.phone)+'</span>':'')+
@@ -729,6 +731,15 @@ function renderApprovals(){
         '<button class="btn-appr btn-no" onclick="rejectUser(\''+esc(String(u.id))+'\')"><i class="ti ti-x"></i> رفض</button>'+
       '</div></div>';
   }).join('');
+}
+async function openCrDoc(ev, path){
+  if(ev) ev.preventDefault();
+  try{
+    const { data, error } = await sb.storage.from('cr-docs').createSignedUrl(path, 120);
+    if(error) throw error;
+    if(data && data.signedUrl){ window.open(data.signedUrl, '_blank', 'noopener'); }
+    else throw new Error('لا يوجد رابط');
+  }catch(e){ alert('تعذّر فتح المستند: '+(e.message||e)); }
 }
 async function setApproval(id,status){
   try{

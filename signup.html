@@ -410,9 +410,9 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="field">
-        <label>رابط مستند السجل التجاري</label>
-        <input type="url" name="cr_number" required placeholder="رابط صورة أو ملف السجل (Google Drive / رابط مباشر)">
-        <div class="hint">ارفع صورة أو ملف السجل التجاري على Google Drive (أو أي خدمة) والصق الرابط هنا. نتحقق منه لتأكيد التفعيل.</div>
+        <label>مستند السجل التجاري</label>
+        <input type="file" name="cr_file" accept="image/*,application/pdf" required>
+        <div class="hint">ارفع صورة أو ملف PDF للسجل التجاري (من المعرض أو الكاميرا). نتحقق منه لتأكيد التفعيل.</div>
       </div>
 
       <div class="field">
@@ -523,7 +523,6 @@ async function submitForm(event, role) {
     userData.position = fd.get('position');
     userData.phone = fd.get('phone');
     userData.email = email;
-    userData.cr_number = fd.get('cr_number') || null;
     userData.website = fd.get('company_url') || null;
     userData.approval_status = 'pending';
   }
@@ -551,6 +550,26 @@ async function submitForm(event, role) {
       userData.auth_id = authData.user.id;
     }
 
+    // ٣.١) رفع مستند السجل التجاري (للشركات فقط) إلى تخزين Supabase
+    if (role === 'brand') {
+      const crFile = fd.get('cr_file');
+      if (crFile && crFile.size > 0) {
+        try {
+          const ext = (crFile.name.split('.').pop() || 'dat').toLowerCase().replace(/[^a-z0-9]/g, '');
+          const uid = (authData && authData.user && authData.user.id) ? authData.user.id : Date.now();
+          const path = 'cr/' + uid + '-' + Date.now() + '.' + ext;
+          const { error: upErr } = await supabaseClient
+            .storage.from('cr-docs')
+            .upload(path, crFile, { contentType: crFile.type || undefined, upsert: false });
+          if (upErr) throw upErr;
+          userData.cr_number = path; // نخزّن مسار الملف داخل الـ bucket
+        } catch (upErr) {
+          console.error('CR upload error:', upErr);
+          throw new Error('CR_UPLOAD_FAILED');
+        }
+      }
+    }
+
     // ٤) حفظ بيانات المستخدم في جدول users
     const savedUser = await dbSignup(userData);
     saveCurrentUser(savedUser);
@@ -566,7 +585,9 @@ async function submitForm(event, role) {
     const rawMsg = (err && err.message) ? err.message : '';
     const msg = rawMsg.toLowerCase();
 
-    if (rawMsg === 'EMAIL_EXISTS'
+    if (rawMsg === 'CR_UPLOAD_FAILED') {
+      alert('تعذّر رفع مستند السجل التجاري. تأكد من الملف وحاول مرة أخرى، أو جرّب من جهاز آخر / بعد تسجيل الدخول.');
+    } else if (rawMsg === 'EMAIL_EXISTS'
         || msg.includes('already registered')
         || msg.includes('already been registered')
         || msg.includes('user already registered')) {
