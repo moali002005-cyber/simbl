@@ -309,6 +309,12 @@ textarea { resize: vertical; min-height: 80px; }
         </div>
       </div>
 
+      <div class="field">
+        <label>رابط حسابك على تيك توك</label>
+        <input type="url" name="tiktok_url" required placeholder="https://www.tiktok.com/@username">
+        <div class="hint">نراجع حسابك من خلال الرابط لتأكيد التفعيل.</div>
+      </div>
+
       <div class="field-row">
         <div class="field">
           <label>عدد المتابعن</label>
@@ -450,9 +456,9 @@ textarea { resize: vertical; min-height: 80px; }
 
   <div class="success-screen" id="success-creator">
     <div class="success-icon">✓</div>
-    <h2>مرحباً بك في سيمبل!</h2>
-    <p>تم إنشاء حسابك بنجاح. اضغط على الزر للدخول على لوحتك واستعراض الحملات المتاحة.</p>
-    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('creator')">دخول لوحة المعلن</button>
+    <h2>تم استلام طلبك!</h2>
+    <p>سيتم مراجعة حسابك وتأكيده من قبل فريق سيمبل. بنبلّغك عند تفعيل حسابك لتبدأ باستعراض الحملات.</p>
+    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('creator')">الدخول للمنصة</button>
   </div>
 
   <div class="success-screen" id="success-brand">
@@ -500,6 +506,8 @@ async function submitForm(event, role) {
     userData.category = fd.get('category');
     userData.price = parseInt(fd.get('price')) || 0;
     userData.bio = fd.get('bio') || null;
+    userData.website = fd.get('tiktok_url') || null;
+    userData.approval_status = 'pending';
   } else {
     userData.company_name = fd.get('company_name');
     userData.industry = fd.get('industry');
