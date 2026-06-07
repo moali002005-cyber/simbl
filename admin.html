@@ -734,12 +734,28 @@ function renderApprovals(){
 }
 async function openCrDoc(ev, path){
   if(ev) ev.preventDefault();
+  console.log('[CR] trying path:', path);
   try{
     const { data, error } = await sb.storage.from('cr-docs').createSignedUrl(path, 120);
+    console.log('[CR] signed result:', { data, error });
     if(error) throw error;
-    if(data && data.signedUrl){ window.open(data.signedUrl, '_blank', 'noopener'); }
-    else throw new Error('لا يوجد رابط');
-  }catch(e){ alert('تعذّر فتح المستند: '+(e.message||e)); }
+    if(data && data.signedUrl){ window.open(data.signedUrl, '_blank', 'noopener'); return; }
+    throw new Error('لا يوجد رابط');
+  }catch(e){
+    console.error('[CR] signed url failed:', e);
+    // محاولة بديلة: تنزيل مباشر (يكشف لو المشكلة في الصلاحية أو المسار)
+    try{
+      const { data: blob, error: dErr } = await sb.storage.from('cr-docs').download(path);
+      console.log('[CR] download fallback:', { blob, dErr });
+      if(dErr) throw dErr;
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+      return;
+    }catch(e2){
+      console.error('[CR] download fallback failed:', e2);
+      alert('تعذّر فتح المستند: '+(e2.message||e2.error||JSON.stringify(e2)));
+    }
+  }
 }
 async function setApproval(id,status){
   try{
