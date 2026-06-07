@@ -109,6 +109,24 @@ tbody tr.clickable:hover{background:var(--panel2)}
 .mono{font-variant-numeric:tabular-nums}
 .dim{color:var(--muted)}
 
+/* ===== analytics ===== */
+.mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.mini{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.mini .l{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.mini .n{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+.mini .n small{font-size:12px;color:var(--muted);font-weight:400}
+.mini.acc .n{color:var(--accent)}
+.bar-row{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:13px}
+.bar-row .bl{width:96px;color:var(--muted);text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-row .bt{flex:1;background:var(--panel2);border-radius:6px;height:15px;overflow:hidden}
+.bar-row .bf{display:block;height:100%;background:var(--accent);border-radius:6px;min-width:3px}
+.bar-row .bn{width:52px;color:var(--text);text-align:left;flex-shrink:0;font-variant-numeric:tabular-nums}
+.tw-table td.mono,.tw-table th{text-align:center}
+.tw-table td:first-child,.tw-table th:first-child{text-align:right}
+.upd{font-size:12px;color:var(--good);display:inline-flex;align-items:center;gap:6px}
+.upd::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
 /* ===== drawer ===== */
 .drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 16px;overflow-y:auto}
 .drawer-ov.open{display:flex}
@@ -165,6 +183,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
       </div>
     </div>
     <div class="topbar-actions">
+      <span class="upd" id="last-upd">مباشر</span>
       <span class="admin-pill"><i class="ti ti-shield-lock"></i><span id="admin-email">hello@</span></span>
       <button class="icon-btn" id="btn-refresh" title="تحديث">↻</button>
       <button class="icon-btn" id="btn-logout" title="خروج">⎋</button>
@@ -177,6 +196,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
+    <button class="tab" data-tab="analytics">تحليلات</button>
     <button class="tab" data-tab="users">المستخدمون</button>
     <button class="tab" data-tab="campaigns">الحملات</button>
     <button class="tab" data-tab="deals">الصفقات</button>
@@ -195,6 +215,50 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
           <table><thead><tr><th>الحملة</th><th>الشركة</th><th>العروض</th><th>المقفلة</th></tr></thead>
           <tbody id="top-campaigns"></tbody></table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- analytics -->
+  <div class="panel" id="panel-analytics">
+    <div class="section">
+      <h2><i class="ti ti-clock-bolt"></i> الحركة الزمنية</h2>
+      <div class="tbl-wrap">
+        <table class="tw-table"><thead><tr><th>المؤشر</th><th>آخر ٢٤ ساعة</th><th>آخر ٧ أيام</th><th>آخر ٣٠ يوم</th><th>الإجمالي</th></tr></thead>
+        <tbody id="tw-body"></tbody></table>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><i class="ti ti-robot"></i> قيمة وكيل سيمبل</h2>
+      <div class="mini-grid" id="agent-value"></div>
+      <p class="dim" style="font-size:12px;margin-top:10px"><i class="ti ti-info-circle"></i> «الفرق» = السعر المبدئي للمعلن مقابل السعر النهائي بعد تفاوض الوكيل (للصفقات المقفلة).</p>
+    </div>
+
+    <div class="section">
+      <h2><i class="ti ti-filter"></i> قمع التحويل</h2>
+      <div class="mini-grid" id="funnel"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <h2><i class="ti ti-device-mobile"></i> المعلنون حسب المنصة</h2>
+        <div id="dist-platform"></div>
+      </div>
+      <div class="section">
+        <h2><i class="ti ti-category"></i> المعلنون حسب التصنيف</h2>
+        <div id="dist-category"></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <h2><i class="ti ti-building"></i> الشركات حسب القطاع</h2>
+        <div id="dist-industry"></div>
+      </div>
+      <div class="section">
+        <h2><i class="ti ti-bolt"></i> الفعالية</h2>
+        <div class="mini-grid" id="activity-rates"></div>
       </div>
     </div>
   </div>
@@ -312,9 +376,11 @@ function showGate(state, email){
   $('#gate').style.display='flex'; $('#dash').style.display='none';
 }
 
-async function loadAll(){
-  $('#gate').style.display='flex'; $('#dash').style.display='none';
-  $('#gate-body').innerHTML = '<h1>جارٍ تحميل البيانات…</h1><p>نجمع كل أرقام منصتك</p><div class="spinner"></div>';
+async function loadAll(silent){
+  if(!silent){
+    $('#gate').style.display='flex'; $('#dash').style.display='none';
+    $('#gate-body').innerHTML = '<h1>جارٍ تحميل البيانات…</h1><p>نجمع كل أرقام منصتك</p><div class="spinner"></div>';
+  }
   try{
     const [u,c,a,n] = await Promise.all([
       sb.from('users').select('*'),
@@ -329,13 +395,105 @@ async function loadAll(){
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
     $('#err-box').style.display='none';
-    renderKPIs(); renderOverview(); renderUsers(); renderCampaigns(); renderDeals();
+    renderKPIs(); renderOverview(); renderAnalytics(); renderUsers(); renderCampaigns(); renderDeals();
+    updateUpd();
   }catch(err){
     console.error(err);
-    $('#gate').style.display='none'; $('#dash').style.display='block';
-    const box=$('#err-box'); box.style.display='block';
-    box.innerHTML='تعذّر تحميل البيانات: '+esc(err.message||err)+'<br>تأكد إنك مسجّل دخول بحساب الأدمن وإن سياسات الأدمن مفعّلة في Supabase.';
+    if(!silent){
+      $('#gate').style.display='none'; $('#dash').style.display='block';
+      const box=$('#err-box'); box.style.display='block';
+      box.innerHTML='تعذّر تحميل البيانات: '+esc(err.message||err)+'<br>تأكد إنك مسجّل دخول بحساب الأدمن وإن سياسات الأدمن مفعّلة في Supabase.';
+    }
   }
+}
+function updateUpd(){
+  const t=new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el=$('#last-upd'); if(el) el.textContent='محدّث '+t;
+}
+
+// ===== analytics helpers =====
+const H24=24, H7=168, H30=720;
+function inWin(ts,hours){ if(!ts) return false; const d=new Date(ts); if(isNaN(d)) return false; return (Date.now()-d.getTime())<=hours*3600*1000; }
+function winCount(arr,field,hours){ return arr.filter(x=>inWin(x[field],hours)).length; }
+function winDistinct(arr,field,idField,hours){ return new Set(arr.filter(x=>inWin(x[field],hours)).map(x=>x[idField])).size; }
+function winSum(arr,field,sumField,hours){ return arr.filter(x=>inWin(x[field],hours)).reduce((s,x)=>s+(Number(x[sumField])||0),0); }
+function countBy(arr,key){ const o={}; arr.forEach(x=>{ const k=x[key]||'غير محدد'; o[k]=(o[k]||0)+1; }); return o; }
+function barRows(counts,labelMap){
+  const e=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if(!e.length) return '<div class="empty">لا بيانات</div>';
+  const max=Math.max(...e.map(x=>x[1]));
+  return e.map(([k,v])=>{
+    const lbl=(labelMap&&labelMap[k])||k;
+    const w=max?Math.round(v/max*100):0;
+    return '<div class="bar-row"><span class="bl">'+esc(lbl)+'</span><span class="bt"><span class="bf" style="width:'+w+'%"></span></span><span class="bn">'+num(v)+'</span></div>';
+  }).join('');
+}
+function mini(label,value,icon,acc){
+  return '<div class="mini'+(acc?' acc':'')+'"><div class="l">'+(icon?'<i class="ti '+icon+'"></i>':'')+esc(label)+'</div><div class="n">'+value+'</div></div>';
+}
+
+function renderAnalytics(){
+  const brands=USERS.filter(u=>u.role==='brand');
+  const creators=USERS.filter(u=>u.role==='creator');
+  const closed=APPS.filter(isClosed);
+
+  // ---- time windows ----
+  const rows=[
+    ['تسجيل شركات', u=>winCount(brands,'created_at',u), brands.length],
+    ['تسجيل معلنين', u=>winCount(creators,'created_at',u), creators.length],
+    ['حملات جديدة', u=>winCount(CAMPAIGNS,'created_at',u), CAMPAIGNS.length],
+    ['شركات أطلقت حملة', u=>winDistinct(CAMPAIGNS,'created_at','brand_id',u), new Set(CAMPAIGNS.map(c=>c.brand_id)).size],
+    ['معلنون قدّموا عرض', u=>winDistinct(APPS,'created_at','creator_id',u), new Set(APPS.map(a=>a.creator_id)).size],
+    ['صفقات مقفلة', u=>winCount(closed,'closed_at',u), closed.length],
+    ['الإيراد (GMV)', u=>money(winSum(closed,'closed_at','final_price',u)), money(closed.reduce((s,a)=>s+(Number(a.final_price)||0),0))],
+    ['رسائل التفاوض', u=>winCount(NEGS,'created_at',u), NEGS.length],
+  ];
+  $('#tw-body').innerHTML = rows.map(r=>{
+    const isMoney=typeof r[1](H24)==='string';
+    const c=v=> isMoney? r[1](v) : '<span class="mono">'+num(r[1](v))+'</span>';
+    const tot= isMoney? r[2] : '<span class="mono">'+num(r[2])+'</span>';
+    return '<tr><td>'+esc(r[0])+'</td><td>'+c(H24)+'</td><td>'+c(H7)+'</td><td>'+c(H30)+'</td><td>'+tot+'</td></tr>';
+  }).join('');
+
+  // ---- agent value ----
+  const withBoth=closed.filter(a=>Number(a.price)>0 && Number(a.final_price)>0);
+  const avgInit=withBoth.length?Math.round(withBoth.reduce((s,a)=>s+Number(a.price),0)/withBoth.length):0;
+  const avgFin=withBoth.length?Math.round(withBoth.reduce((s,a)=>s+Number(a.final_price),0)/withBoth.length):0;
+  const totalDiff=withBoth.reduce((s,a)=>s+(Number(a.price)-Number(a.final_price)),0);
+  const diffPct=avgInit?Math.round((avgInit-avgFin)/avgInit*100):0;
+  $('#agent-value').innerHTML =
+    mini('متوسط السعر المبدئي',money(avgInit),'ti-tag') +
+    mini('متوسط السعر النهائي',money(avgFin),'ti-discount',true) +
+    mini('إجمالي الفرق',money(totalDiff),'ti-coins') +
+    mini('متوسط الفرق %',diffPct+'%','ti-percentage');
+
+  // ---- funnel ----
+  const closeRate=APPS.length?Math.round(closed.length/APPS.length*100):0;
+  const campsWithApps=new Set(APPS.map(a=>a.campaign_id)).size;
+  const campsZero=Math.max(0,CAMPAIGNS.length-campsWithApps);
+  const avgApps=CAMPAIGNS.length?(APPS.length/CAMPAIGNS.length).toFixed(1):'0';
+  const msgByApp={}; NEGS.forEach(n=>{ msgByApp[n.application_id]=(msgByApp[n.application_id]||0)+1; });
+  const appsWithMsgs=Object.keys(msgByApp).length;
+  const avgMsgs=appsWithMsgs?(NEGS.length/appsWithMsgs).toFixed(1):'0';
+  $('#funnel').innerHTML =
+    mini('نسبة الإغلاق',closeRate+'%','ti-target-arrow',true) +
+    mini('متوسط العروض/حملة',avgApps,'ti-send') +
+    mini('حملات بلا عروض',num(campsZero),'ti-mood-empty') +
+    mini('متوسط رسائل/تفاوض',avgMsgs,'ti-messages');
+
+  // ---- distributions ----
+  $('#dist-platform').innerHTML = barRows(countBy(creators.filter(c=>c.platform),'platform'),PLATFORM);
+  $('#dist-category').innerHTML = barRows(countBy(creators.filter(c=>c.category),'category'),CATEGORY);
+  $('#dist-industry').innerHTML = barRows(countBy(brands.filter(b=>b.industry),'industry'),INDUSTRY);
+
+  // ---- activity rates ----
+  const activeCreators=new Set(APPS.map(a=>a.creator_id)).size;
+  const activeBrands=new Set(CAMPAIGNS.map(c=>c.brand_id)).size;
+  $('#activity-rates').innerHTML =
+    mini('معلنون نشطون',num(activeCreators)+'<small> / '+num(creators.length)+'</small>','ti-user-check',true) +
+    mini('معلنون خاملون',num(Math.max(0,creators.length-activeCreators)),'ti-user-off') +
+    mini('شركات نشطة',num(activeBrands)+'<small> / '+num(brands.length)+'</small>','ti-building-store',true) +
+    mini('شركات خاملة',num(Math.max(0,brands.length-activeBrands)),'ti-building-off');
 }
 
 // ===== derived per-campaign / per-app =====
@@ -500,6 +658,9 @@ $('#btn-logout').addEventListener('click',async()=>{ try{await sb.auth.signOut()
 $('#drawer-close').addEventListener('click',closeDrawer);
 $('#drawer-ov').addEventListener('click',e=>{ if(e.target===$('#drawer-ov')) closeDrawer(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+
+// live auto-refresh every 60s (only while dashboard is visible)
+setInterval(()=>{ if($('#dash').style.display!=='none') loadAll(true); }, 60000);
 </script>
 </body>
 </html>
