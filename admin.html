@@ -110,11 +110,9 @@ tbody tr.clickable:hover{background:var(--panel2)}
 .dim{color:var(--muted)}
 
 /* ===== drawer ===== */
-.drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:50}
-.drawer-ov.open{display:block}
-.drawer{position:fixed;top:0;inset-inline-start:0;height:100%;width:min(560px,92vw);background:var(--panel);border-inline-end:1px solid var(--line2);z-index:51;transform:translateX(-104%);transition:transform .25s;overflow-y:auto;padding:22px}
-[dir=rtl] .drawer{inset-inline-start:auto;inset-inline-end:0;border-inline-end:none;border-inline-start:1px solid var(--line2);transform:translateX(104%)}
-.drawer.open{transform:translateX(0)}
+.drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 16px;overflow-y:auto}
+.drawer-ov.open{display:flex}
+.drawer{position:relative;background:var(--panel);border:1px solid var(--line2);border-radius:14px;width:min(580px,100%);padding:22px;height:auto}
 .drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .drawer-head h3{font-size:17px;font-weight:600}
 .dr-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
@@ -243,13 +241,14 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 </div>
 
 <!-- drawer -->
-<div class="drawer-ov" id="drawer-ov"></div>
-<div class="drawer" id="drawer">
-  <div class="drawer-head">
-    <h3>تفاصيل الصفقة</h3>
-    <button class="icon-btn" id="drawer-close">✕</button>
+<div class="drawer-ov" id="drawer-ov">
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <h3>تفاصيل الصفقة</h3>
+      <button class="icon-btn" id="drawer-close">✕</button>
+    </div>
+    <div id="drawer-body"></div>
   </div>
-  <div id="drawer-body"></div>
 </div>
 
 <script>
@@ -499,7 +498,8 @@ $('#d-status').addEventListener('change',renderDeals);
 $('#btn-refresh').addEventListener('click',loadAll);
 $('#btn-logout').addEventListener('click',async()=>{ try{await sb.auth.signOut();}catch(e){} window.location.href='/login.html'; });
 $('#drawer-close').addEventListener('click',closeDrawer);
-$('#drawer-ov').addEventListener('click',closeDrawer);
+$('#drawer-ov').addEventListener('click',e=>{ if(e.target===$('#drawer-ov')) closeDrawer(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
 </script>
 </body>
 </html>
