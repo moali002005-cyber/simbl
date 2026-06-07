@@ -144,6 +144,10 @@ tbody tr.clickable:hover{background:var(--panel2)}
 .btn-no{background:transparent;border-color:var(--line2);color:var(--danger)}
 .btn-no:hover{border-color:var(--danger);background:rgba(210,59,59,.06)}
 #pending-count .pending-badge{background:var(--danger);color:#fff;font-size:11px;border-radius:100px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
+#overdue-count .pending-badge{background:var(--danger);color:#fff;font-size:11px;border-radius:100px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
+.b-overdue{background:rgba(210,59,59,.13);color:#b32d2d}
+.b-disputed{background:rgba(184,134,11,.16);color:#8a6500}
+.b-suspended{background:rgba(210,59,59,.16);color:#b32d2d}
 
 /* ===== drawer ===== */
 .drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 16px;overflow-y:auto}
@@ -215,6 +219,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
     <button class="tab" data-tab="approvals">طلبات التفعيل<span id="pending-count"></span></button>
+    <button class="tab" data-tab="overdue">متأخرات الدفع<span id="overdue-count"></span></button>
     <button class="tab" data-tab="analytics">تحليلات</button>
     <button class="tab" data-tab="insights">رؤى</button>
     <button class="tab" data-tab="users">المستخدمون</button>
@@ -346,6 +351,15 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
       <p class="dim" style="font-size:13px;margin-bottom:14px;line-height:1.7">مستندات السجل المرفوعة <b>لا تُحفظ</b> ضمن النسخ الاحتياطية التلقائية. اضغط الزر لتنزيل كل المستندات على جهازك كنسخة احتياطية مستقلة (يُفضّل أسبوعيًا).</p>
       <button class="btn btn-primary" id="cr-backup-btn" onclick="backupCrDocs()"><i class="ti ti-download"></i> تنزيل كل مستندات السجل</button>
       <div id="cr-backup-status" class="dim" style="font-size:13px;margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- overdue payments -->
+  <div class="panel" id="panel-overdue">
+    <div class="section">
+      <h2><i class="ti ti-alarm"></i> متأخرات الدفع</h2>
+      <p class="dim" style="font-size:13px;margin-bottom:14px;line-height:1.7">صفقات اكتملت وعدّت مهلة الدفع بدون تأكيد استلام من المعلن، أو المعلن أبلغ بعدم الاستلام. تقدر توقف حساب الشركة لحين تسوية المستحقات، وتعيد تفعيله بعد التسوية.</p>
+      <div id="overdue-list"></div>
     </div>
   </div>
 
@@ -481,7 +495,7 @@ async function loadAll(silent){
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
     $('#err-box').style.display='none';
-    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderUsers(); renderCampaigns(); renderDeals();
+    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderOverdue(); renderUsers(); renderCampaigns(); renderDeals();
     updateUpd();
   }catch(err){
     console.error(err);
@@ -803,6 +817,87 @@ async function setApproval(id,status){
 }
 function approveUser(id){ setApproval(id,'approved'); }
 function rejectUser(id){ if(confirm('تأكيد رفض هذا الحساب؟ المعلن ما راح يقدر يستخدم المنصة.')) setApproval(id,'rejected'); }
+
+// ===== overdue payments (متأخرات الدفع) =====
+function paymentMaxDays(camp){ const d=camp?parseInt(camp.payment_max_days,10):NaN; return isNaN(d)?null:d; }
+function paymentDeadline(a){
+  const camp=campsById[a.campaign_id];
+  const days=paymentMaxDays(camp);
+  if(!a.completed_at || days==null) return null;
+  const d=new Date(a.completed_at); if(isNaN(d)) return null;
+  d.setDate(d.getDate()+days);
+  return d;
+}
+// متأخرة = صفقة مكتملة (مرحلة ٩) عدّت مهلتها بدون تأكيد استلام، أو حالتها نزاع
+function isOverdue(a){
+  if(!a || a.status!=='closed' || (Number(a.stage)||0) < 9) return false;
+  if(a.payment_status==='confirmed') return false;
+  if(a.payment_status==='disputed') return true;
+  const dl=paymentDeadline(a);
+  if(!dl) return false;
+  return Date.now() > dl.getTime();
+}
+function daysOverdue(a){
+  const dl=paymentDeadline(a);
+  if(!dl) return null;
+  const diff=Math.floor((Date.now()-dl.getTime())/86400000);
+  return diff>0?diff:0;
+}
+
+function renderOverdue(){
+  const list=APPS.filter(isOverdue);
+  list.sort((a,b)=>
+    ((b.payment_status==='disputed')?1:0)-((a.payment_status==='disputed')?1:0)
+    || (daysOverdue(b)||0)-(daysOverdue(a)||0)
+  );
+  const badge=$('#overdue-count');
+  if(badge) badge.innerHTML = list.length?('<span class="pending-badge">'+num(list.length)+'</span>'):'';
+  const el=$('#overdue-list'); if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="empty">ما فيه متأخرات دفع حاليًا 🎉</div>'; return; }
+  el.innerHTML = list.map(a=>{
+    const camp=campsById[a.campaign_id];
+    const brand=camp?usersById[camp.brand_id]:null;
+    const brandName=brand?(brand.company_name||brand.name||'—'):'—';
+    const brandId=brand?brand.id:null;
+    const suspended=brand && brand.approval_status==='suspended';
+    const amount=money(a.final_price||a.price||0);
+    const dOver=daysOverdue(a);
+    const statusBadge = a.payment_status==='disputed'
+      ? '<span class="badge b-disputed">المعلن أبلغ بعدم الاستلام</span>'
+      : (a.payment_status==='marked_paid'
+          ? '<span class="badge b-open">الشركة حوّلت — بانتظار تأكيد المعلن</span>'
+          : '<span class="badge b-overdue">ما تم الدفع</span>');
+    const overdueLine = (dOver!=null && dOver>0)
+      ? '<span><i class="ti ti-clock-exclamation"></i>متأخرة '+num(dOver)+' يوم</span>'
+      : (a.payment_status==='disputed' ? '<span><i class="ti ti-alert-triangle"></i>نزاع استلام</span>' : '');
+    const actionBtn = suspended
+      ? '<button class="btn-appr btn-ok" onclick="reactivateBrand(\''+esc(String(brandId))+'\')"><i class="ti ti-rotate"></i> إعادة تفعيل الحساب</button>'
+      : '<button class="btn-appr btn-no" onclick="suspendBrand(\''+esc(String(brandId))+'\')"'+(brandId?'':' disabled')+'><i class="ti ti-ban"></i> إيقاف حساب الشركة</button>';
+    return '<div class="appr-card">'+
+      '<div class="appr-head"><div class="appr-name"><span class="badge b-brand">شركة</span> '+esc(brandName)+(suspended?' <span class="badge b-suspended">موقوف</span>':'')+'</div>'+statusBadge+'</div>'+
+      '<div class="appr-meta">'+
+        '<span><i class="ti ti-rocket"></i>'+esc(camp?(camp.title||'—'):'—')+'</span>'+
+        '<span><i class="ti ti-user"></i>المعلن: '+esc(creatorName(a))+'</span>'+
+        '<span><i class="ti ti-coin"></i>'+amount+'</span>'+
+        overdueLine+
+        '<span><i class="ti ti-calendar-check"></i>اكتملت: '+fmtDate(a.completed_at)+'</span>'+
+      '</div>'+
+      '<div class="appr-actions">'+actionBtn+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+async function setBrandApproval(brandId,status,confirmMsg){
+  if(!brandId){ alert('تعذّر تحديد الشركة لهذه الصفقة.'); return; }
+  if(confirmMsg && !confirm(confirmMsg)) return;
+  try{
+    const { error } = await sb.from('users').update({ approval_status: status }).eq('id', brandId);
+    if(error) throw error;
+    await loadAll(true);
+  }catch(e){ alert('تعذّر تحديث حالة الحساب: '+(e.message||e)); }
+}
+function suspendBrand(id){ setBrandApproval(id,'suspended','إيقاف حساب هذه الشركة؟ ما راح تقدر تستخدم المنصة حتى تسوية المستحقات.'); }
+function reactivateBrand(id){ setBrandApproval(id,'approved','إعادة تفعيل حساب الشركة؟'); }
 
 // ===== derived per-campaign / per-app =====
 function appsOfCampaign(cid){ return APPS.filter(a=>a.campaign_id===cid); }
