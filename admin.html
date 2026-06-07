@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة تحكّم سيمبل — الأدمن</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#1b2129; --line:rgba(255,255,255,.08);
+  --line2:rgba(255,255,255,.14); --text:#e6edf3; --muted:#8b98a5; --faint:#5c6773;
+  --accent:#13B9B2; --accent-dim:#0f6e56; --accent-bg:rgba(19,185,178,.12);
+  --good:#3fb950; --warn:#d29922; --danger:#f85149;
+  --font:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+
+/* ===== gate ===== */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gate-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:40px;max-width:440px;width:100%;text-align:center}
+.gate-card h1{font-size:22px;font-weight:600;margin:18px 0 8px}
+.gate-card p{color:var(--muted);font-size:14px;margin-bottom:22px}
+.gate-eye{width:56px;height:56px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:100px;border:1px solid var(--line2);background:transparent;color:var(--text);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#04211f}
+.btn-primary:hover{background:#15cdc5;color:#04211f}
+.spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== layout ===== */
+.wrap{max-width:1280px;margin:0 auto;padding:20px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-eye{width:38px;height:38px}
+.brand-name{font-size:19px;font-weight:600}
+.brand-sub{font-size:12px;color:var(--muted)}
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-pill{display:inline-flex;align-items:center;gap:7px;background:var(--accent-bg);color:var(--accent);border:1px solid rgba(19,185,178,.3);padding:6px 13px;border-radius:100px;font-size:12.5px;font-weight:500}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:17px;transition:.15s}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ===== kpis ===== */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 17px;position:relative;overflow:hidden}
+.kpi .lbl{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.kpi .val{font-size:27px;font-weight:600;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.kpi .val small{font-size:13px;color:var(--muted);font-weight:400}
+.kpi.hl{background:linear-gradient(180deg,rgba(19,185,178,.13),rgba(19,185,178,.04));border-color:rgba(19,185,178,.35)}
+.kpi.hl .val{color:var(--accent)}
+.kpi .ic{position:absolute;top:13px;left:14px;font-size:18px;color:var(--faint)}
+
+/* ===== tabs ===== */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ===== cards / sections ===== */
+.section{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px;margin-bottom:18px}
+.section h2{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.two-col{grid-template-columns:1fr}}
+
+/* ===== feed ===== */
+.feed-item{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-top:1px solid var(--line)}
+.feed-item:first-child{border-top:none}
+.feed-ic{width:30px;height:30px;border-radius:8px;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.feed-txt{flex:1;font-size:13.5px}
+.feed-time{font-size:11.5px;color:var(--faint);white-space:nowrap}
+
+/* ===== toolbar ===== */
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:180px;position:relative}
+.search input{width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:9px 36px 9px 12px;color:var(--text);font-family:var(--font);font-size:13.5px}
+.search input:focus{outline:none;border-color:var(--accent)}
+.search i{position:absolute;top:50%;transform:translateY(-50%);inset-inline-start:11px;color:var(--faint);font-size:15px}
+select.filter{background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:9px 12px;color:var(--text);font-family:var(--font);font-size:13.5px;cursor:pointer}
+select.filter:focus{outline:none;border-color:var(--accent)}
+.count-tag{font-size:12.5px;color:var(--muted)}
+
+/* ===== table ===== */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px}
+table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+thead th{background:var(--panel2);color:var(--muted);font-weight:500;text-align:right;padding:11px 13px;position:sticky;top:0}
+tbody td{padding:11px 13px;border-top:1px solid var(--line)}
+tbody tr{transition:background .12s}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:var(--panel2)}
+.empty{padding:30px;text-align:center;color:var(--faint);font-size:13.5px}
+
+/* ===== badges ===== */
+.badge{display:inline-block;padding:2px 9px;border-radius:100px;font-size:11.5px;font-weight:500}
+.b-brand{background:rgba(56,139,253,.15);color:#6cb0ff}
+.b-creator{background:rgba(188,140,255,.15);color:#c8a4ff}
+.b-active{background:rgba(63,185,80,.15);color:#56d364}
+.b-closed{background:var(--accent-bg);color:var(--accent)}
+.b-open{background:rgba(210,153,34,.15);color:#e3b341}
+.b-stage{background:var(--panel2);color:var(--muted);border:1px solid var(--line2)}
+.mono{font-variant-numeric:tabular-nums}
+.dim{color:var(--muted)}
+
+/* ===== drawer ===== */
+.drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:50}
+.drawer-ov.open{display:block}
+.drawer{position:fixed;top:0;inset-inline-start:0;height:100%;width:min(560px,92vw);background:var(--panel);border-inline-end:1px solid var(--line2);z-index:51;transform:translateX(-104%);transition:transform .25s;overflow-y:auto;padding:22px}
+[dir=rtl] .drawer{inset-inline-start:auto;inset-inline-end:0;border-inline-end:none;border-inline-start:1px solid var(--line2);transform:translateX(104%)}
+.drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.drawer-head h3{font-size:17px;font-weight:600}
+.dr-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.dr-row:first-of-type{border-top:none}
+.dr-row .k{color:var(--muted)}
+.dr-row .v{text-align:left;font-weight:500}
+.dr-sub{font-size:13px;font-weight:600;color:var(--accent);margin:18px 0 10px}
+pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:12px;font-size:12px;color:var(--muted);overflow-x:auto;white-space:pre-wrap;word-break:break-word;direction:ltr;text-align:left;font-family:ui-monospace,monospace}
+.chat{display:flex;flex-direction:column;gap:9px}
+.msg{max-width:88%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.55}
+.msg.agent{background:var(--panel2);border:1px solid var(--line);align-self:flex-start;border-bottom-inline-start-radius:3px}
+.msg.creator{background:var(--accent-bg);border:1px solid rgba(19,185,178,.3);align-self:flex-end;border-bottom-inline-end-radius:3px}
+.msg .who{font-size:11px;color:var(--faint);margin-bottom:3px}
+.err-box{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:#ff9d97;border-radius:11px;padding:14px 16px;font-size:13.5px;margin-bottom:18px;display:none}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="eye" viewBox="0 0 200 200">
+    <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
+      <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="currentColor" stroke-width="8" transform="rotate(25 100 100)"/>
+      <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="currentColor" stroke-width="8" transform="rotate(-25 100 100)"/>
+      <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="none" stroke="#13B9B2" stroke-width="6"/>
+      <circle cx="100" cy="100" r="7" fill="currentColor"/>
+    </g>
+  </symbol>
+</defs></svg>
+
+<!-- ===== GATE (loading / login / denied) ===== -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <svg class="gate-eye" style="color:var(--text)"><use href="#eye"/></svg>
+    <div id="gate-body">
+      <h1>جارٍ التحقق…</h1>
+      <p>نتأكد من صلاحياتك</p>
+      <div class="spinner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div class="wrap" id="dash" style="display:none">
+  <div class="topbar">
+    <div class="brand">
+      <svg class="brand-eye" style="color:var(--text)"><use href="#eye"/></svg>
+      <div>
+        <div class="brand-name">لوحة تحكّم سيمبل</div>
+        <div class="brand-sub">كل اللي يصير في منصتك</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="admin-pill"><i class="ti ti-shield-lock"></i><span id="admin-email">hello@</span></span>
+      <button class="icon-btn" id="btn-refresh" title="تحديث">↻</button>
+      <button class="icon-btn" id="btn-logout" title="خروج">⎋</button>
+    </div>
+  </div>
+
+  <div class="err-box" id="err-box"></div>
+
+  <div class="kpi-grid" id="kpis"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">نظرة عامة</button>
+    <button class="tab" data-tab="users">المستخدمون</button>
+    <button class="tab" data-tab="campaigns">الحملات</button>
+    <button class="tab" data-tab="deals">الصفقات</button>
+  </div>
+
+  <!-- overview -->
+  <div class="panel active" id="panel-overview">
+    <div class="two-col">
+      <div class="section">
+        <h2><i class="ti ti-activity"></i> نشاط حديث</h2>
+        <div id="feed"></div>
+      </div>
+      <div class="section">
+        <h2><i class="ti ti-flame"></i> أبرز الحملات (بعدد العروض)</h2>
+        <div class="tbl-wrap">
+          <table><thead><tr><th>الحملة</th><th>الشركة</th><th>العروض</th><th>المقفلة</th></tr></thead>
+          <tbody id="top-campaigns"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- users -->
+  <div class="panel" id="panel-users">
+    <div class="toolbar">
+      <div class="search"><i class="ti ti-search"></i><input id="u-search" placeholder="ابحث بالاسم، الإيميل، الجوال…"></div>
+      <select class="filter" id="u-role"><option value="">كل الأنواع</option><option value="brand">شركات</option><option value="creator">معلنون</option></select>
+      <span class="count-tag" id="u-count"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>الاسم</th><th>النوع</th><th>المنصة/القطاع</th><th>متابعين/حجم</th><th>تواصل</th><th>تسجيل</th></tr></thead>
+      <tbody id="users-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- campaigns -->
+  <div class="panel" id="panel-campaigns">
+    <div class="toolbar">
+      <div class="search"><i class="ti ti-search"></i><input id="c-search" placeholder="ابحث بعنوان الحملة أو الشركة…"></div>
+      <select class="filter" id="c-status"><option value="">كل الحالات</option><option value="active">نشطة</option></select>
+      <span class="count-tag" id="c-count"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>الحملة</th><th>الشركة</th><th>الحالة</th><th>العروض</th><th>المقفلة</th><th>الميزانية</th><th>المدينة</th><th>أنشئت</th></tr></thead>
+      <tbody id="campaigns-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- deals -->
+  <div class="panel" id="panel-deals">
+    <div class="toolbar">
+      <div class="search"><i class="ti ti-search"></i><input id="d-search" placeholder="ابحث بالمعلن، الشركة، الحملة…"></div>
+      <select class="filter" id="d-status"><option value="">كل العروض</option><option value="closed">صفقات مقفلة</option><option value="open">قيد التفاوض</option></select>
+      <span class="count-tag" id="d-count"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>المعلن</th><th>الشركة</th><th>الحملة</th><th>المبدئي</th><th>النهائي</th><th>المرحلة</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+      <tbody id="deals-tbody"></tbody></table>
+    </div>
+    <p class="dim" style="font-size:12px;margin-top:10px"><i class="ti ti-info-circle"></i> اضغط أي صفقة لعرض سجل التفاوض الكامل وبيانات الشحن/البنك.</p>
+  </div>
+</div>
+
+<!-- drawer -->
+<div class="drawer-ov" id="drawer-ov"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3>تفاصيل الصفقة</h3>
+    <button class="icon-btn" id="drawer-close">✕</button>
+  </div>
+  <div id="drawer-body"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkenp6YXNieXp1Z3hvZ2Jnd3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MDI5NjMsImV4cCI6MjA5NTI3ODk2M30.aS9lOVt7VyfwTV7bmsxxDUanWfs5v-TMBlGbwcDNomM';
+const ADMIN_EMAIL = 'hello@agentsimpleai.com';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
+
+// ===== label maps =====
+const PLATFORM = { tiktok:'تيك توك', snapchat:'سناب شات', x:'إكس', instagram:'انستقرام', youtube:'يوتيوب', twitter:'إكس' };
+const CITY = { riyadh:'الرياض', jeddah:'جدة', dammam:'الدمام', all:'كل المناطق' };
+const INDUSTRY = { perfumes:'عطور', fashion:'أزياء', beauty:'جمال وعناية', food:'طعام ومشروبات', tech:'تقنية', retail:'تجزئة', services:'خدمات', other:'أخرى' };
+const CATEGORY = { lifestyle:'لايف ستايل', beauty:'جمال', fashion:'موضة', food:'طعام', travel:'سفر', fitness:'رياضة', tech:'تقنية', parenting:'أمومة', general:'عام' };
+const SIZE = { startup:'ناشئة', small:'صغيرة', medium:'متوسطة', large:'كبيرة' };
+const STAGE = { 1:'العنوان', 2:'الشحن', 3:'الاستلام', 4:'البريف', 5:'المحتوى', 6:'الموافقة', 7:'النشر', 8:'البيانات البنكية', 9:'مكتمل' };
+
+// ===== helpers =====
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = n => (Number(n)||0).toLocaleString('en-US');
+const money = n => (Number(n)||0).toLocaleString('en-US') + ' ر.س';
+function fmtDate(x){ if(!x) return '—'; const d=new Date(x); if(isNaN(d)) return '—';
+  return d.toLocaleDateString('ar-SA-u-nu-latn',{year:'numeric',month:'short',day:'numeric'}) + ' · ' +
+         d.toLocaleTimeString('ar-SA-u-nu-latn',{hour:'2-digit',minute:'2-digit'}); }
+function ago(x){ if(!x) return ''; const d=new Date(x); const s=(Date.now()-d.getTime())/1000;
+  if(s<60) return 'الآن'; if(s<3600) return 'قبل '+Math.floor(s/60)+' د'; if(s<86400) return 'قبل '+Math.floor(s/3600)+' س';
+  if(s<2592000) return 'قبل '+Math.floor(s/86400)+' يوم'; return fmtDate(x); }
+const roleLabel = r => r==='brand'?'شركة':(r==='creator'?'معلن':(r||'—'));
+const isClosed = a => a && a.status==='closed';
+
+// ===== state =====
+let USERS=[], CAMPAIGNS=[], APPS=[], NEGS=[];
+let usersById={}, campsById={};
+
+// ===== boot =====
+(async function boot(){
+  let session=null;
+  try { const { data } = await sb.auth.getSession(); session = data?.session || null; }
+  catch(e){ session=null; }
+
+  if(!session){ return showGate('login'); }
+  const email = (session.user?.email || '').toLowerCase();
+  if(email !== ADMIN_EMAIL){ return showGate('denied', email); }
+
+  $('#admin-email').textContent = ADMIN_EMAIL;
+  await loadAll();
+})();
+
+function showGate(state, email){
+  const body = $('#gate-body');
+  if(state==='login'){
+    body.innerHTML = '<h1>لوحة الأدمن</h1><p>تحتاج تسجّل دخول بحساب الأدمن للوصول.</p>'+
+      '<a class="btn btn-primary" href="/login.html">تسجيل الدخول</a>';
+  } else if(state==='denied'){
+    body.innerHTML = '<h1>غير مصرّح</h1><p>هذا الحساب ('+esc(email)+') لا يملك صلاحية الأدمن. سجّل دخول بحساب الأدمن.</p>'+
+      '<a class="btn" href="/login.html">تبديل الحساب</a>';
+  }
+  $('#gate').style.display='flex'; $('#dash').style.display='none';
+}
+
+async function loadAll(){
+  $('#gate').style.display='flex'; $('#dash').style.display='none';
+  $('#gate-body').innerHTML = '<h1>جارٍ تحميل البيانات…</h1><p>نجمع كل أرقام منصتك</p><div class="spinner"></div>';
+  try{
+    const [u,c,a,n] = await Promise.all([
+      sb.from('users').select('*'),
+      sb.from('campaigns').select('*'),
+      sb.from('applications').select('*'),
+      sb.from('negotiations').select('*')
+    ]);
+    const firstErr = u.error||c.error||a.error||n.error;
+    if(firstErr) throw firstErr;
+    USERS=u.data||[]; CAMPAIGNS=c.data||[]; APPS=a.data||[]; NEGS=n.data||[];
+    usersById={}; USERS.forEach(x=>usersById[x.id]=x);
+    campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
+    $('#gate').style.display='none'; $('#dash').style.display='block';
+    $('#err-box').style.display='none';
+    renderKPIs(); renderOverview(); renderUsers(); renderCampaigns(); renderDeals();
+  }catch(err){
+    console.error(err);
+    $('#gate').style.display='none'; $('#dash').style.display='block';
+    const box=$('#err-box'); box.style.display='block';
+    box.innerHTML='تعذّر تحميل البيانات: '+esc(err.message||err)+'<br>تأكد إنك مسجّل دخول بحساب الأدمن وإن سياسات الأدمن مفعّلة في Supabase.';
+  }
+}
+
+// ===== derived per-campaign / per-app =====
+function appsOfCampaign(cid){ return APPS.filter(a=>a.campaign_id===cid); }
+function closedOfCampaign(cid){ return APPS.filter(a=>a.campaign_id===cid && isClosed(a)); }
+function brandOfCampaign(c){ const b=usersById[c.brand_id]; return b ? (b.company_name||b.name||'—') : '—'; }
+function campTitle(cid){ const c=campsById[cid]; return c?c.title:'—'; }
+function creatorName(a){ const u=usersById[a.creator_id]; return u?(u.name||u.company_name||'—'):'—'; }
+function brandNameForApp(a){ const c=campsById[a.campaign_id]; return c?brandOfCampaign(c):'—'; }
+
+// ===== KPIs =====
+function renderKPIs(){
+  const brands = USERS.filter(u=>u.role==='brand').length;
+  const creators = USERS.filter(u=>u.role==='creator').length;
+  const activeCamps = CAMPAIGNS.filter(c=>c.status==='active').length;
+  const closed = APPS.filter(isClosed);
+  const gmv = closed.reduce((s,a)=>s+(Number(a.final_price)||0),0);
+  const avg = closed.length ? Math.round(gmv/closed.length) : 0;
+  const k = [
+    ['ti-building-store','الشركات',num(brands)],
+    ['ti-users','المعلنون',num(creators)],
+    ['ti-user-check','إجمالي المستخدمين',num(USERS.length)],
+    ['ti-rocket','حملات نشطة',num(activeCamps)+'<small> / '+num(CAMPAIGNS.length)+'</small>'],
+    ['ti-send','إجمالي العروض',num(APPS.length)],
+    ['ti-circle-check','صفقات مقفلة',num(closed.length)],
+    ['ti-coin','قيمة الصفقات (GMV)',money(gmv),'hl'],
+    ['ti-calculator','متوسط الصفقة',money(avg)],
+  ];
+  $('#kpis').innerHTML = k.map(([ic,lbl,val,cls])=>
+    '<div class="kpi '+(cls||'')+'"><i class="ti '+ic+' ic"></i><div class="lbl">'+esc(lbl)+'</div><div class="val">'+val+'</div></div>'
+  ).join('');
+}
+
+// ===== overview =====
+function renderOverview(){
+  const ev=[];
+  USERS.forEach(u=>ev.push({t:u.created_at,ic:'ti-user-plus',txt:'تسجيل '+roleLabel(u.role)+' «'+esc(u.company_name||u.name||'—')+'»'}));
+  CAMPAIGNS.forEach(c=>ev.push({t:c.created_at,ic:'ti-rocket',txt:'حملة جديدة «'+esc(c.title||'—')+'» — '+esc(brandOfCampaign(c))}));
+  APPS.filter(isClosed).forEach(a=>ev.push({t:a.closed_at||a.created_at,ic:'ti-circle-check',txt:'صفقة مقفلة: '+esc(creatorName(a))+' ⟷ '+esc(brandNameForApp(a))+' · '+money(a.final_price)}));
+  ev.sort((x,y)=>new Date(y.t||0)-new Date(x.t||0));
+  const top = ev.slice(0,12);
+  $('#feed').innerHTML = top.length ? top.map(e=>
+    '<div class="feed-item"><div class="feed-ic"><i class="ti '+e.ic+'"></i></div><div class="feed-txt">'+e.txt+'</div><div class="feed-time">'+ago(e.t)+'</div></div>'
+  ).join('') : '<div class="empty">لا يوجد نشاط بعد</div>';
+
+  const ranked = [...CAMPAIGNS].map(c=>({c,n:appsOfCampaign(c.id).length,cl:closedOfCampaign(c.id).length}))
+    .sort((a,b)=>b.n-a.n).slice(0,8);
+  $('#top-campaigns').innerHTML = ranked.length ? ranked.map(r=>
+    '<tr><td>'+esc(r.c.title||'—')+'</td><td class="dim">'+esc(brandOfCampaign(r.c))+'</td><td class="mono">'+num(r.n)+'</td><td class="mono">'+num(r.cl)+'</td></tr>'
+  ).join('') : '<tr><td colspan="4" class="empty">لا توجد حملات</td></tr>';
+}
+
+// ===== users =====
+function renderUsers(){
+  const q=($('#u-search').value||'').trim().toLowerCase();
+  const role=$('#u-role').value;
+  let rows=USERS.filter(u=>{
+    if(role && u.role!==role) return false;
+    if(!q) return true;
+    return [u.name,u.company_name,u.email,u.whatsapp,u.phone,u.handle].some(v=>String(v||'').toLowerCase().includes(q));
+  });
+  rows.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  $('#u-count').textContent = rows.length+' مستخدم';
+  $('#users-tbody').innerHTML = rows.length ? rows.map(u=>{
+    const isB=u.role==='brand';
+    const name=isB?(u.company_name||u.name||'—'):(u.name||'—');
+    const seg=isB?(INDUSTRY[u.industry]||u.industry||'—'):(PLATFORM[u.platform]||u.platform||'—')+(u.category?' · '+(CATEGORY[u.category]||u.category):'');
+    const sizeF=isB?(SIZE[u.size]||u.size||'—'):(u.followers?num(u.followers):'—');
+    const contact=esc(u.email||u.whatsapp||u.phone||'—');
+    const badge=isB?'<span class="badge b-brand">شركة</span>':'<span class="badge b-creator">معلن</span>';
+    return '<tr><td>'+esc(name)+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</td><td>'+badge+'</td><td class="dim">'+esc(seg)+'</td><td class="mono">'+sizeF+'</td><td class="dim">'+contact+'</td><td class="dim">'+fmtDate(u.created_at)+'</td></tr>';
+  }).join('') : '<tr><td colspan="6" class="empty">لا نتائج</td></tr>';
+}
+
+// ===== campaigns =====
+function renderCampaigns(){
+  const q=($('#c-search').value||'').trim().toLowerCase();
+  const st=$('#c-status').value;
+  let rows=CAMPAIGNS.filter(c=>{
+    if(st && c.status!==st) return false;
+    if(!q) return true;
+    return String(c.title||'').toLowerCase().includes(q) || brandOfCampaign(c).toLowerCase().includes(q);
+  });
+  rows.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  $('#c-count').textContent = rows.length+' حملة';
+  $('#campaigns-tbody').innerHTML = rows.length ? rows.map(c=>{
+    const n=appsOfCampaign(c.id).length, cl=closedOfCampaign(c.id).length;
+    const stBadge=c.status==='active'?'<span class="badge b-active">نشطة</span>':'<span class="badge b-stage">'+esc(c.status||'—')+'</span>';
+    return '<tr><td>'+esc(c.title||'—')+'</td><td class="dim">'+esc(brandOfCampaign(c))+'</td><td>'+stBadge+'</td><td class="mono">'+num(n)+'</td><td class="mono">'+num(cl)+'</td><td class="dim">'+esc(c.budget||'—')+'</td><td class="dim">'+esc(CITY[c.city]||c.city||'—')+'</td><td class="dim">'+fmtDate(c.created_at)+'</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty">لا نتائج</td></tr>';
+}
+
+// ===== deals =====
+function renderDeals(){
+  const q=($('#d-search').value||'').trim().toLowerCase();
+  const st=$('#d-status').value;
+  let rows=APPS.filter(a=>{
+    if(st==='closed' && !isClosed(a)) return false;
+    if(st==='open' && isClosed(a)) return false;
+    if(!q) return true;
+    return [creatorName(a),brandNameForApp(a),campTitle(a.campaign_id)].some(v=>String(v||'').toLowerCase().includes(q));
+  });
+  rows.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  $('#d-count').textContent = rows.length+' عرض';
+  $('#deals-tbody').innerHTML = rows.length ? rows.map(a=>{
+    const stg=a.stage?('<span class="badge b-stage">'+a.stage+' · '+(STAGE[a.stage]||'')+'</span>'):'<span class="dim">—</span>';
+    const status=isClosed(a)?'<span class="badge b-closed">مقفلة</span>':'<span class="badge b-open">تفاوض</span>';
+    const dt=a.closed_at||a.created_at;
+    return '<tr class="clickable" data-app="'+esc(a.id)+'"><td>'+esc(creatorName(a))+'</td><td class="dim">'+esc(brandNameForApp(a))+'</td><td class="dim">'+esc(campTitle(a.campaign_id))+'</td><td class="mono">'+(a.price?num(a.price):'—')+'</td><td class="mono">'+(a.final_price?money(a.final_price):'—')+'</td><td>'+stg+'</td><td>'+status+'</td><td class="dim">'+fmtDate(dt)+'</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty">لا نتائج</td></tr>';
+  document.querySelectorAll('#deals-tbody tr.clickable').forEach(tr=>{
+    tr.addEventListener('click',()=>openDeal(tr.getAttribute('data-app')));
+  });
+}
+
+// ===== drawer =====
+function openDeal(appId){
+  const a=APPS.find(x=>String(x.id)===String(appId)); if(!a) return;
+  const msgs=NEGS.filter(n=>String(n.application_id)===String(appId)).sort((x,y)=>new Date(x.created_at||0)-new Date(y.created_at||0));
+  let html='';
+  html+='<div class="dr-row"><span class="k">المعلن</span><span class="v">'+esc(creatorName(a))+'</span></div>';
+  html+='<div class="dr-row"><span class="k">الشركة</span><span class="v">'+esc(brandNameForApp(a))+'</span></div>';
+  html+='<div class="dr-row"><span class="k">الحملة</span><span class="v">'+esc(campTitle(a.campaign_id))+'</span></div>';
+  html+='<div class="dr-row"><span class="k">السعر المبدئي</span><span class="v">'+(a.price?money(a.price):'—')+'</span></div>';
+  html+='<div class="dr-row"><span class="k">السعر النهائي</span><span class="v">'+(a.final_price?money(a.final_price):'—')+'</span></div>';
+  html+='<div class="dr-row"><span class="k">المرحلة</span><span class="v">'+(a.stage?(a.stage+' · '+(STAGE[a.stage]||'')):'—')+'</span></div>';
+  html+='<div class="dr-row"><span class="k">الحالة</span><span class="v">'+(isClosed(a)?'مقفلة':'قيد التفاوض')+'</span></div>';
+  html+='<div class="dr-row"><span class="k">تاريخ التقديم</span><span class="v">'+fmtDate(a.created_at)+'</span></div>';
+  if(a.closed_at) html+='<div class="dr-row"><span class="k">تاريخ الإقفال</span><span class="v">'+fmtDate(a.closed_at)+'</span></div>';
+  if(a.note){ html+='<div class="dr-sub">ملاحظة المعلن</div><div style="font-size:13.5px">'+esc(a.note)+'</div>'; }
+  if(a.deal_details){ html+='<div class="dr-sub">تفاصيل الاتفاق</div><div style="font-size:13.5px">'+esc(a.deal_details)+'</div>'; }
+  if(a.stage_data && Object.keys(a.stage_data||{}).length){
+    html+='<div class="dr-sub">بيانات المراحل (شحن / بنكي)</div><pre class="json">'+esc(JSON.stringify(a.stage_data,null,2))+'</pre>';
+  }
+  html+='<div class="dr-sub">سجل التفاوض ('+msgs.length+')</div>';
+  if(msgs.length){
+    html+='<div class="chat">'+msgs.map(m=>{
+      const who=m.from_role==='agent'?'الوكيل':(m.from_role==='creator'?'المعلن':esc(m.from_role||''));
+      const cls=m.from_role==='creator'?'creator':'agent';
+      return '<div class="msg '+cls+'"><div class="who">'+who+' · '+ago(m.created_at)+'</div>'+esc(m.message)+'</div>';
+    }).join('')+'</div>';
+  } else { html+='<div class="empty">لا توجد رسائل</div>'; }
+  $('#drawer-body').innerHTML=html;
+  $('#drawer').classList.add('open'); $('#drawer-ov').classList.add('open');
+}
+function closeDrawer(){ $('#drawer').classList.remove('open'); $('#drawer-ov').classList.remove('open'); }
+
+// ===== events =====
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); $('#panel-'+t.getAttribute('data-tab')).classList.add('active');
+}));
+$('#u-search').addEventListener('input',renderUsers);
+$('#u-role').addEventListener('change',renderUsers);
+$('#c-search').addEventListener('input',renderCampaigns);
+$('#c-status').addEventListener('change',renderCampaigns);
+$('#d-search').addEventListener('input',renderDeals);
+$('#d-status').addEventListener('change',renderDeals);
+$('#btn-refresh').addEventListener('click',loadAll);
+$('#btn-logout').addEventListener('click',async()=>{ try{await sb.auth.signOut();}catch(e){} window.location.href='/login.html'; });
+$('#drawer-close').addEventListener('click',closeDrawer);
+$('#drawer-ov').addEventListener('click',closeDrawer);
+</script>
+</body>
+</html>
