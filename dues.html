@@ -47,6 +47,9 @@ body { background: var(--cream); color: var(--ink); font-family: var(--font-body
 .btn-back:hover { background: var(--accent); transform: translateY(-1px); }
 
 .page-head { padding: 36px 0 8px; }
+.ph-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.btn-export { background: var(--accent); color: #fff; border: 0; padding: 11px 20px; border-radius: 100px; font-family: var(--font-body); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s, transform .15s; white-space: nowrap; }
+.btn-export:hover { background: var(--accent-ink); transform: translateY(-1px); }
 .page-title { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter-spacing: -0.4px; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; }
 .page-sub { font-size: 14px; color: var(--ink-soft); margin: 0; }
 
@@ -101,6 +104,9 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 /* الصفوف الفاضية */
 table.xl tr.xl-empty td { color:var(--ink-faint); background:#fcfcfc; }
 table.xl tr.xl-empty .xl-rowh { color:#b8bdba; }
+table.xl td.xl-rowcopy { cursor:pointer; }
+table.xl td.xl-rowcopy:hover { background:#e2efed; color:var(--accent-ink); }
+table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
 
 /* Toast */
 .toast-wrap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 10px; width: max-content; max-width: calc(100vw - 32px); pointer-events: none; }
@@ -143,8 +149,13 @@ table.xl tr.xl-empty .xl-rowh { color:#b8bdba; }
 
 <main class="container">
   <div class="page-head">
-    <h1 class="page-title">📋 متابعة الحملات والمستحقات</h1>
-    <p class="page-sub">كل صفقاتك المعتمدة في مكان واحد — اضغط أي خانة لنسخها.</p>
+    <div class="ph-row">
+      <div>
+        <h1 class="page-title">📋 متابعة الحملات والمستحقات</h1>
+        <p class="page-sub">كل صفقاتك المعتمدة في مكان واحد — اضغط أي خانة لنسخها، أو رقم الصف لنسخه كامل.</p>
+      </div>
+      <button class="btn-export" onclick="exportDuesCSV()">📥 تصدير Excel (CSV)</button>
+    </div>
   </div>
 
   <div id="dues-section">
@@ -306,8 +317,71 @@ function duesRowFilled(a, camp, idx, totals) {
   const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
   const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
 
-  return '<tr><td class="xl-rowh">' + toArabic(idx) + '</td>'
+  const rowTSV = [nameRaw, acctLink || '—', dateCopy || '—', pub || '—', ibanRaw || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
+  return '<tr><td class="xl-rowh xl-rowcopy" data-copy="' + escHtml(rowTSV) + '" onclick="duesCopyRow(this)" title="نسخ الصف كامل">' + toArabic(idx) + '</td>'
     + nameCell + acctCell + dateCell + videoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
+}
+
+// نسخ الصف كامل (مفصول بـ Tab — جاهز للّصق في إكسل)
+function duesCopyRow(el) {
+  const txt = el.getAttribute('data-copy') || '';
+  const done = () => {
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 700);
+    try { showToast('تم نسخ الصف كامل ✓'); } catch (e) {}
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+  } else { fallbackCopy(txt, done); }
+}
+
+// تصدير كل الصفقات المعتمدة إلى ملف CSV يفتح في إكسل
+function csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function exportDuesCSV() {
+  const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const header = ['الحملة', 'تاريخ انطلاق الحملة', 'الاسم', 'رابط الحساب', 'تاريخ النشر', 'رابط الفيديو', 'الآيبان', 'الاسم بالبنك', 'المبلغ', 'حالة الدفع'];
+  const lines = [header];
+  let count = 0;
+  camps.forEach(c => {
+    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+    let launch = '';
+    const ld = c.created_at ? new Date(c.created_at) : null;
+    if (ld && !isNaN(ld.getTime())) launch = ld.toLocaleDateString('en-GB');
+    deals.forEach(a => {
+      const creator = a.users || {};
+      const amountNum = Number(a.final_price || a.price || 0);
+      const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+      const bank = sd[8] || sd['8'] || {};
+      const st7 = sd[7] || sd['7'] || {};
+      const publishIso = st7._at || a.completed_at || '';
+      let dateCsv = '';
+      const d = publishIso ? new Date(publishIso) : null;
+      if (d && !isNaN(d.getTime())) dateCsv = d.toLocaleDateString('en-GB');
+      const stg = a.stage || 1, ps = a.payment_status || 'unpaid';
+      let statusPlain;
+      if (stg < 9) statusPlain = 'قيد التنفيذ - ' + (DUES_STAGE_NAMES[stg] || ('مرحلة ' + stg));
+      else if (ps === 'confirmed') statusPlain = 'تم الدفع';
+      else if (ps === 'marked_paid') statusPlain = 'حوّلت - بانتظار التأكيد';
+      else if (ps === 'disputed') statusPlain = 'نزاع استلام';
+      else statusPlain = 'باقي' + (duesIsOverdue(a, c) ? ' - متأخر' : '');
+      lines.push([c.title || 'حملة', launch, creator.name || 'معلن', duesAccountLink(creator) || '', dateCsv,
+        st7.publish_link || '', bank.iban || '', bank.account_holder || '', amountNum, statusPlain]);
+      count++;
+    });
+  });
+  if (!count) { showToast('ما فيه صفقات معتمدة للتصدير', 'error'); return; }
+  const csv = '\uFEFF' + lines.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+  link.href = url; link.download = 'مستحقات-سيمبل-' + today + '.csv';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('تم تصدير ' + toArabic(count) + ' صف ✓');
 }
 
 // صف فاضي (مقعد معلن لم يُملأ بعد)
