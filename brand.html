@@ -1215,6 +1215,29 @@ textarea { resize: vertical; min-height: 80px; }
 .pay-deadline { font-size: 12px; color: var(--ink-muted); margin-top: 8px; }
 .pay-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 
+/* ============ ملخّص المستحقات (جدول الدفع للشركة) ============ */
+.dues-wrap { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px 20px; margin:0 0 22px; }
+.dues-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.dues-head h3 { font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px; margin:0; }
+.dues-sum { display:flex; gap:8px; flex-wrap:wrap; }
+.dues-chip { font-size:12px; font-weight:500; border-radius:100px; padding:5px 12px; background:var(--cream-darker); color:var(--ink-soft); }
+.dues-chip.due { background:rgba(201,48,48,0.08); color:#b32d2d; }
+.dues-chip.paid { background:rgba(19,185,178,0.12); color:var(--accent-ink); }
+.dues-table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:12px; }
+table.dues-table { width:100%; border-collapse:collapse; font-size:13px; white-space:nowrap; }
+table.dues-table th { background:var(--cream-darker); color:var(--ink-muted); font-weight:500; text-align:right; padding:10px 12px; }
+table.dues-table td { padding:10px 12px; border-top:1px solid var(--line); }
+table.dues-table .iban-cell { letter-spacing:.3px; direction:ltr; text-align:right; color:var(--accent-ink); font-weight:600; }
+.dp { display:inline-block; padding:2px 10px; border-radius:100px; font-size:11.5px; font-weight:600; }
+.dp-paid { background:rgba(19,185,178,0.14); color:var(--accent-ink); }
+.dp-wait { background:rgba(184,134,11,0.15); color:#8a6500; }
+.dp-due  { background:rgba(201,48,48,0.12); color:#b32d2d; }
+.dp-prog { background:var(--cream-darker); color:var(--ink-muted); }
+.dues-mark { background:var(--accent); color:#fff; border:0; border-radius:100px; padding:6px 14px; font-family:var(--font-body); font-size:12px; font-weight:600; cursor:pointer; }
+.dues-mark:hover { background:var(--accent-ink); }
+.dues-link { color:var(--accent-ink); font-weight:600; text-decoration:none; }
+.dues-empty { padding:22px; text-align:center; color:var(--ink-faint); font-size:13px; }
+
 /* ============ Platform selector ============ */
 .platform-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .platform-chip {
@@ -1498,6 +1521,8 @@ textarea { resize: vertical; min-height: 80px; }
 
   <!-- ============ APP CONTENT ============ -->
   <div id="app-section" class="section-divider"></div>
+
+  <div id="dues-section"></div>
 
   <div class="campaign-pills" id="campaign-pills"></div>
   <div class="campaigns-list" id="campaigns-list"></div>
@@ -1886,6 +1911,7 @@ async function loadData() {
 
     updateHeroStats();
     renderCampaigns();
+    renderDues();
   } catch (err) {
     console.error(err);
     document.getElementById('campaigns-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--accent)">حصل خطأ في التحميل. حدّث الصفحة.</div>';
@@ -1901,6 +1927,138 @@ function updateHeroStats() {
     `${activeCampaignsLabel(active)} · ${closedDealsLabel(closed)}`;
   document.getElementById('hero-closed-count').textContent = toArabic(closed);
 }
+
+// ============ ملخّص المستحقات ============
+const DUES_STAGE_NAMES = { 1:'العنوان', 2:'الشحن', 3:'الاستلام', 4:'البريف', 5:'المحتوى', 6:'الموافقة', 7:'النشر', 8:'البيانات البنكية', 9:'مكتمل' };
+
+function duesCampMap() {
+  const m = {};
+  (myCampaigns || []).forEach(c => { m[c.id] = c; });
+  return m;
+}
+// متأخرة؟ (مكتملة + عدّت المهلة + غير مؤكّدة)
+function duesIsOverdue(a, camp) {
+  if (!a || (a.stage || 0) < 9) return false;
+  if (a.payment_status === 'confirmed') return false;
+  const days = camp ? parseInt(camp.payment_max_days, 10) : NaN;
+  if (!a.completed_at || isNaN(days) || days <= 0) return false;
+  const d = new Date(a.completed_at); if (isNaN(d.getTime())) return false;
+  d.setDate(d.getDate() + days);
+  return Date.now() > d.getTime();
+}
+function duesDateText(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso); if (isNaN(d.getTime())) return '—';
+  return toArabic(d.toLocaleDateString('en-GB')); // يوم/شهر/سنة بأرقام عربية
+}
+
+function renderDues() {
+  const host = document.getElementById('dues-section');
+  if (!host) return;
+  const camps = duesCampMap();
+
+  // كل الصفقات المعتمدة (معمّدة من الشركة) عبر كل الحملات
+  const deals = Object.values(campaignApps).flat()
+    .filter(a => a.status === 'closed' && a.brand_approved === true);
+
+  if (!deals.length) { host.innerHTML = ''; return; }
+
+  // ترتيب: المتأخر/النزاع أولًا، ثم بانتظار التأكيد، ثم قيد التنفيذ، ثم المدفوع — والأحدث إكمالًا أولًا
+  function groupRank(a, camp) {
+    const stg = a.stage || 1;
+    const ps = a.payment_status || 'unpaid';
+    if (stg >= 9) {
+      if (ps === 'confirmed') return 4;
+      if (ps === 'marked_paid') return 1;
+      return 0; // unpaid / disputed
+    }
+    return 2; // قيد التنفيذ
+  }
+  deals.sort((a, b) => {
+    const ra = groupRank(a, camps[a.campaign_id]);
+    const rb = groupRank(b, camps[b.campaign_id]);
+    if (ra !== rb) return ra - rb;
+    return new Date(b.completed_at || b.created_at || 0) - new Date(a.completed_at || a.created_at || 0);
+  });
+
+  let totalDue = 0, totalPaid = 0;
+  const rows = deals.map(a => {
+    const camp = camps[a.campaign_id];
+    const creator = a.users || {};
+    const name = escHtml(creator.name || 'معلن');
+    const amountNum = Number(a.final_price || a.price || 0);
+    const amount = amountNum.toLocaleString('ar-SA') + ' ر.س';
+    const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+    const bank = sd[8] || sd['8'] || {};
+    const iban = bank.iban ? escHtml(bank.iban) : '—';
+    const pub = (sd[7] || sd['7'] || {}).publish_link;
+    const stg = a.stage || 1;
+    const ps = a.payment_status || 'unpaid';
+
+    // الحالة + التاريخ + الإجراء
+    let statusHtml, dateText, action = '';
+    if (stg < 9) {
+      statusHtml = '<span class="dp dp-prog">قيد التنفيذ · ' + escHtml(DUES_STAGE_NAMES[stg] || ('مرحلة ' + stg)) + '</span>';
+      dateText = '—';
+    } else {
+      dateText = duesDateText(a.completed_at);
+      if (ps === 'confirmed') {
+        statusHtml = '<span class="dp dp-paid">تم الدفع ✓</span>';
+        totalPaid += amountNum;
+      } else if (ps === 'marked_paid') {
+        statusHtml = '<span class="dp dp-wait">حوّلت — بانتظار التأكيد</span>';
+        totalDue += amountNum;
+      } else if (ps === 'disputed') {
+        statusHtml = '<span class="dp dp-due">نزاع استلام</span>';
+        totalDue += amountNum;
+        action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
+      } else {
+        const overdue = duesIsOverdue(a, camp);
+        statusHtml = '<span class="dp dp-due">باقي' + (overdue ? ' · متأخر' : '') + '</span>';
+        totalDue += amountNum;
+        action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
+      }
+    }
+
+    const nameCell = pub
+      ? name + ' <a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">↗</a>'
+      : name;
+
+    return '<tr>'
+      + '<td>' + nameCell + '</td>'
+      + '<td class="dim">' + dateText + '</td>'
+      + '<td class="iban-cell">' + iban + '</td>'
+      + '<td>' + amount + '</td>'
+      + '<td>' + statusHtml + '</td>'
+      + '<td>' + (action || '<span class="dim">—</span>') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  const sumChips =
+    '<span class="dues-chip due">المتبقّي: ' + totalDue.toLocaleString('ar-SA') + ' ر.س</span>' +
+    '<span class="dues-chip paid">المدفوع: ' + totalPaid.toLocaleString('ar-SA') + ' ر.س</span>';
+
+  host.innerHTML =
+    '<div class="dues-wrap">'
+    + '<div class="dues-head"><h3>📋 متابعة الحملات والمستحقات</h3><div class="dues-sum">' + sumChips + '</div></div>'
+    + '<div class="dues-table-wrap"><table class="dues-table">'
+    + '<thead><tr><th>المعلن</th><th>تاريخ الإعلان</th><th>الآيبان</th><th>المبلغ المطلوب</th><th>الدفع</th><th></th></tr></thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table></div>'
+    + '</div>';
+}
+
+// تحديث تلقائي دائم لجدول المستحقات (بدون إزعاج بقية اللوحة)
+async function refreshDuesLive() {
+  try {
+    if (!currentUser || !myCampaigns || !myCampaigns.length) return;
+    const updated = {};
+    await Promise.all(myCampaigns.map(async c => { updated[c.id] = await dbGetCampaignApplications(c.id); }));
+    campaignApps = updated;
+    renderDues();
+  } catch (e) { /* صامت */ }
+}
+setInterval(() => { if (document.visibilityState === 'visible') refreshDuesLive(); }, 30000);
 
 function renderStats() {
   const allApps = Object.values(campaignApps).flat();
