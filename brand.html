@@ -1974,7 +1974,14 @@ function renderDues() {
   const deals = Object.values(campaignApps).flat()
     .filter(a => a.status === 'closed' && a.brand_approved === true);
 
-  if (!deals.length) { host.innerHTML = ''; return; }
+  if (!deals.length) {
+    host.innerHTML =
+      '<div class="dues-wrap">'
+      + '<div class="dues-head"><h3>📋 متابعة الحملات والمستحقات</h3></div>'
+      + '<div class="dues-empty">ما فيه صفقات معتمدة بعد. أول ما تعتمد صفقة بتظهر هنا بكل تفاصيلها (الاسم، رابط الحساب، تاريخ النشر، رابط الفيديو، الآيبان، المبلغ، وحالة الدفع).</div>'
+      + '</div>';
+    return;
+  }
 
   // ترتيب: المتأخر/النزاع أولًا، ثم بانتظار التأكيد، ثم قيد التنفيذ، ثم المدفوع — والأحدث إكمالًا أولًا
   function groupRank(a) {
