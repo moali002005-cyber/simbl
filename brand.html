@@ -2522,10 +2522,12 @@ function renderSingleCampaign(c) {
                   </div>
                   <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 عرض المفاوضة</button>`;
               } else if (isApproved) {
+                const stageNow = a.stage || 1;
+                const isDone = stageNow >= 9;
                 expandedInner = (a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : '')
-                  + renderWorkflowStrip(a.stage || 1)
-                  + renderStageHistory(a.stage_data, a.stage || 1)
-                  + renderStageAction(a.id, a.stage || 1, 'brand');
+                  + (isDone ? '' : renderWorkflowStrip(stageNow))
+                  + renderStageHistory(a.stage_data, stageNow)
+                  + renderStageAction(a.id, stageNow, 'brand');
               }
 
               return `
