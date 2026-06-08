@@ -1215,25 +1215,38 @@ textarea { resize: vertical; min-height: 80px; }
 .pay-deadline { font-size: 12px; color: var(--ink-muted); margin-top: 8px; }
 .pay-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 
-/* ============ ملخّص المستحقات (جدول الدفع للشركة) ============ */
+/* ============ متابعة الحملات والمستحقات — بشكل شيت إكسل ============ */
 .dues-wrap { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px 20px; margin:0 0 22px; }
-.dues-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.dues-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
 .dues-head h3 { font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px; margin:0; }
 .dues-sum { display:flex; gap:8px; flex-wrap:wrap; }
 .dues-chip { font-size:12px; font-weight:500; border-radius:100px; padding:5px 12px; background:var(--cream-darker); color:var(--ink-soft); }
 .dues-chip.due { background:rgba(201,48,48,0.08); color:#b32d2d; }
 .dues-chip.paid { background:rgba(19,185,178,0.12); color:var(--accent-ink); }
-.dues-table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:12px; }
-table.dues-table { width:100%; border-collapse:collapse; font-size:13px; white-space:nowrap; }
-table.dues-table th { background:var(--cream-darker); color:var(--ink-muted); font-weight:500; text-align:right; padding:10px 12px; }
-table.dues-table td { padding:10px 12px; border-top:1px solid var(--line); }
-table.dues-table .iban-cell { letter-spacing:.3px; direction:ltr; text-align:right; color:var(--accent-ink); font-weight:600; }
-.dp { display:inline-block; padding:2px 10px; border-radius:100px; font-size:11.5px; font-weight:600; }
+.dues-hint { font-size:11.5px; color:var(--ink-faint); margin:0 0 12px; display:flex; align-items:center; gap:5px; }
+.dues-grid-wrap { overflow-x:auto; border:1px solid #c9ccc9; border-radius:6px; }
+table.xl { width:100%; border-collapse:collapse; font-size:12.5px; white-space:nowrap; background:#fff; }
+table.xl th, table.xl td { border:1px solid #d7dad7; padding:7px 11px; text-align:right; }
+/* رؤوس إكسل: حروف الأعمدة وأرقام الصفوف */
+table.xl .xl-corner, table.xl .xl-colh, table.xl .xl-rowh {
+  background:#f1f3f1; color:#7a807c; font-weight:500; text-align:center; font-size:11px; user-select:none;
+}
+table.xl .xl-rowh { min-width:30px; }
+/* صف العناوين الحقيقي */
+table.xl thead .xl-label { background:#e7eceb; color:var(--ink-soft); font-weight:600; }
+/* الخانات القابلة للنسخ */
+table.xl td.cell { cursor:pointer; transition:background .12s; }
+table.xl td.cell:hover { background:#eef6f5; }
+table.xl td.cell.copied { background:#13B9B2; color:#fff; }
+table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
+.xl-iban { direction:ltr; text-align:right; color:var(--accent-ink); font-weight:600; font-variant-numeric:tabular-nums; }
+.xl-amount { font-variant-numeric:tabular-nums; font-weight:600; }
+.dp { display:inline-block; padding:2px 9px; border-radius:100px; font-size:11px; font-weight:600; }
 .dp-paid { background:rgba(19,185,178,0.14); color:var(--accent-ink); }
 .dp-wait { background:rgba(184,134,11,0.15); color:#8a6500; }
 .dp-due  { background:rgba(201,48,48,0.12); color:#b32d2d; }
 .dp-prog { background:var(--cream-darker); color:var(--ink-muted); }
-.dues-mark { background:var(--accent); color:#fff; border:0; border-radius:100px; padding:6px 14px; font-family:var(--font-body); font-size:12px; font-weight:600; cursor:pointer; }
+.dues-mark { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:5px 12px; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer; }
 .dues-mark:hover { background:var(--accent-ink); }
 .dues-link { color:var(--accent-ink); font-weight:600; text-decoration:none; }
 .dues-empty { padding:22px; text-align:center; color:var(--ink-faint); font-size:13px; }
@@ -1964,88 +1977,160 @@ function renderDues() {
   if (!deals.length) { host.innerHTML = ''; return; }
 
   // ترتيب: المتأخر/النزاع أولًا، ثم بانتظار التأكيد، ثم قيد التنفيذ، ثم المدفوع — والأحدث إكمالًا أولًا
-  function groupRank(a, camp) {
+  function groupRank(a) {
     const stg = a.stage || 1;
     const ps = a.payment_status || 'unpaid';
     if (stg >= 9) {
       if (ps === 'confirmed') return 4;
       if (ps === 'marked_paid') return 1;
-      return 0; // unpaid / disputed
+      return 0;
     }
-    return 2; // قيد التنفيذ
+    return 2;
   }
   deals.sort((a, b) => {
-    const ra = groupRank(a, camps[a.campaign_id]);
-    const rb = groupRank(b, camps[b.campaign_id]);
+    const ra = groupRank(a), rb = groupRank(b);
     if (ra !== rb) return ra - rb;
     return new Date(b.completed_at || b.created_at || 0) - new Date(a.completed_at || a.created_at || 0);
   });
 
   let totalDue = 0, totalPaid = 0;
-  const rows = deals.map(a => {
+  const rows = deals.map((a, i) => {
     const camp = camps[a.campaign_id];
     const creator = a.users || {};
-    const name = escHtml(creator.name || 'معلن');
+    const nameRaw = creator.name || 'معلن';
+    const name = escHtml(nameRaw);
     const amountNum = Number(a.final_price || a.price || 0);
-    const amount = amountNum.toLocaleString('ar-SA') + ' ر.س';
+    const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
     const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
     const bank = sd[8] || sd['8'] || {};
-    const iban = bank.iban ? escHtml(bank.iban) : '—';
-    const pub = (sd[7] || sd['7'] || {}).publish_link;
+    const ibanRaw = bank.iban || '';
+    const holderRaw = bank.account_holder || '';
+    const stage7 = sd[7] || sd['7'] || {};
+    const pub = stage7.publish_link || '';
+    // تاريخ النشر = لحظة إكمال مرحلة النشر (٧)، وإلا تاريخ الإكمال
+    const publishIso = stage7._at || a.completed_at || '';
+    const acctLink = duesAccountLink(creator);
     const stg = a.stage || 1;
     const ps = a.payment_status || 'unpaid';
 
-    // الحالة + التاريخ + الإجراء
-    let statusHtml, dateText, action = '';
+    let statusHtml, statusPlain, dateDisp = '—', dateCopy = '', action = '';
+    {
+      const d = publishIso ? new Date(publishIso) : null;
+      if (d && !isNaN(d.getTime())) {
+        dateCopy = d.toLocaleDateString('en-GB');
+        dateDisp = duesDateText(publishIso);
+      }
+    }
     if (stg < 9) {
-      statusHtml = '<span class="dp dp-prog">قيد التنفيذ · ' + escHtml(DUES_STAGE_NAMES[stg] || ('مرحلة ' + stg)) + '</span>';
-      dateText = '—';
+      statusPlain = 'قيد التنفيذ - ' + (DUES_STAGE_NAMES[stg] || ('مرحلة ' + stg));
+      statusHtml = '<span class="dp dp-prog">' + escHtml(statusPlain) + '</span>';
     } else {
-      dateText = duesDateText(a.completed_at);
       if (ps === 'confirmed') {
-        statusHtml = '<span class="dp dp-paid">تم الدفع ✓</span>';
-        totalPaid += amountNum;
+        statusPlain = 'تم الدفع'; statusHtml = '<span class="dp dp-paid">تم الدفع ✓</span>'; totalPaid += amountNum;
       } else if (ps === 'marked_paid') {
-        statusHtml = '<span class="dp dp-wait">حوّلت — بانتظار التأكيد</span>';
-        totalDue += amountNum;
+        statusPlain = 'حوّلت - بانتظار التأكيد'; statusHtml = '<span class="dp dp-wait">حوّلت — بانتظار التأكيد</span>'; totalDue += amountNum;
       } else if (ps === 'disputed') {
-        statusHtml = '<span class="dp dp-due">نزاع استلام</span>';
-        totalDue += amountNum;
+        statusPlain = 'نزاع استلام'; statusHtml = '<span class="dp dp-due">نزاع استلام</span>'; totalDue += amountNum;
         action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
       } else {
         const overdue = duesIsOverdue(a, camp);
-        statusHtml = '<span class="dp dp-due">باقي' + (overdue ? ' · متأخر' : '') + '</span>';
-        totalDue += amountNum;
+        statusPlain = 'باقي' + (overdue ? ' - متأخر' : ''); statusHtml = '<span class="dp dp-due">' + escHtml(statusPlain) + '</span>'; totalDue += amountNum;
         action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
       }
     }
 
-    const nameCell = pub
-      ? name + ' <a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">↗</a>'
-      : name;
+    // 1) الاسم (نسخ)
+    const nameCell = '<td class="cell" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
+    // 2) رابط الحساب (الكلمة نفسها رابط؛ الضغط يفتح)
+    const acctCell = acctLink
+      ? '<td><a class="dues-link" href="' + escHtml(acctLink) + '" target="_blank" rel="noopener">رابط الحساب ↗</a></td>'
+      : '<td class="dim">—</td>';
+    // 3) تاريخ النشر (نسخ)
+    const dateCell = '<td class="cell" data-copy="' + escHtml(dateCopy) + '" onclick="duesCopy(this)">' + dateDisp + '</td>';
+    // 4) رابط الفيديو (الكلمة نفسها رابط؛ الضغط يفتح)
+    const videoCell = pub
+      ? '<td><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">رابط الفيديو ↗</a></td>'
+      : '<td class="dim">—</td>';
+    // 5) الآيبان (نسخ)
+    const ibanCell = ibanRaw
+      ? '<td class="cell xl-iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw) + '</td>'
+      : '<td class="dim">—</td>';
+    // 6) الاسم بالبنك (نسخ)
+    const holderCell = holderRaw
+      ? '<td class="cell" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw) + '</td>'
+      : '<td class="dim">—</td>';
+    // 7) المبلغ (نسخ)
+    const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
+    // 8) حالة الدفع (نسخ)
+    const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
+    // 9) إجراء
+    const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
 
-    return '<tr>'
-      + '<td>' + nameCell + '</td>'
-      + '<td class="dim">' + dateText + '</td>'
-      + '<td class="iban-cell">' + iban + '</td>'
-      + '<td>' + amount + '</td>'
-      + '<td>' + statusHtml + '</td>'
-      + '<td>' + (action || '<span class="dim">—</span>') + '</td>'
-      + '</tr>';
+    return '<tr><td class="xl-rowh">' + toArabic(i + 1) + '</td>'
+      + nameCell + acctCell + dateCell + videoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
   }).join('');
 
   const sumChips =
     '<span class="dues-chip due">المتبقّي: ' + totalDue.toLocaleString('ar-SA') + ' ر.س</span>' +
     '<span class="dues-chip paid">المدفوع: ' + totalPaid.toLocaleString('ar-SA') + ' ر.س</span>';
 
+  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
+
   host.innerHTML =
     '<div class="dues-wrap">'
     + '<div class="dues-head"><h3>📋 متابعة الحملات والمستحقات</h3><div class="dues-sum">' + sumChips + '</div></div>'
-    + '<div class="dues-table-wrap"><table class="dues-table">'
-    + '<thead><tr><th>المعلن</th><th>تاريخ الإعلان</th><th>الآيبان</th><th>المبلغ المطلوب</th><th>الدفع</th><th></th></tr></thead>'
-    + '<tbody>' + rows + '</tbody>'
-    + '</table></div>'
+    + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح</p>'
+    + '<div class="dues-grid-wrap"><table class="xl">'
+    + '<thead>'
+    + '<tr><th class="xl-corner"></th>' + colLetters + '</tr>'
+    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
+    + '</thead><tbody>' + rows + '</tbody></table></div>'
     + '</div>';
+}
+
+// بناء رابط حساب المعلن من المنصة + المعرّف (مع بدائل)
+function duesAccountLink(creator) {
+  if (!creator) return '';
+  // لو فيه رابط محفوظ جاهز
+  for (const k of ['account_link', 'profile_link', 'profile_url', 'link']) {
+    if (creator[k] && /^https?:\/\//i.test(creator[k])) return creator[k];
+  }
+  if (creator.website && /^https?:\/\//i.test(creator.website)) return creator.website;
+  // بناء من المعرّف + المنصة
+  let h = (creator.handle || creator.username || '').toString().trim().replace(/^@/, '');
+  const p = (creator.platform || '').toString().toLowerCase();
+  if (h && /^https?:\/\//i.test(h)) return h; // المعرّف نفسه رابط
+  if (!h) return '';
+  if (p.includes('tiktok')) return 'https://www.tiktok.com/@' + h;
+  if (p.includes('insta')) return 'https://instagram.com/' + h;
+  if (p.includes('snap')) return 'https://snapchat.com/add/' + h;
+  if (p.includes('youtube') || p.includes('يوتيوب')) return 'https://youtube.com/@' + h;
+  if (p === 'x' || p.includes('twitter') || p.includes('إكس') || p.includes('اكس')) return 'https://x.com/' + h;
+  return '';
+}
+
+// نسخ محتوى أي خانة في الشيت
+function duesCopy(el) {
+  const txt = el.getAttribute('data-copy') || el.textContent || '';
+  const done = () => {
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 700);
+    try { showToast('تم نسخ: ' + txt); } catch (e) {}
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+  } else {
+    fallbackCopy(txt, done);
+  }
+}
+function fallbackCopy(txt, done) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    done();
+  } catch (e) { try { showToast('تعذّر النسخ تلقائيًا'); } catch (e2) {} }
 }
 
 // تحديث تلقائي دائم لجدول المستحقات (بدون إزعاج بقية اللوحة)
