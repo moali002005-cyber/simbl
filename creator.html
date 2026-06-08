@@ -1200,7 +1200,7 @@ async function init() {
       saveCurrentUser(currentUser);
     }
   } catch (e) { /* نعتمد القيمة المخزّنة عند تعذّر الجلب */ }
-  if (approvalStatus === 'pending' || approvalStatus === 'rejected') {
+  if (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended') {
     showPendingScreen(approvalStatus);
     return;
   }
@@ -1215,6 +1215,18 @@ function showPendingScreen(status) {
   const main = document.querySelector('main');
   if (!main) return;
   const rejected = status === 'rejected';
+  const suspended = status === 'suspended';
+  if (suspended) {
+    main.innerHTML = `
+    <section class="hero" style="padding-top:72px">
+      <div style="max-width:520px;margin:0 auto;text-align:center">
+        <div style="width:84px;height:84px;border-radius:50%;background:rgba(210,59,59,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:38px">⏸️</div>
+        <h1 class="hero-title" style="font-size:30px">حسابك موقوف مؤقتًا</h1>
+        <p class="hero-sub">تم إيقاف حسابك مؤقتًا. لمعرفة السبب وتسوية الوضع، تواصل مع فريق سيمبل عبر hello@agentsimpleai.com</p>
+      </div>
+    </section>`;
+    return;
+  }
   main.innerHTML = `
     <section class="hero" style="padding-top:72px">
       <div style="max-width:520px;margin:0 auto;text-align:center">
