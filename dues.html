@@ -89,6 +89,19 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 .dues-link:hover { text-decoration:underline; }
 .dues-empty { padding:30px 22px; text-align:center; color:var(--ink-faint); font-size:13.5px; line-height:1.8; }
 
+/* بلوك الحملة */
+.camp-block { margin-bottom:26px; }
+.camp-block:last-child { margin-bottom:0; }
+.camp-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 16px; background:rgba(19,185,178,0.06); border:1px solid rgba(19,185,178,0.28); border-radius:12px 12px 0 0; border-bottom:0; }
+.camp-titles { min-width:0; }
+.camp-title { font-family:var(--font-display); font-size:16px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
+.camp-meta { font-size:12px; color:var(--ink-muted); margin-top:3px; display:flex; gap:6px 14px; flex-wrap:wrap; }
+.camp-meta strong { color:var(--accent-ink); font-weight:600; }
+.camp-block .dues-grid-wrap { border-radius:0 0 6px 6px; }
+/* الصفوف الفاضية */
+table.xl tr.xl-empty td { color:var(--ink-faint); background:#fcfcfc; }
+table.xl tr.xl-empty .xl-rowh { color:#b8bdba; }
+
 /* Toast */
 .toast-wrap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 10px; width: max-content; max-width: calc(100vw - 32px); pointer-events: none; }
 .toast { display: flex; align-items: center; gap: 10px; background: #fff; color: var(--ink); border: 1px solid var(--line); border-right: 4px solid var(--accent); border-radius: 14px; padding: 13px 18px; font-family: var(--font-body); font-size: 14px; font-weight: 500; line-height: 1.5; box-shadow: 0 14px 36px -12px rgba(10,10,10,0.28); pointer-events: auto; opacity: 0; transform: translateY(-12px); transition: opacity .28s cubic-bezier(0.22,1,0.36,1), transform .28s cubic-bezier(0.22,1,0.36,1); }
@@ -234,120 +247,151 @@ function fallbackCopy(txt, done) {
   } catch (e) { try { showToast('تعذّر النسخ تلقائيًا'); } catch (e2) {} }
 }
 
-function renderDues() {
-  const host = document.getElementById('dues-section');
-  if (!host) return;
-  const camps = duesCampMap();
+// صف معبّأ (صفقة معتمدة)
+function duesRowFilled(a, camp, idx, totals) {
+  const creator = a.users || {};
+  const nameRaw = creator.name || 'معلن';
+  const name = escHtml(nameRaw);
+  const amountNum = Number(a.final_price || a.price || 0);
+  const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
+  const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+  const bank = sd[8] || sd['8'] || {};
+  const ibanRaw = bank.iban || '';
+  const holderRaw = bank.account_holder || '';
+  const stage7 = sd[7] || sd['7'] || {};
+  const pub = stage7.publish_link || '';
+  const publishIso = stage7._at || a.completed_at || '';
+  const acctLink = duesAccountLink(creator);
+  const stg = a.stage || 1;
+  const ps = a.payment_status || 'unpaid';
 
-  const deals = Object.values(campaignApps).flat()
-    .filter(a => a.status === 'closed' && a.brand_approved === true);
-
-  if (!deals.length) {
-    host.innerHTML =
-      '<div class="dues-wrap">'
-      + '<div class="dues-empty">ما فيه صفقات معتمدة بعد. أول ما تعتمد صفقة بتظهر هنا بكل تفاصيلها (الاسم، رابط الحساب، تاريخ النشر، رابط الفيديو، الآيبان، المبلغ، وحالة الدفع).</div>'
-      + '</div>';
-    return;
+  let statusHtml, statusPlain, dateDisp = '—', dateCopy = '', action = '';
+  {
+    const d = publishIso ? new Date(publishIso) : null;
+    if (d && !isNaN(d.getTime())) { dateCopy = d.toLocaleDateString('en-GB'); dateDisp = duesDateText(publishIso); }
+  }
+  if (stg < 9) {
+    statusPlain = 'قيد التنفيذ - ' + (DUES_STAGE_NAMES[stg] || ('مرحلة ' + stg));
+    statusHtml = '<span class="dp dp-prog">' + escHtml(statusPlain) + '</span>';
+  } else {
+    if (ps === 'confirmed') {
+      statusPlain = 'تم الدفع'; statusHtml = '<span class="dp dp-paid">تم الدفع ✓</span>'; totals.paid += amountNum;
+    } else if (ps === 'marked_paid') {
+      statusPlain = 'حوّلت - بانتظار التأكيد'; statusHtml = '<span class="dp dp-wait">حوّلت — بانتظار التأكيد</span>'; totals.due += amountNum;
+    } else if (ps === 'disputed') {
+      statusPlain = 'نزاع استلام'; statusHtml = '<span class="dp dp-due">نزاع استلام</span>'; totals.due += amountNum;
+      action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
+    } else {
+      const overdue = duesIsOverdue(a, camp);
+      statusPlain = 'باقي' + (overdue ? ' - متأخر' : ''); statusHtml = '<span class="dp dp-due">' + escHtml(statusPlain) + '</span>'; totals.due += amountNum;
+      action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
+    }
   }
 
+  const nameCell = '<td class="cell" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
+  const acctCell = acctLink
+    ? '<td><a class="dues-link" href="' + escHtml(acctLink) + '" target="_blank" rel="noopener">رابط الحساب ↗</a></td>'
+    : '<td class="dim">—</td>';
+  const dateCell = '<td class="cell" data-copy="' + escHtml(dateCopy) + '" onclick="duesCopy(this)">' + dateDisp + '</td>';
+  const videoCell = pub
+    ? '<td><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">رابط الفيديو ↗</a></td>'
+    : '<td class="dim">—</td>';
+  const ibanCell = ibanRaw
+    ? '<td class="cell xl-iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw) + '</td>'
+    : '<td class="dim">—</td>';
+  const holderCell = holderRaw
+    ? '<td class="cell" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw) + '</td>'
+    : '<td class="dim">—</td>';
+  const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
+  const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
+  const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
+
+  return '<tr><td class="xl-rowh">' + toArabic(idx) + '</td>'
+    + nameCell + acctCell + dateCell + videoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
+}
+
+// صف فاضي (مقعد معلن لم يُملأ بعد)
+function duesRowEmpty(idx) {
+  let tds = '';
+  for (let k = 0; k < 8; k++) tds += '<td>&nbsp;</td>';
+  return '<tr class="xl-empty"><td class="xl-rowh">' + toArabic(idx) + '</td>' + tds
+    + '<td><span class="dim">—</span></td></tr>';
+}
+
+// بلوك حملة واحدة: عنوان + تاريخ الانطلاق + جدول بعدد المعلنين
+function renderCampaignBlock(camp, deals) {
+  const totals = { due: 0, paid: 0 };
+
+  // ترتيب: المتأخر/النزاع أولًا، ثم بانتظار التأكيد، ثم قيد التنفيذ، ثم المدفوع
   function groupRank(a) {
     const stg = a.stage || 1;
     const ps = a.payment_status || 'unpaid';
-    if (stg >= 9) {
-      if (ps === 'confirmed') return 4;
-      if (ps === 'marked_paid') return 1;
-      return 0;
-    }
+    if (stg >= 9) { if (ps === 'confirmed') return 4; if (ps === 'marked_paid') return 1; return 0; }
     return 2;
   }
-  deals.sort((a, b) => {
+  deals = deals.slice().sort((a, b) => {
     const ra = groupRank(a), rb = groupRank(b);
     if (ra !== rb) return ra - rb;
     return new Date(b.completed_at || b.created_at || 0) - new Date(a.completed_at || a.created_at || 0);
   });
 
-  let totalDue = 0, totalPaid = 0;
-  const rows = deals.map((a, i) => {
-    const camp = camps[a.campaign_id];
-    const creator = a.users || {};
-    const nameRaw = creator.name || 'معلن';
-    const name = escHtml(nameRaw);
-    const amountNum = Number(a.final_price || a.price || 0);
-    const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
-    const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
-    const bank = sd[8] || sd['8'] || {};
-    const ibanRaw = bank.iban || '';
-    const holderRaw = bank.account_holder || '';
-    const stage7 = sd[7] || sd['7'] || {};
-    const pub = stage7.publish_link || '';
-    const publishIso = stage7._at || a.completed_at || '';
-    const acctLink = duesAccountLink(creator);
-    const stg = a.stage || 1;
-    const ps = a.payment_status || 'unpaid';
+  const size = parseInt(camp.campaign_size, 10) || 0;
+  const slots = Math.max(size, deals.length);
 
-    let statusHtml, statusPlain, dateDisp = '—', dateCopy = '', action = '';
-    {
-      const d = publishIso ? new Date(publishIso) : null;
-      if (d && !isNaN(d.getTime())) {
-        dateCopy = d.toLocaleDateString('en-GB');
-        dateDisp = duesDateText(publishIso);
-      }
-    }
-    if (stg < 9) {
-      statusPlain = 'قيد التنفيذ - ' + (DUES_STAGE_NAMES[stg] || ('مرحلة ' + stg));
-      statusHtml = '<span class="dp dp-prog">' + escHtml(statusPlain) + '</span>';
-    } else {
-      if (ps === 'confirmed') {
-        statusPlain = 'تم الدفع'; statusHtml = '<span class="dp dp-paid">تم الدفع ✓</span>'; totalPaid += amountNum;
-      } else if (ps === 'marked_paid') {
-        statusPlain = 'حوّلت - بانتظار التأكيد'; statusHtml = '<span class="dp dp-wait">حوّلت — بانتظار التأكيد</span>'; totalDue += amountNum;
-      } else if (ps === 'disputed') {
-        statusPlain = 'نزاع استلام'; statusHtml = '<span class="dp dp-due">نزاع استلام</span>'; totalDue += amountNum;
-        action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
-      } else {
-        const overdue = duesIsOverdue(a, camp);
-        statusPlain = 'باقي' + (overdue ? ' - متأخر' : ''); statusHtml = '<span class="dp dp-due">' + escHtml(statusPlain) + '</span>'; totalDue += amountNum;
-        action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
-      }
-    }
-
-    const nameCell = '<td class="cell" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
-    const acctCell = acctLink
-      ? '<td><a class="dues-link" href="' + escHtml(acctLink) + '" target="_blank" rel="noopener">رابط الحساب ↗</a></td>'
-      : '<td class="dim">—</td>';
-    const dateCell = '<td class="cell" data-copy="' + escHtml(dateCopy) + '" onclick="duesCopy(this)">' + dateDisp + '</td>';
-    const videoCell = pub
-      ? '<td><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">رابط الفيديو ↗</a></td>'
-      : '<td class="dim">—</td>';
-    const ibanCell = ibanRaw
-      ? '<td class="cell xl-iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw) + '</td>'
-      : '<td class="dim">—</td>';
-    const holderCell = holderRaw
-      ? '<td class="cell" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw) + '</td>'
-      : '<td class="dim">—</td>';
-    const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
-    const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
-    const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
-
-    return '<tr><td class="xl-rowh">' + toArabic(i + 1) + '</td>'
-      + nameCell + acctCell + dateCell + videoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
-  }).join('');
-
-  const sumChips =
-    '<span class="dues-chip due">المتبقّي: ' + totalDue.toLocaleString('ar-SA') + ' ر.س</span>' +
-    '<span class="dues-chip paid">المدفوع: ' + totalPaid.toLocaleString('ar-SA') + ' ر.س</span>';
+  let body = '';
+  for (let i = 0; i < slots; i++) {
+    body += deals[i] ? duesRowFilled(deals[i], camp, i + 1, totals) : duesRowEmpty(i + 1);
+  }
 
   const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
+  const launch = duesDateText(camp.created_at);
+  const sumChips =
+    '<span class="dues-chip due">المتبقّي: ' + totals.due.toLocaleString('ar-SA') + ' ر.س</span>' +
+    '<span class="dues-chip paid">المدفوع: ' + totals.paid.toLocaleString('ar-SA') + ' ر.س</span>';
 
-  host.innerHTML =
-    '<div class="dues-wrap">'
-    + '<div class="dues-head"><h3>📋 الصفقات المعتمدة</h3><div class="dues-sum">' + sumChips + '</div></div>'
-    + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح</p>'
+  return '<div class="camp-block">'
+    + '<div class="camp-bar">'
+    +   '<div class="camp-titles">'
+    +     '<div class="camp-title">📦 ' + escHtml(camp.title || 'حملة') + '</div>'
+    +     '<div class="camp-meta">'
+    +       '<span>🗓️ انطلقت: <strong>' + launch + '</strong></span>'
+    +       (size ? '<span>👥 المطلوب: <strong>' + toArabic(size) + ' معلن</strong></span>' : '')
+    +       '<span>✅ معتمد: <strong>' + toArabic(deals.length) + (size ? '/' + toArabic(size) : '') + '</strong></span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="dues-sum">' + sumChips + '</div>'
+    + '</div>'
     + '<div class="dues-grid-wrap"><table class="xl">'
     + '<thead>'
     + '<tr><th class="xl-corner"></th>' + colLetters + '</tr>'
     + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
-    + '</thead><tbody>' + rows + '</tbody></table></div>'
+    + '</thead><tbody>' + body + '</tbody></table></div>'
+    + '</div>';
+}
+
+function renderDues() {
+  const host = document.getElementById('dues-section');
+  if (!host) return;
+
+  const camps = (myCampaigns || []).slice().sort((a, b) =>
+    new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  if (!camps.length) {
+    host.innerHTML =
+      '<div class="dues-wrap"><div class="dues-empty">ما عندك حملات بعد. أنشئ حملة من اللوحة وبتظهر هنا بكل صفقاتها ومقاعد المعلنين.</div></div>';
+    return;
+  }
+
+  const blocks = camps.map(c => {
+    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+    return renderCampaignBlock(c, deals);
+  }).join('');
+
+  host.innerHTML =
+    '<div class="dues-wrap">'
+    + '<div class="dues-head"><h3>📋 الحملات</h3></div>'
+    + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح · الصفوف الفاضية = مقاعد معلنين لم تُعتمد بعد</p>'
+    + blocks
     + '</div>';
 }
 
