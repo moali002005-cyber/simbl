@@ -1524,6 +1524,7 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
       <button class="hero-cta" onclick="openCampaignModal()">+ حملة جديدة</button>
       <button class="hero-cta" onclick="goToCampaigns()">صفقات أقفلها الوكيل (<span id="hero-closed-count">٠</span>)</button>
+      <button class="hero-cta" onclick="window.location.href='/dues.html'">📋 متابعة الحملات والمستحقات</button>
     </div>
     <div class="hero-features">
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الحملة</span>
@@ -1534,8 +1535,6 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 
   <!-- ============ APP CONTENT ============ -->
   <div id="app-section" class="section-divider"></div>
-
-  <div id="dues-section"></div>
 
   <div class="campaign-pills" id="campaign-pills"></div>
   <div class="campaigns-list" id="campaigns-list"></div>
@@ -2150,7 +2149,7 @@ async function refreshDuesLive() {
     renderDues();
   } catch (e) { /* صامت */ }
 }
-setInterval(() => { if (document.visibilityState === 'visible') refreshDuesLive(); }, 30000);
+// المتابعة صارت في صفحة مستقلة (dues.html) — لا حاجة للتحديث التلقائي هنا
 
 function renderStats() {
   const allApps = Object.values(campaignApps).flat();

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>متابعة الحملات والمستحقات - سيمبل</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="سيمبل">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<script src="/splash.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --cream: #ffffff;
+  --cream-darker: #f5f5f4;
+  --ink: #0a0a0a;
+  --ink-soft: #3a3a3a;
+  --ink-muted: #6b6b6b;
+  --ink-faint: #a0a0a0;
+  --accent: #13B9B2;
+  --accent-soft: #7fd6d2;
+  --accent-ink: #0c4f4b;
+  --line: rgba(10, 10, 10, 0.08);
+  --line-strong: rgba(10, 10, 10, 0.16);
+  --font-display: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--cream); color: var(--ink); font-family: var(--font-body); font-weight: 400; font-size: 16px; line-height: 1.7; min-height: 100vh; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+
+.nav { background: var(--cream); padding: 16px 0; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 50; }
+.nav-inner { display: flex; justify-content: space-between; align-items: center; }
+.logo { display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--ink); transition: transform .3s ease-out; }
+.logo:hover { transform: scale(1.05); }
+.logo-eye { width: 40px; height: 40px; display: block; flex-shrink: 0; }
+.logo-mark { font-family: var(--font-display); font-size: 16px; font-weight: 500; color: var(--ink); position: relative; padding-left: 10px; line-height: 1; }
+.logo-mark::after { content: ''; position: absolute; bottom: 0; left: 0; width: 4px; height: 4px; background: var(--accent); border-radius: 50%; }
+.user-menu { display: flex; align-items: center; gap: 10px; }
+.btn-back { background: var(--ink); color: #fff; border: 0; padding: 9px 18px; border-radius: 100px; font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .2s, transform .15s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.btn-back:hover { background: var(--accent); transform: translateY(-1px); }
+
+.page-head { padding: 36px 0 8px; }
+.page-title { font-family: var(--font-display); font-size: 28px; font-weight: 600; letter-spacing: -0.4px; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; }
+.page-sub { font-size: 14px; color: var(--ink-soft); margin: 0; }
+
+.loading-wrap { display: flex; justify-content: center; padding: 60px 20px; }
+.loading-pill { display: inline-flex; align-items: center; gap: 10px; background: #fff; border: 1px solid rgba(19,185,178,0.2); border-radius: 100px; padding: 10px 22px; font-family: var(--font-display); font-size: 13px; font-weight: 500; color: var(--accent-ink); box-shadow: 0 0 30px 6px rgba(19,185,178,0.15); animation: lp-glow 2s ease-in-out infinite; }
+@keyframes lp-glow { 0%,100% { box-shadow: 0 0 20px 4px rgba(19,185,178,0.12); } 50% { box-shadow: 0 0 32px 8px rgba(19,185,178,0.20); } }
+.loading-pill-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: lp-blink 1s ease-in-out infinite; }
+@keyframes lp-blink { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+/* ============ شيت الإكسل ============ */
+.dues-wrap { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px 20px; margin:18px 0 40px; }
+.dues-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+.dues-head h3 { font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px; margin:0; }
+.dues-sum { display:flex; gap:8px; flex-wrap:wrap; }
+.dues-chip { font-size:12px; font-weight:500; border-radius:100px; padding:5px 12px; background:var(--cream-darker); color:var(--ink-soft); }
+.dues-chip.due { background:rgba(201,48,48,0.08); color:#b32d2d; }
+.dues-chip.paid { background:rgba(19,185,178,0.12); color:var(--accent-ink); }
+.dues-hint { font-size:11.5px; color:var(--ink-faint); margin:0 0 12px; display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.dues-grid-wrap { overflow-x:auto; border:1px solid #c9ccc9; border-radius:6px; }
+table.xl { width:100%; border-collapse:collapse; font-size:12.5px; white-space:nowrap; background:#fff; }
+table.xl th, table.xl td { border:1px solid #d7dad7; padding:7px 11px; text-align:right; }
+table.xl .xl-corner, table.xl .xl-colh, table.xl .xl-rowh { background:#f1f3f1; color:#7a807c; font-weight:500; text-align:center; font-size:11px; user-select:none; }
+table.xl .xl-rowh { min-width:30px; }
+table.xl thead .xl-label { background:#e7eceb; color:var(--ink-soft); font-weight:600; }
+table.xl td.cell { cursor:pointer; transition:background .12s; }
+table.xl td.cell:hover { background:#eef6f5; }
+table.xl td.cell.copied { background:#13B9B2; color:#fff; }
+table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
+.xl-iban { direction:ltr; text-align:right; color:var(--accent-ink); font-weight:600; font-variant-numeric:tabular-nums; }
+.xl-amount { font-variant-numeric:tabular-nums; font-weight:600; }
+.dp { display:inline-block; padding:2px 9px; border-radius:100px; font-size:11px; font-weight:600; }
+.dp-paid { background:rgba(19,185,178,0.14); color:var(--accent-ink); }
+.dp-wait { background:rgba(184,134,11,0.15); color:#8a6500; }
+.dp-due  { background:rgba(201,48,48,0.12); color:#b32d2d; }
+.dp-prog { background:var(--cream-darker); color:var(--ink-muted); }
+.dim { color:var(--ink-faint); }
+.dues-mark { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:5px 12px; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer; }
+.dues-mark:hover { background:var(--accent-ink); }
+.dues-link { color:var(--accent-ink); font-weight:600; text-decoration:none; }
+.dues-link:hover { text-decoration:underline; }
+.dues-empty { padding:30px 22px; text-align:center; color:var(--ink-faint); font-size:13.5px; line-height:1.8; }
+
+/* Toast */
+.toast-wrap { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 10px; width: max-content; max-width: calc(100vw - 32px); pointer-events: none; }
+.toast { display: flex; align-items: center; gap: 10px; background: #fff; color: var(--ink); border: 1px solid var(--line); border-right: 4px solid var(--accent); border-radius: 14px; padding: 13px 18px; font-family: var(--font-body); font-size: 14px; font-weight: 500; line-height: 1.5; box-shadow: 0 14px 36px -12px rgba(10,10,10,0.28); pointer-events: auto; opacity: 0; transform: translateY(-12px); transition: opacity .28s cubic-bezier(0.22,1,0.36,1), transform .28s cubic-bezier(0.22,1,0.36,1); }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { border-right-color: #c93030; }
+.toast .toast-ic { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(19,185,178,0.14); color: var(--accent-ink); font-size: 13px; font-weight: 700; }
+.toast.error .toast-ic { background: rgba(201,48,48,0.12); color: #c93030; }
+
+@media (max-width: 740px) {
+  .container { padding: 0 16px; }
+  .page-title { font-size: 22px; }
+  .logo-eye { width: 36px; height: 36px; }
+  .logo-mark { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo">
+      <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true">
+        <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(25 100 100)"/>
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(-25 100 100)"/>
+          <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/>
+          <circle cx="100" cy="100" r="8" fill="#0a0a0a"/>
+        </g>
+      </svg>
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <div class="user-menu">
+      <a class="btn-back" href="/brand.html">→ رجوع للوحة</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="page-head">
+    <h1 class="page-title">📋 متابعة الحملات والمستحقات</h1>
+    <p class="page-sub">كل صفقاتك المعتمدة في مكان واحد — اضغط أي خانة لنسخها.</p>
+  </div>
+
+  <div id="dues-section">
+    <div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري التحميل...</div></div>
+  </div>
+</main>
+
+<script src="supabase-config.js"></script>
+<script src="notifications.js"></script>
+<script>
+let currentUser = null;
+let myCampaigns = [];
+let campaignApps = {};
+
+const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
+
+const DUES_STAGE_NAMES = { 1:'العنوان', 2:'الشحن', 3:'الاستلام', 4:'البريف', 5:'المحتوى', 6:'الموافقة', 7:'النشر', 8:'البيانات البنكية', 9:'مكتمل' };
+
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function showToast(message, type = 'success', duration = 3500) {
+  const wrap = document.getElementById('toast-wrap');
+  if (!wrap) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (type === 'error' ? 'error' : '');
+  toast.innerHTML = `<span class="toast-ic">${type === 'error' ? '!' : '✓'}</span><span>${message}</span>`;
+  wrap.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 320); }, duration);
+}
+
+function duesCampMap() {
+  const m = {};
+  (myCampaigns || []).forEach(c => { m[c.id] = c; });
+  return m;
+}
+function duesIsOverdue(a, camp) {
+  if (!a || (a.stage || 0) < 9) return false;
+  if (a.payment_status === 'confirmed') return false;
+  const days = camp ? parseInt(camp.payment_max_days, 10) : NaN;
+  if (!a.completed_at || isNaN(days) || days <= 0) return false;
+  const d = new Date(a.completed_at); if (isNaN(d.getTime())) return false;
+  d.setDate(d.getDate() + days);
+  return Date.now() > d.getTime();
+}
+function duesDateText(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso); if (isNaN(d.getTime())) return '—';
+  return toArabic(d.toLocaleDateString('en-GB'));
+}
+
+function findAppById(applicationId) {
+  for (const campaignId in campaignApps) {
+    const apps = campaignApps[campaignId] || [];
+    const found = apps.find(a => a.id === applicationId);
+    if (found) return { app: found, campaign: myCampaigns.find(c => c.id === campaignId) };
+  }
+  return { app: null, campaign: null };
+}
+
+function duesAccountLink(creator) {
+  if (!creator) return '';
+  for (const k of ['account_link', 'profile_link', 'profile_url', 'link']) {
+    if (creator[k] && /^https?:\/\//i.test(creator[k])) return creator[k];
+  }
+  if (creator.website && /^https?:\/\//i.test(creator.website)) return creator.website;
+  let h = (creator.handle || creator.username || '').toString().trim().replace(/^@/, '');
+  const p = (creator.platform || '').toString().toLowerCase();
+  if (h && /^https?:\/\//i.test(h)) return h;
+  if (!h) return '';
+  if (p.includes('tiktok')) return 'https://www.tiktok.com/@' + h;
+  if (p.includes('insta')) return 'https://instagram.com/' + h;
+  if (p.includes('snap')) return 'https://snapchat.com/add/' + h;
+  if (p.includes('youtube') || p.includes('يوتيوب')) return 'https://youtube.com/@' + h;
+  if (p === 'x' || p.includes('twitter') || p.includes('إكس') || p.includes('اكس')) return 'https://x.com/' + h;
+  return '';
+}
+
+function duesCopy(el) {
+  const txt = el.getAttribute('data-copy') || el.textContent || '';
+  const done = () => {
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 700);
+    try { showToast('تم نسخ: ' + txt); } catch (e) {}
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+  } else { fallbackCopy(txt, done); }
+}
+function fallbackCopy(txt, done) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    done();
+  } catch (e) { try { showToast('تعذّر النسخ تلقائيًا'); } catch (e2) {} }
+}
+
+function renderDues() {
+  const host = document.getElementById('dues-section');
+  if (!host) return;
+  const camps = duesCampMap();
+
+  const deals = Object.values(campaignApps).flat()
+    .filter(a => a.status === 'closed' && a.brand_approved === true);
+
+  if (!deals.length) {
+    host.innerHTML =
+      '<div class="dues-wrap">'
+      + '<div class="dues-empty">ما فيه صفقات معتمدة بعد. أول ما تعتمد صفقة بتظهر هنا بكل تفاصيلها (الاسم، رابط الحساب، تاريخ النشر، رابط الفيديو، الآيبان، المبلغ، وحالة الدفع).</div>'
+      + '</div>';
+    return;
+  }
+
+  function groupRank(a) {
+    const stg = a.stage || 1;
+    const ps = a.payment_status || 'unpaid';
+    if (stg >= 9) {
+      if (ps === 'confirmed') return 4;
+      if (ps === 'marked_paid') return 1;
+      return 0;
+    }
+    return 2;
+  }
+  deals.sort((a, b) => {
+    const ra = groupRank(a), rb = groupRank(b);
+    if (ra !== rb) return ra - rb;
+    return new Date(b.completed_at || b.created_at || 0) - new Date(a.completed_at || a.created_at || 0);
+  });
+
+  let totalDue = 0, totalPaid = 0;
+  const rows = deals.map((a, i) => {
+    const camp = camps[a.campaign_id];
+    const creator = a.users || {};
+    const nameRaw = creator.name || 'معلن';
+    const name = escHtml(nameRaw);
+    const amountNum = Number(a.final_price || a.price || 0);
+    const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
+    const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+    const bank = sd[8] || sd['8'] || {};
+    const ibanRaw = bank.iban || '';
+    const holderRaw = bank.account_holder || '';
+    const stage7 = sd[7] || sd['7'] || {};
+    const pub = stage7.publish_link || '';
+    const publishIso = stage7._at || a.completed_at || '';
+    const acctLink = duesAccountLink(creator);
+    const stg = a.stage || 1;
+    const ps = a.payment_status || 'unpaid';
+
+    let statusHtml, statusPlain, dateDisp = '—', dateCopy = '', action = '';
+    {
+      const d = publishIso ? new Date(publishIso) : null;
+      if (d && !isNaN(d.getTime())) {
+        dateCopy = d.toLocaleDateString('en-GB');
+        dateDisp = duesDateText(publishIso);
+      }
+    }
+    if (stg < 9) {
+      statusPlain = 'قيد التنفيذ - ' + (DUES_STAGE_NAMES[stg] || ('مرحلة ' + stg));
+      statusHtml = '<span class="dp dp-prog">' + escHtml(statusPlain) + '</span>';
+    } else {
+      if (ps === 'confirmed') {
+        statusPlain = 'تم الدفع'; statusHtml = '<span class="dp dp-paid">تم الدفع ✓</span>'; totalPaid += amountNum;
+      } else if (ps === 'marked_paid') {
+        statusPlain = 'حوّلت - بانتظار التأكيد'; statusHtml = '<span class="dp dp-wait">حوّلت — بانتظار التأكيد</span>'; totalDue += amountNum;
+      } else if (ps === 'disputed') {
+        statusPlain = 'نزاع استلام'; statusHtml = '<span class="dp dp-due">نزاع استلام</span>'; totalDue += amountNum;
+        action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
+      } else {
+        const overdue = duesIsOverdue(a, camp);
+        statusPlain = 'باقي' + (overdue ? ' - متأخر' : ''); statusHtml = '<span class="dp dp-due">' + escHtml(statusPlain) + '</span>'; totalDue += amountNum;
+        action = '<button class="dues-mark" onclick="setBrandPaid(\'' + a.id + '\')">تم التحويل ✓</button>';
+      }
+    }
+
+    const nameCell = '<td class="cell" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
+    const acctCell = acctLink
+      ? '<td><a class="dues-link" href="' + escHtml(acctLink) + '" target="_blank" rel="noopener">رابط الحساب ↗</a></td>'
+      : '<td class="dim">—</td>';
+    const dateCell = '<td class="cell" data-copy="' + escHtml(dateCopy) + '" onclick="duesCopy(this)">' + dateDisp + '</td>';
+    const videoCell = pub
+      ? '<td><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">رابط الفيديو ↗</a></td>'
+      : '<td class="dim">—</td>';
+    const ibanCell = ibanRaw
+      ? '<td class="cell xl-iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw) + '</td>'
+      : '<td class="dim">—</td>';
+    const holderCell = holderRaw
+      ? '<td class="cell" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw) + '</td>'
+      : '<td class="dim">—</td>';
+    const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
+    const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
+    const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
+
+    return '<tr><td class="xl-rowh">' + toArabic(i + 1) + '</td>'
+      + nameCell + acctCell + dateCell + videoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
+  }).join('');
+
+  const sumChips =
+    '<span class="dues-chip due">المتبقّي: ' + totalDue.toLocaleString('ar-SA') + ' ر.س</span>' +
+    '<span class="dues-chip paid">المدفوع: ' + totalPaid.toLocaleString('ar-SA') + ' ر.س</span>';
+
+  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
+
+  host.innerHTML =
+    '<div class="dues-wrap">'
+    + '<div class="dues-head"><h3>📋 الصفقات المعتمدة</h3><div class="dues-sum">' + sumChips + '</div></div>'
+    + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح</p>'
+    + '<div class="dues-grid-wrap"><table class="xl">'
+    + '<thead>'
+    + '<tr><th class="xl-corner"></th>' + colLetters + '</tr>'
+    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
+    + '</thead><tbody>' + rows + '</tbody></table></div>'
+    + '</div>';
+}
+
+async function setBrandPaid(applicationId) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .update({ payment_status: 'marked_paid', paid_marked_at: new Date().toISOString() })
+      .eq('id', applicationId)
+      .select();
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+
+    const { app, campaign } = findAppById(applicationId);
+    if (app && app.creator_id) {
+      const title = '💸 تم تحويل مستحقاتك';
+      const body = `${campaign?.title || 'صفقة'}: الشركة أبلغت بتحويل المبلغ. افتح صفقتك وأكّد الاستلام.`;
+      try { createNotification(app.creator_id, 'payment_marked', title, body, '/creator.html').catch(console.error); } catch (e) {}
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body, url: '/creator.html', target_users: [app.creator_id] })
+      }).catch(console.error);
+    }
+
+    await loadData();
+    showToast('تم تسجيل التحويل ✓ — بانتظار تأكيد المعلن.');
+  } catch (err) {
+    console.error('Brand paid error:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
+async function loadData() {
+  try {
+    myCampaigns = await dbGetMyCampaigns(currentUser.id);
+    const updated = {};
+    await Promise.all(myCampaigns.map(async c => { updated[c.id] = await dbGetCampaignApplications(c.id); }));
+    campaignApps = updated;
+    renderDues();
+  } catch (err) {
+    console.error(err);
+    const host = document.getElementById('dues-section');
+    if (host) host.innerHTML = '<div class="dues-wrap"><div class="dues-empty" style="color:var(--accent)">حصل خطأ في التحميل. حدّث الصفحة.</div></div>';
+  }
+}
+
+async function init() {
+  await tryRestoreSession();
+  currentUser = getCurrentUser();
+  if (!currentUser) {
+    alert('يرجى تسجيل الدخول أولاً');
+    window.location.href = '/signup.html';
+    return;
+  }
+  if (currentUser.role !== 'brand') {
+    window.location.href = '/creator.html';
+    return;
+  }
+
+  // بوابة الموافقة
+  let approvalStatus = currentUser.approval_status;
+  try {
+    const { data: meRow } = await supabaseClient
+      .from('users').select('approval_status').eq('id', currentUser.id).maybeSingle();
+    if (meRow && meRow.approval_status) {
+      approvalStatus = meRow.approval_status;
+      currentUser.approval_status = approvalStatus;
+      saveCurrentUser(currentUser);
+    }
+  } catch (e) {}
+  if (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended') {
+    window.location.href = '/brand.html';
+    return;
+  }
+
+  await loadData();
+  // تحديث تلقائي كل 30 ثانية
+  setInterval(() => { if (document.visibilityState === 'visible') loadData(); }, 30000);
+}
+
+init();
+</script>
+
+</body>
+</html>
