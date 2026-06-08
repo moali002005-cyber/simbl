@@ -1919,10 +1919,21 @@ async function loadData() {
     document.getElementById('campaigns-list').innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري التحميل...</div></div>';
     myCampaigns = await dbGetMyCampaigns(currentUser.id);
 
+    // جلب عروض كل الحملات بطلب واحد بدل طلب لكل حملة (إصلاح N+1)
+    const campIds = myCampaigns.map(c => c.id);
+    let allApps = [];
+    if (campIds.length) {
+      const { data, error } = await supabaseClient
+        .from('applications')
+        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website)')
+        .in('campaign_id', campIds)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      allApps = data || [];
+    }
     campaignApps = {};
-    await Promise.all(myCampaigns.map(async c => {
-      campaignApps[c.id] = await dbGetCampaignApplications(c.id);
-    }));
+    myCampaigns.forEach(c => { campaignApps[c.id] = []; });
+    allApps.forEach(a => { (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a); });
 
     updateHeroStats();
     renderCampaigns();
