@@ -380,11 +380,11 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="panel" id="panel-campaigns">
     <div class="toolbar">
       <div class="search"><i class="ti ti-search"></i><input id="c-search" placeholder="ابحث بعنوان الحملة أو الشركة…"></div>
-      <select class="filter" id="c-status"><option value="">كل الحالات</option><option value="active">نشطة</option></select>
+      <select class="filter" id="c-status"><option value="">كل الحالات</option><option value="active">نشطة</option><option value="hidden">مخفية</option></select>
       <span class="count-tag" id="c-count"></span>
     </div>
     <div class="tbl-wrap">
-      <table><thead><tr><th>الحملة</th><th>الشركة</th><th>الحالة</th><th>العروض</th><th>المقفلة</th><th>الميزانية</th><th>المدينة</th><th>أنشئت</th></tr></thead>
+      <table><thead><tr><th>الحملة</th><th>الشركة</th><th>الحالة</th><th>العروض</th><th>المقفلة</th><th>الميزانية</th><th>المدينة</th><th>أنشئت</th><th>إجراء</th></tr></thead>
       <tbody id="campaigns-tbody"></tbody></table>
     </div>
   </div>
@@ -984,9 +984,40 @@ function renderCampaigns(){
   $('#c-count').textContent = rows.length+' حملة';
   $('#campaigns-tbody').innerHTML = rows.length ? rows.map(c=>{
     const n=appsOfCampaign(c.id).length, cl=closedOfCampaign(c.id).length;
-    const stBadge=c.status==='active'?'<span class="badge b-active">نشطة</span>':'<span class="badge b-stage">'+esc(c.status||'—')+'</span>';
-    return '<tr><td>'+esc(c.title||'—')+'</td><td class="dim">'+esc(brandOfCampaign(c))+'</td><td>'+stBadge+'</td><td class="mono">'+num(n)+'</td><td class="mono">'+num(cl)+'</td><td class="dim">'+esc(c.budget||'—')+'</td><td class="dim">'+esc(CITY[c.city]||c.city||'—')+'</td><td class="dim">'+fmtDate(c.created_at)+'</td></tr>';
-  }).join('') : '<tr><td colspan="8" class="empty">لا نتائج</td></tr>';
+    const stBadge=c.status==='active'?'<span class="badge b-active">نشطة</span>':(c.status==='hidden'?'<span class="badge b-stage">مخفية</span>':'<span class="badge b-stage">'+esc(c.status||'—')+'</span>');
+    const hideLabel=c.status==='hidden'?'إظهار':'إخفاء';
+    const act='<button onclick="adminToggleHide(\''+c.id+'\')" style="padding:5px 10px;border:1px solid #d9d9d9;background:#fff;border-radius:7px;font-size:12px;cursor:pointer;margin-inline-start:4px;">'+hideLabel+'</button>'
+            +'<button onclick="adminDeleteCampaign(\''+c.id+'\')" style="padding:5px 10px;border:1px solid #e6bcbc;background:#fff;color:#c93030;border-radius:7px;font-size:12px;cursor:pointer;">حذف</button>';
+    return '<tr><td>'+esc(c.title||'—')+'</td><td class="dim">'+esc(brandOfCampaign(c))+'</td><td>'+stBadge+'</td><td class="mono">'+num(n)+'</td><td class="mono">'+num(cl)+'</td><td class="dim">'+esc(c.budget||'—')+'</td><td class="dim">'+esc(CITY[c.city]||c.city||'—')+'</td><td class="dim">'+fmtDate(c.created_at)+'</td><td>'+act+'</td></tr>';
+  }).join('') : '<tr><td colspan="9" class="empty">لا نتائج</td></tr>';
+}
+
+// ===== إجراءات الأدمن على الحملات: إخفاء/إظهار + حذف =====
+async function adminToggleHide(id){
+  const c=CAMPAIGNS.find(x=>String(x.id)===String(id)); if(!c) return;
+  const newStatus=c.status==='hidden'?'active':'hidden';
+  try{
+    const {data,error}=await sb.from('campaigns').update({status:newStatus}).eq('id',id).select();
+    if(error) throw error;
+    if(!data||!data.length) throw new Error('لم يتم التغيير — تأكد من صلاحية الأدمن (RLS).');
+    await loadAll(true);
+  }catch(e){ alert('تعذّر التغيير: '+(e.message||e)); }
+}
+async function adminDeleteCampaign(id){
+  const c=CAMPAIGNS.find(x=>String(x.id)===String(id)); if(!c) return;
+  if(!confirm('حذف نهائي للحملة «'+(c.title||'—')+'» وكل عروضها ومحادثاتها؟ لا يمكن التراجع.')) return;
+  try{
+    const {data:apps}=await sb.from('applications').select('id').eq('campaign_id',id);
+    if(apps&&apps.length){
+      const appIds=apps.map(a=>a.id);
+      await sb.from('negotiations').delete().in('application_id',appIds);
+      await sb.from('applications').delete().eq('campaign_id',id);
+    }
+    const {data:del,error}=await sb.from('campaigns').delete().eq('id',id).select();
+    if(error) throw error;
+    if(!del||!del.length) throw new Error('لم يتم الحذف — تأكد من صلاحية الأدمن (RLS).');
+    await loadAll(true);
+  }catch(e){ alert('تعذّر الحذف: '+(e.message||e)); }
 }
 
 // ===== deals =====
