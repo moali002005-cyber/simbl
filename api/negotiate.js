@@ -102,6 +102,40 @@ async function supabaseCountClosedDeals(campaignId) {
   }
 }
 
+// جلب العرض الحقيقي من قاعدة البيانات (للتحقق من وجوده وحالته — حماية من الطلبات الوهمية)
+async function supabaseGetApplication(appId) {
+  if (!appId) return null;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/applications?id=eq.${appId}&select=id,campaign_id,status`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length ? rows[0] : null;
+  } catch (err) {
+    console.error('Get application failed:', err);
+    return null;
+  }
+}
+
+// عدّ رسائل مفاوضة معيّنة خلال نافذة زمنية (حدّ المعدّل ضد الإساءة)
+async function supabaseCountRecentMessages(appId, sinceIso) {
+  if (!appId) return 0;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/negotiations?application_id=eq.${appId}&created_at=gte.${encodeURIComponent(sinceIso)}&select=id`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) return 0;
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch (err) {
+    console.error('Count recent messages failed:', err);
+    return 0;
+  }
+}
+
 // تحويل الأرقام العربية/الفارسية إلى إنجليزية (عشان نقدر نقرأها)
 function toAsciiDigits(s) {
   const map = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
@@ -134,6 +168,35 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'API key not configured' });
+  }
+
+  // ============ حماية نقطة الوكيل من الإساءة والتكلفة ============
+  // أ) حدّ طول الرسالة (يمنع استهلاك توكنز ضخم / حقن)
+  if (creatorMessage && String(creatorMessage).length > 1000) {
+    return res.status(400).json({ error: 'Message too long' });
+  }
+  // ب) تأكّد إن العرض موجود فعلاً وغير مقفل (يمنع نداء الـAI على طلب وهمي أو مقفل)
+  const realApp = await supabaseGetApplication(application.id);
+  if (!realApp) {
+    return res.status(404).json({ error: 'Application not found' });
+  }
+  if (realApp.status === 'closed') {
+    return res.status(200).json({
+      reply: 'هذي الصفقة مقفلة بالفعل، ما يصير نكمل تفاوض عليها.',
+      dealClosed: false,
+      dealDetails: null
+    });
+  }
+  // ج) حدّ المعدّل: لا أكثر من ١٥ رسالة لنفس المفاوضة خلال ٦٠ ثانية (يوقف السبام الآلي)
+  const sinceIso = new Date(Date.now() - 60 * 1000).toISOString();
+  const recentMsgs = await supabaseCountRecentMessages(application.id, sinceIso);
+  if (recentMsgs >= 15) {
+    return res.status(429).json({
+      error: 'rate_limited',
+      reply: 'لحظة من فضلك، الرسائل تنرسل بسرعة. جرّب بعد شوي.',
+      dealClosed: false,
+      dealDetails: null
+    });
   }
 
   // ============ حساب الأرقام المحدّدة قبل البرومبت ============
