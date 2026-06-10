@@ -16,6 +16,29 @@ window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON
   }
 });
 
+// ============ تجديد جلسة الدخول استباقيًا ============
+// يتفادى رفض العمليات (حذف/تعديل/إضافة) بسبب انتهاء التوكن مؤقتًا قبل تجديده.
+// يشتغل عند العودة لتبويب الصفحة + كل ٤ دقائق + فحص أوّلي. إضافة فقط — ما تغيّر أي سلوك موجود.
+async function simblKeepSessionFresh() {
+  try {
+    if (!window.supabaseClient) return;
+    const { data } = await supabaseClient.auth.getSession();
+    const s = data && data.session;
+    if (!s) return; // ما فيه جلسة (المستخدم غير مسجّل) — نتركه
+    const msLeft = (s.expires_at ? s.expires_at * 1000 : 0) - Date.now();
+    if (msLeft > 0 && msLeft < 120000) { // أقل من دقيقتين على الانتهاء → جدّد الآن
+      await supabaseClient.auth.refreshSession();
+    }
+  } catch (e) { /* تجاهل بصمت */ }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') simblKeepSessionFresh();
+  });
+  setInterval(simblKeepSessionFresh, 4 * 60 * 1000);
+  setTimeout(simblKeepSessionFresh, 1500);
+}
+
 async function dbSignup(userData) {
   const { data, error } = await supabaseClient
     .from('users')
