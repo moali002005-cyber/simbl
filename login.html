@@ -328,13 +328,13 @@ async function finishLogin(email, authUser) {
   // نحاول الربط عبر auth_id أولاً
   if (authUser && authUser.id) {
     const { data } = await supabaseClient
-      .from('users').select('*').eq('auth_id', authUser.id).maybeSingle();
+      .from('users').select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number').eq('auth_id', authUser.id).maybeSingle();
     profile = data || null;
   }
   // احتياطي: عبر الإيميل (ونربط auth_id لو ناقص)
   if (!profile && email) {
     const { data } = await supabaseClient
-      .from('users').select('*').eq('email', email).maybeSingle();
+      .from('users').select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number').eq('email', email).maybeSingle();
     profile = data || null;
     if (profile && authUser && authUser.id && !profile.auth_id) {
       try {
