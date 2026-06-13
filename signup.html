@@ -310,16 +310,29 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="field">
-        <label>رابط حسابك على تيك توك</label>
-        <input type="url" name="tiktok_url" required placeholder="https://www.tiktok.com/@username">
-        <div class="hint">نراجع حسابك من خلال الرابط لتأكيد التفعيل.</div>
+        <label>رابط حسابك في وسائل التواصل الاجتماعي</label>
+        <input type="url" name="tiktok_url" required placeholder="https://...  (تيك توك، سناب شات، انستقرام...)">
+        <div class="hint">ألصق رابط حسابك في أي منصة تواصل. نراجع الحساب من خلال الرابط لتأكيد التفعيل.</div>
       </div>
 
       <div class="field-row">
         <div class="field">
-          <label>عدد المتابعن</label>
-          <input type="number" name="followers" required placeholder="مثال: 100000">
-          <div class="hint">أدخل الرقم بدون فواصل (مثل 100000 لـ 100 ألف)</div>
+          <label>عدد المتابعين</label>
+          <select name="followers" required>
+            <option value="" disabled selected>اختر النطاق</option>
+            <option value="10000">من 10 آلاف إلى 20 ألف</option>
+            <option value="20000">من 20 ألف إلى 100 ألف</option>
+            <option value="100000">من 100 ألف إلى 200 ألف</option>
+            <option value="200000">من 200 ألف إلى 300 ألف</option>
+            <option value="300000">من 300 ألف إلى 500 ألف</option>
+            <option value="500000">من 500 ألف إلى 700 ألف</option>
+            <option value="700000">من 700 ألف إلى مليون</option>
+            <option value="1000000">من مليون إلى مليونين</option>
+            <option value="2000000">فوق 2 مليون</option>
+            <option value="3000000">فوق 3 مليون</option>
+            <option value="4000000">فوق 4 مليون</option>
+          </select>
+          <div class="hint">اختر نطاق عدد متابعينك.</div>
         </div>
         <div class="field">
           <label>التصنيف</label>
