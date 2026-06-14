@@ -383,7 +383,9 @@ ${voiceInstructions}
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: voiceMode ? 200 : (isFirstMessage ? 450 : 280),
-        system: systemPrompt,
+        system: [
+          { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }
+        ],
         messages: messages
       })
     });
