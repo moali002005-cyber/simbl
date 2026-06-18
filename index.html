@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simple: Smarter Communication, Faster Results</title>
+<title>سيمبل — وكيل التفاوض الأذكى في العالم</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,6 +12,9 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 
 <script src="/splash.js"></script>
+
+<script src="/translations.js"></script>
+<script src="/i18n.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -130,6 +133,7 @@ body {
 .btn-primary:hover { background: #262626; transform: translateY(-1px); }
 .btn-ghost { background: #fff; color: var(--ink); border: 1.5px solid rgba(10, 10, 10, 0.28); }
 .btn-ghost:hover { border-color: var(--ink); }
+.lang-toggle { padding: 10px 16px; font-weight: 600; min-width: 54px; justify-content: center; }
 .hero {
   min-height: calc(100vh - 140px);
   display: flex;
@@ -266,9 +270,12 @@ body {
       </svg>
       <span class="logo-mark">سيمبل</span>
     </a>
-    <div class="nav-links" id="nav-actions">
-      <a href="/login.html" class="btn btn-ghost">تسجيل دخول</a>
-      <a href="/signup.html" class="btn btn-primary">ابدأ الآن ←</a>
+    <div class="nav-links">
+      <button type="button" class="btn btn-ghost lang-toggle" data-i18n-toggle onclick="simblI18n.toggle()">EN</button>
+      <div id="nav-actions" style="display:inline-flex; gap:32px; align-items:center;">
+        <a href="/login.html" class="btn btn-ghost" data-i18n="nav_login">تسجيل دخول</a>
+        <a href="/signup.html" class="btn btn-primary" data-i18n="nav_start">ابدأ الآن ←</a>
+      </div>
     </div>
   </div>
 </nav>
@@ -277,28 +284,28 @@ body {
   <div class="container">
     <div class="hero-grid">
       <div>
-        <div class="hero-eyebrow"><span class="hero-eq"><i></i><i></i><i></i><i></i></span>وكيل تفاوض مدعوم بالذكاء الاصطناعي</div>
-        <p class="hero-desc">
+        <div class="hero-eyebrow"><span class="hero-eq"><i></i><i></i><i></i><i></i></span><span data-i18n="hero_eyebrow">وكيل تفاوض مدعوم بالذكاء الاصطناعي</span></div>
+        <p class="hero-desc" data-i18n="hero_desc">
           الشركات تطلق حملاتها الإعلانية، والمعلنون يختارون ما يناسبهم،
           ووكيل ذكاء اصطناعي يتفاوض ويقفل الصفقة لصالح الطرفين.
         </p>
         <div class="hero-ctas" id="hero-ctas">
-          <a href="/signup.html?role=creator" class="btn btn-primary hero-cta-lg">ابدأ كمعلن ←</a>
-          <a href="/signup.html?role=brand" class="btn btn-ghost hero-cta-lg">ابدأ كشركة</a>
+          <a href="/signup.html?role=creator" class="btn btn-primary hero-cta-lg" data-i18n="hero_cta_creator">ابدأ كمعلن ←</a>
+          <a href="/signup.html?role=brand" class="btn btn-ghost hero-cta-lg" data-i18n="hero_cta_brand">ابدأ كشركة</a>
         </div>
 
         <div class="hero-steps">
           <div class="hstep">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg></span>
-            <span class="t">تُطلق الحملة</span>
+            <span class="t" data-i18n="step_launch">تُطلق الحملة</span>
           </div>
           <div class="hstep">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-4 4v-4H4z"/></svg></span>
-            <span class="t">يتفاوض الوكيل</span>
+            <span class="t" data-i18n="step_negotiate">يتفاوض الوكيل</span>
           </div>
           <div class="hstep">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span>
-            <span class="t">تُقفل الصفقة</span>
+            <span class="t" data-i18n="step_close">تُقفل الصفقة</span>
           </div>
         </div>
       </div>
@@ -414,21 +421,24 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
     if (!user || !user.role) return; // زائر — اخلي الأزرار الافتراضية
 
     const dashboardUrl = user.role === 'creator' ? '/creator.html' : '/brand.html';
-    const dashboardLabel = user.role === 'creator'
-      ? 'الانتقال إلى لوحتي'
-      : 'الانتقال إلى حملاتي الإعلانية';
+    const dashKey = user.role === 'creator' ? 'dash_creator' : 'dash_brand';
+    const dashLabel = (window.simblI18n)
+      ? simblI18n.t(dashKey)
+      : (user.role === 'creator' ? 'الانتقال إلى لوحتي ←' : 'الانتقال إلى حملاتي الإعلانية ←');
 
     // ١) أزرار النافبار — استبدل بزر واحد
     const navActions = document.getElementById('nav-actions');
     if (navActions) {
-      navActions.innerHTML = `<a href="${dashboardUrl}" class="btn btn-primary">${dashboardLabel} ←</a>`;
+      navActions.innerHTML = `<a href="${dashboardUrl}" class="btn btn-primary" data-i18n="${dashKey}">${dashLabel}</a>`;
     }
 
     // ٢) أزرار الهيرو — استبدل بزر واحد
     const heroCtas = document.getElementById('hero-ctas');
     if (heroCtas) {
-      heroCtas.innerHTML = `<a href="${dashboardUrl}" class="btn btn-primary hero-cta-lg">${dashboardLabel} ←</a>`;
+      heroCtas.innerHTML = `<a href="${dashboardUrl}" class="btn btn-primary hero-cta-lg" data-i18n="${dashKey}">${dashLabel}</a>`;
     }
+    // أعد تطبيق اللغة على الأزرار الجديدة
+    if (window.simblI18n) simblI18n.apply();
   } catch (err) {
     console.error('UI update failed:', err);
   }
