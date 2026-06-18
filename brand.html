@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-i18n-title="brand_title">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +15,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/translations.js"></script>
+<script src="/i18n.js"></script>
 <style>
 :root {
   --cream: #ffffff;
@@ -1512,7 +1514,7 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
         <div class="user-avatar" id="user-initial">ش</div>
         <span class="user-name" id="user-name">شركة</span>
       </div>
-      <button class="btn-logout" onclick="logout()">خروج</button>
+      <span style="display:inline-flex;align-items:center;gap:12px;"><button type="button" data-i18n-toggle onclick="simblI18n.toggle()" style="background:#fff;border:1.5px solid rgba(10,10,10,0.28);color:var(--ink);padding:8px 16px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">EN</button><button class="btn-logout" onclick="logout()">خروج</button></span>
     </div>
   </div>
 </nav>
