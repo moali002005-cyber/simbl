@@ -481,7 +481,8 @@ async function notifyAllCreators(campaignTitle, brandName, campaignId) {
     const { data: creators } = await supabaseClient
       .from('users')
       .select('id')
-      .eq('role', 'creator');
+      .eq('role', 'creator')
+      .eq('is_test', !!(getCurrentUser()?.is_test));
 
     if (!creators || creators.length === 0) return;
 

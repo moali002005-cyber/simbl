@@ -43,7 +43,7 @@ async function dbSignup(userData) {
   const { data, error } = await supabaseClient
     .from('users')
     .insert([userData])
-    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number')
+    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test')
     .single();
   if (error) throw error;
   return data;
@@ -54,6 +54,7 @@ async function dbGetCampaigns() {
     .from('campaigns')
     .select('*, users!campaigns_brand_id_fkey(company_name)')
     .eq('status', 'active')
+    .eq('is_test', !!getCurrentUser()?.is_test)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data.map(c => ({
@@ -166,7 +167,7 @@ async function tryRestoreSession() {
   try {
     const { data, error } = await supabaseClient
       .from('users')
-      .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number')
+      .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test')
       .eq('id', userId)
       .maybeSingle();
 

@@ -3209,6 +3209,7 @@ async function submitCampaign(event) {
     // وضع الإنشاء
     campaign.brand_id = currentUser.id;
     campaign.status = 'active';
+    campaign.is_test = !!currentUser.is_test;
     const createdCampaign = await dbCreateCampaign(campaign);
     if (createdCampaign?.id) selectedCampaignId = createdCampaign.id;
     closeModal();
@@ -3221,7 +3222,8 @@ async function submitCampaign(event) {
       const { data: creators } = await supabaseClient
         .from('users')
         .select('id')
-        .eq('role', 'creator');
+        .eq('role', 'creator')
+        .eq('is_test', !!currentUser.is_test);
 
       if (creators && creators.length > 0) {
         fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
