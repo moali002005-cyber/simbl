@@ -372,6 +372,16 @@ ${voiceInstructions}
   }
 
   const isFirstMessage = !history || history.length === 0;
+
+  // ============ اختيار الموديل الذكي (توفير التكلفة) ============
+  // الردود العادية (الترحيب + المفاوضة) → Haiku: أرخص ٣ مرّات وأسرع، كافٍ تمامًا
+  //   لأن الأسعار والاستراتيجية محسوبة بالكود فوق، الموديل يصيغ الكلام فقط.
+  // لحظة الإقفال (المعلن يبان موافق في رسالته الأخيرة) → Sonnet: الأقوى، عشان
+  //   يقفل الصفقة بدقّة ودفء ويصدر [DEAL_CLOSED] صح في أهم لحظة.
+  const ACCEPT_SIGNALS = /(موافق|موافقة|اتفقنا|قبلت|أقبل|اقبل|أوكي|اوكي|اوك|ماشي|تمام)/;
+  const isClosingMoment = !!(creatorMessage && ACCEPT_SIGNALS.test(creatorMessage));
+  const chosenModel = isClosingMoment ? 'claude-sonnet-4-5' : 'claude-haiku-4-5-20251001';
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -381,7 +391,7 @@ ${voiceInstructions}
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: chosenModel,
         max_tokens: voiceMode ? 200 : (isFirstMessage ? 450 : 280),
         system: [
           { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }
