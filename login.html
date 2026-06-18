@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-i18n-title="login_title">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/translations.js"></script>
+<script src="/i18n.js"></script>
 <style>
 :root {
   --cream: #ffffff;
@@ -240,35 +242,38 @@ input::placeholder { color: var(--ink-faint); }
       </svg>
       <span class="logo-mark">سيمبل</span>
     </a>
-    <a href="/" class="back-link">← العودة للرئيسية</a>
+    <div style="display:inline-flex; align-items:center; gap:14px;">
+      <button type="button" data-i18n-toggle onclick="simblI18n.toggle()" style="background:#fff;border:1.5px solid rgba(10,10,10,0.28);color:var(--ink);padding:8px 16px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">EN</button>
+      <a href="/" class="back-link" data-i18n="login_back">← العودة للرئيسية</a>
+    </div>
   </div>
 </nav>
 
 <main class="main">
   <div class="login-card">
-    <div class="eyebrow">تسجيل دخول</div>
-    <h1>أهلاً بعودتك <span class="italic">إلى سيمبل</span></h1>
-    <p class="subtitle">اختر طريقة الدخول إلى حسابك.</p>
+    <div class="eyebrow" data-i18n="login_eyebrow">تسجيل دخول</div>
+    <h1><span data-i18n="login_h1">أهلاً بعودتك</span> <span class="italic" data-i18n="login_h1_em">إلى سيمبل</span></h1>
+    <p class="subtitle" data-i18n="login_subtitle">اختر طريقة الدخول إلى حسابك.</p>
 
     <div class="error-box" id="error-box"></div>
 
     <div class="tabs">
-      <button type="button" class="tab active" id="tab-password" onclick="switchTab('password')">كلمة السر</button>
-      <button type="button" class="tab" id="tab-otp" onclick="switchTab('otp')">كود على الإيميل</button>
+      <button type="button" class="tab active" id="tab-password" onclick="switchTab('password')" data-i18n="login_tab_password">كلمة السر</button>
+      <button type="button" class="tab" id="tab-otp" onclick="switchTab('otp')" data-i18n="login_tab_otp">كود على الإيميل</button>
     </div>
 
     <!-- طريقة كلمة السر -->
     <div class="pane active" id="pane-password">
       <form onsubmit="loginWithPassword(event)">
         <div class="field">
-          <label>البريد الإلكتروني</label>
+          <label data-i18n="login_email">البريد الإلكتروني</label>
           <input type="email" id="pw-email" required placeholder="example@email.com" autocomplete="email">
         </div>
         <div class="field">
-          <label>كلمة السر</label>
-          <input type="password" id="pw-password" required placeholder="كلمة السر" autocomplete="current-password">
+          <label data-i18n="login_password">كلمة السر</label>
+          <input type="password" id="pw-password" required placeholder="كلمة السر" data-i18n-placeholder="login_password" autocomplete="current-password">
         </div>
-        <button type="submit" class="btn-submit" id="pw-btn">دخول</button>
+        <button type="submit" class="btn-submit" id="pw-btn" data-i18n="login_btn">دخول</button>
       </form>
     </div>
 
@@ -277,27 +282,27 @@ input::placeholder { color: var(--ink-faint); }
       <!-- الخطوة ١: إدخال الإيميل -->
       <form onsubmit="sendOtp(event)" id="otp-email-form">
         <div class="field">
-          <label>البريد الإلكتروني</label>
+          <label data-i18n="login_email">البريد الإلكتروني</label>
           <input type="email" id="otp-email" required placeholder="example@email.com" autocomplete="email">
-          <div class="field-hint">نرسل لك كود مكوّن من ٦ أرقام على بريدك.</div>
+          <div class="field-hint" data-i18n="login_otp_hint">نرسل لك كود مكوّن من ٦ أرقام على بريدك.</div>
         </div>
-        <button type="submit" class="btn-submit" id="otp-send-btn">إرسال الكود</button>
+        <button type="submit" class="btn-submit" id="otp-send-btn" data-i18n="login_send_code">إرسال الكود</button>
       </form>
       <!-- الخطوة ٢: إدخال الكود -->
       <form onsubmit="verifyOtp(event)" id="otp-code-form" style="display:none">
         <div class="field">
-          <label>الكود المرسل إلى <span id="otp-email-label" style="color:var(--accent-ink)"></span></label>
+          <label><span data-i18n="login_code_to">الكود المرسل إلى</span> <span id="otp-email-label" style="color:var(--accent-ink)"></span></label>
           <input type="text" id="otp-code" required placeholder="••••••" inputmode="numeric" maxlength="6" autocomplete="one-time-code" style="text-align:center; letter-spacing:8px; font-size:20px">
           <div class="field-hint">
-            ما وصلك الكود؟ <button type="button" class="muted-link" onclick="resendOtp()">إعادة الإرسال</button>
-            · <button type="button" class="muted-link" onclick="resetOtp()">تغيير الإيميل</button>
+            <span data-i18n="login_resend_q">ما وصلك الكود؟</span> <button type="button" class="muted-link" onclick="resendOtp()" data-i18n="login_resend">إعادة الإرسال</button>
+            · <button type="button" class="muted-link" onclick="resetOtp()" data-i18n="login_change_email">تغيير الإيميل</button>
           </div>
         </div>
-        <button type="submit" class="btn-submit" id="otp-verify-btn">تأكيد ودخول</button>
+        <button type="submit" class="btn-submit" id="otp-verify-btn" data-i18n="login_verify_btn">تأكيد ودخول</button>
       </form>
     </div>
 
-    <p class="bottom-link">ما عندك حساب بعد؟ <a href="/signup.html">سجل الآن</a></p>
+    <p class="bottom-link"><span data-i18n="login_no_account">ما عندك حساب بعد؟</span> <a href="/signup.html" data-i18n="login_register">سجل الآن</a></p>
   </div>
 </main>
 

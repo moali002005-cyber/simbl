@@ -14,7 +14,28 @@ window.I18N = {
     step_negotiate: "يتفاوض الوكيل",
     step_close: "تُقفل الصفقة",
     dash_creator: "الانتقال إلى لوحتي ←",
-    dash_brand: "الانتقال إلى حملاتي الإعلانية ←"
+    dash_brand: "الانتقال إلى حملاتي الإعلانية ←",
+
+    login_title: "تسجيل دخول · سيمبل",
+    login_back: "← العودة للرئيسية",
+    login_eyebrow: "تسجيل دخول",
+    login_h1: "أهلاً بعودتك",
+    login_h1_em: "إلى سيمبل",
+    login_subtitle: "اختر طريقة الدخول إلى حسابك.",
+    login_tab_password: "كلمة السر",
+    login_tab_otp: "كود على الإيميل",
+    login_email: "البريد الإلكتروني",
+    login_password: "كلمة السر",
+    login_btn: "دخول",
+    login_otp_hint: "نرسل لك كود مكوّن من ٦ أرقام على بريدك.",
+    login_send_code: "إرسال الكود",
+    login_code_to: "الكود المرسل إلى",
+    login_resend_q: "ما وصلك الكود؟",
+    login_resend: "إعادة الإرسال",
+    login_change_email: "تغيير الإيميل",
+    login_verify_btn: "تأكيد ودخول",
+    login_no_account: "ما عندك حساب بعد؟",
+    login_register: "سجل الآن"
   },
   en: {
     page_title: "Simple: Smarter Communication, Faster Results",
@@ -28,6 +49,27 @@ window.I18N = {
     step_negotiate: "Agent negotiates",
     step_close: "Deal is closed",
     dash_creator: "Go to my dashboard →",
-    dash_brand: "Go to my campaigns →"
+    dash_brand: "Go to my campaigns →",
+
+    login_title: "Log in · Simple",
+    login_back: "← Back to home",
+    login_eyebrow: "Log in",
+    login_h1: "Welcome back",
+    login_h1_em: "to Simple",
+    login_subtitle: "Choose how to sign in to your account.",
+    login_tab_password: "Password",
+    login_tab_otp: "Email code",
+    login_email: "Email",
+    login_password: "Password",
+    login_btn: "Log in",
+    login_otp_hint: "We'll send you a 6-digit code by email.",
+    login_send_code: "Send code",
+    login_code_to: "Code sent to",
+    login_resend_q: "Didn't get the code?",
+    login_resend: "Resend",
+    login_change_email: "Change email",
+    login_verify_btn: "Confirm & sign in",
+    login_no_account: "Don't have an account yet?",
+    login_register: "Register now"
   }
 };

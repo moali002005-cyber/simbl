@@ -18,7 +18,8 @@
     html.dir = (lang === 'en') ? 'ltr' : 'rtl';   // الإنجليزي يسار-لليمين
 
     var t = dict();
-    if (t.page_title) document.title = t.page_title;
+    var titleKey = document.documentElement.getAttribute('data-i18n-title') || 'page_title';
+    if (t[titleKey]) document.title = t[titleKey];
 
     // النصوص العادية
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
