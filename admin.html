@@ -223,6 +223,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
     <button class="tab" data-tab="analytics">تحليلات</button>
     <button class="tab" data-tab="insights">رؤى</button>
     <button class="tab" data-tab="users">المستخدمون</button>
+    <button class="tab" data-tab="photos">صور المؤثرين</button>
     <button class="tab" data-tab="campaigns">الحملات</button>
     <button class="tab" data-tab="deals">الصفقات</button>
   </div>
@@ -374,6 +375,16 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
       <table><thead><tr><th>الاسم</th><th>النوع</th><th>المنصة/القطاع</th><th>متابعين/حجم</th><th>تواصل</th><th>تسجيل</th></tr></thead>
       <tbody id="users-tbody"></tbody></table>
     </div>
+  </div>
+
+  <!-- photos -->
+  <div class="panel" id="panel-photos">
+    <div class="toolbar">
+      <div class="search"><i class="ti ti-search"></i><input id="ph-search" placeholder="ابحث بالاسم أو المعرّف…"></div>
+      <span class="count-tag" id="ph-count"></span>
+    </div>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 14px">اضغط «رفع صورة» لأي مؤثر، اختر صورة من جهازك — تُحفظ فورًا وتظهر في «تصفّح المعلنين».</p>
+    <div id="ph-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px"><p style="color:var(--muted)">افتح التبويب لتحميل المؤثرين…</p></div>
   </div>
 
   <!-- campaigns -->
@@ -1076,6 +1087,63 @@ function openDeal(appId){
 function closeDrawer(){ $('#drawer').classList.remove('open'); $('#drawer-ov').classList.remove('open'); }
 
 // ===== events =====
+let PHOTO_CREATORS = null;
+async function loadPhotos(){
+  if(PHOTO_CREATORS){ renderPhotos(); return; }
+  const grid=$('#ph-grid'); grid.innerHTML='<p style="color:var(--muted)">جارٍ التحميل…</p>';
+  try{
+    const { data, error } = await sb.from('creator_directory').select('id,name,handle,platform,followers,avatar_url').order('followers',{ascending:false});
+    if(error) throw error;
+    PHOTO_CREATORS = data||[];
+    renderPhotos();
+  }catch(e){ grid.innerHTML='<p style="color:var(--danger)">تعذّر التحميل: '+esc(e.message||e)+'</p>'; }
+}
+function renderPhotos(){
+  if(!PHOTO_CREATORS) return;
+  const q=($('#ph-search').value||'').trim().toLowerCase();
+  const rows=PHOTO_CREATORS.filter(c=>!q || ((c.name||'')+' '+(c.handle||'')).toLowerCase().includes(q));
+  const withPhoto=PHOTO_CREATORS.filter(c=>c.avatar_url).length;
+  $('#ph-count').textContent=withPhoto+' / '+PHOTO_CREATORS.length+' عندهم صورة';
+  $('#ph-grid').innerHTML = rows.length ? rows.map(c=>{
+    const initial=((c.name||'؟').trim().charAt(0))||'؟';
+    const av=c.avatar_url
+      ? '<img src="'+esc(c.avatar_url)+'" alt="" style="width:54px;height:54px;border-radius:50%;object-fit:cover;flex-shrink:0">'
+      : '<div style="width:54px;height:54px;border-radius:50%;background:var(--accent-bg);color:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:20px;flex-shrink:0">'+esc(initial)+'</div>';
+    return '<div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">'
+      + av
+      + '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(c.name||'—')+'</div>'
+      + (c.handle?'<div style="color:var(--muted);font-size:12px;direction:ltr;text-align:right">@'+esc(c.handle)+'</div>':'')+'</div>'
+      + '<label style="background:var(--accent);color:#fff;font-size:12px;font-weight:500;padding:8px 12px;border-radius:100px;cursor:pointer;white-space:nowrap;flex-shrink:0">'
+      + (c.avatar_url?'تغيير':'رفع صورة')
+      + '<input type="file" accept="image/*" style="display:none" onchange="uploadCreatorPhoto(\''+c.id+'\',this)"></label>'
+      + '</div>';
+  }).join('') : '<p style="color:var(--muted)">لا نتائج</p>';
+}
+async function uploadCreatorPhoto(id, input){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  if(!/^image\//.test(file.type)){ alert('اختر ملف صورة صحيح'); return; }
+  if(file.size>5*1024*1024){ alert('الصورة أكبر من 5 ميجا، اختر أصغر'); return; }
+  const label=input.parentElement;
+  if(label&&label.childNodes[0]) label.childNodes[0].textContent='جارٍ الرفع…';
+  try{
+    const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+    const path=id+'_'+Date.now()+'.'+ext;
+    const up=await sb.storage.from('avatars').upload(path,file,{upsert:true,contentType:file.type});
+    if(up.error) throw up.error;
+    const url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    const res=await sb.from('users').update({avatar_url:url}).eq('id',id);
+    if(res.error) throw res.error;
+    const c=PHOTO_CREATORS.find(x=>x.id===id); if(c) c.avatar_url=url;
+    renderPhotos();
+  }catch(e){
+    alert('تعذّر رفع الصورة: '+(e.message||e));
+    renderPhotos();
+  }
+}
+$('[data-tab="photos"]').addEventListener('click', loadPhotos);
+$('#ph-search').addEventListener('input', renderPhotos);
+
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
