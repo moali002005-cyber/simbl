@@ -372,7 +372,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
       <span class="count-tag" id="u-count"></span>
     </div>
     <div class="tbl-wrap">
-      <table><thead><tr><th>الاسم</th><th>النوع</th><th>المنصة/القطاع</th><th>متابعين/حجم</th><th>تواصل</th><th>تسجيل</th></tr></thead>
+      <table><thead><tr><th>الاسم</th><th>النوع</th><th>المنصة/القطاع</th><th>متابعين/حجم</th><th>تواصل</th><th>تسجيل</th><th>إجراء</th></tr></thead>
       <tbody id="users-tbody"></tbody></table>
     </div>
   </div>
@@ -978,8 +978,8 @@ function renderUsers(){
     const sizeF=isB?(SIZE[u.size]||u.size||'—'):(u.followers?num(u.followers):'—');
     const contact=esc(u.email||u.whatsapp||u.phone||'—');
     const badge=isB?'<span class="badge b-brand">شركة</span>':'<span class="badge b-creator">معلن</span>';
-    return '<tr><td>'+esc(name)+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</td><td>'+badge+'</td><td class="dim">'+esc(seg)+'</td><td class="mono">'+sizeF+'</td><td class="dim">'+contact+'</td><td class="dim">'+fmtDate(u.created_at)+'</td></tr>';
-  }).join('') : '<tr><td colspan="6" class="empty">لا نتائج</td></tr>';
+    return '<tr><td>'+esc(name)+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</td><td>'+badge+'</td><td class="dim">'+esc(seg)+'</td><td class="mono">'+sizeF+'</td><td class="dim">'+contact+'</td><td class="dim">'+fmtDate(u.created_at)+'</td><td><button onclick="adminDeleteUser(\''+u.id+'\')" style="padding:5px 10px;border:1px solid #e6bcbc;background:#fff;color:#c93030;border-radius:7px;font-size:12px;cursor:pointer">حذف</button></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="empty">لا نتائج</td></tr>';
 }
 
 // ===== campaigns =====
@@ -1028,6 +1028,20 @@ async function adminDeleteCampaign(id){
     if(error) throw error;
     if(!del||!del.length) throw new Error('لم يتم الحذف — تأكد من صلاحية الأدمن (RLS).');
     await loadAll(true);
+  }catch(e){ alert('تعذّر الحذف: '+(e.message||e)); }
+}
+
+// ===== حذف حساب نهائيًا (يشمل منع الدخول) =====
+async function adminDeleteUser(id){
+  const u = usersById[id];
+  const nm = u ? (u.company_name || u.name || 'هذا الحساب') : 'هذا الحساب';
+  if(!confirm('حذف نهائي للحساب «'+nm+'»؟\n\nراح يُمسح من المنصة ويُمنع من الدخول نهائيًا (بأي طريقة) — ولا يمكن التراجع.')) return;
+  if(!confirm('تأكيد أخير: احذف «'+nm+'» نهائيًا؟')) return;
+  try{
+    const { error } = await sb.rpc('admin_delete_user', { target_id: id });
+    if(error) throw error;
+    await loadAll(true);
+    alert('تم حذف «'+nm+'» نهائيًا.');
   }catch(e){ alert('تعذّر الحذف: '+(e.message||e)); }
 }
 
