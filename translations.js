@@ -43,7 +43,8 @@ window.I18N = {
     privacy_title: "سياسة الخصوصية - سيمبل",
     terms_title: "الشروط والأحكام - سيمبل",
     workflow_title: "مساحة العمل - سيمبل",
-    brand_title: "لوحة الشركة - سيمبل"
+    brand_title: "لوحة الشركة - سيمبل",
+    creators_title: "تصفّح المعلنين - سيمبل"
   },
   en: {
     page_title: "Simple: Smarter Communication, Faster Results",
@@ -86,7 +87,8 @@ window.I18N = {
     privacy_title: "Privacy Policy · Simple",
     terms_title: "Terms & Conditions · Simple",
     workflow_title: "Workspace · Simple",
-    brand_title: "Company Dashboard · Simple"
+    brand_title: "Company Dashboard · Simple",
+    creators_title: "Browse Creators · Simple"
   }
 };
 
@@ -1087,4 +1089,60 @@ Object.assign(window.I18N_TEXT, {
   "📦 جهّز وأكّد الشحن": "📦 Prepare and confirm shipment",
   "🚀 النشر": "🚀 Publishing",
   "🚚 الاستلام": "🚚 Receipt"
+});
+
+// نصوص تصفّح المعلنين + صورة المؤثر
+Object.assign(window.I18N_TEXT, {
+  "تصفّح المعلنين": "Browse creators",
+  "🔍 تصفّح المعلنين": "🔍 Browse creators",
+  "اكتشف المؤثرين المسجّلين في سيمبل واختر الأنسب لحملتك.": "Discover the influencers registered on Simple and pick the right one for your campaign.",
+  "العودة للوحة": "Back to dashboard",
+  "ابحث بالاسم أو الحساب...": "Search by name or handle...",
+  "نطاق المتابعين": "Follower range",
+  "التصنيف": "Category",
+  "المنصة": "Platform",
+  "الكل": "All",
+  "أقل من ٢٠ك": "Under 20K",
+  "٢٠ك–٥٠ك": "20K–50K",
+  "٥٠ك–١٠٠ك": "50K–100K",
+  "١٠٠ك–٢٠٠ك": "100K–200K",
+  "٢٠٠ك فأكثر": "200K+",
+  "متابع": "followers",
+  "مؤثر متاح": "creators available",
+  "عام": "General",
+  "لايف ستايل": "Lifestyle",
+  "جمال وعناية": "Beauty & care",
+  "سفر": "Travel",
+  "رياضة": "Fitness",
+  "أمومة وأطفال": "Parenting",
+  "تيك توك": "TikTok",
+  "سناب شات": "Snapchat",
+  "انستقرام": "Instagram",
+  "إكس": "X",
+  "يوتيوب": "YouTube",
+  "جاري تحميل المعلنين...": "Loading creators...",
+  "جاري التحميل...": "Loading...",
+  "لا يوجد مؤثرون مطابقون": "No matching creators",
+  "جرّب تغيير الفلاتر أو البحث": "Try changing the filters or search",
+  "حصل خطأ في تحميل المعلنين.": "Error loading creators.",
+  "حدّث الصفحة وحاول مرة أخرى.": "Refresh the page and try again.",
+  "زيارة الحساب": "Visit account",
+  "نسخ المعرّف": "Copy handle",
+  "تم نسخ المعرّف ✓": "Handle copied ✓",
+  "شاهد فيديوهاته على تيك توك": "Watch their videos on TikTok",
+  "افتح حسابه": "Open their account",
+  "يرجى تسجيل الدخول أولاً": "Please sign in first",
+  "أضف / غيّر صورتك": "Add / change photo",
+  "جاري الرفع...": "Uploading...",
+  "تم تحديث صورتك ✓": "Your photo was updated ✓",
+  "اختر ملف صورة صحيح": "Choose a valid image file",
+  "الصورة أكبر من 5 ميجا، اختر أصغر": "Image is larger than 5MB, choose a smaller one",
+  "فشل رفع الصورة. حاول مرة ثانية.": "Failed to upload the photo. Try again."
+});
+
+// شريط نخبة المؤثرين
+Object.assign(window.I18N_TEXT, {
+  "نخبة المؤثرين": "Top creators",
+  "اختر الأنسب لحملتك": "Pick the right one for your campaign",
+  "تصفّح الكل ←": "Browse all ←"
 });

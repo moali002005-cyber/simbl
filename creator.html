@@ -1046,6 +1046,11 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   <!-- ============ HERO ============ -->
   <section class="hero">
     <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:8px;">
+      <div id="my-avatar-wrap" style="width:84px;height:84px;border-radius:50%;overflow:hidden;background:rgba(19,185,178,0.14);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--accent);"><span style="font-size:32px;font-weight:600;color:var(--accent-ink)">م</span></div>
+      <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+      <button type="button" id="avatar-btn" onclick="document.getElementById('avatar-input').click()" style="background:#fff;border:1.5px solid rgba(10,10,10,0.18);color:var(--ink);padding:7px 16px;border-radius:100px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">أضف / غيّر صورتك</button>
+    </div>
     <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بك</span></h1>
     <p class="hero-sub">اطّلع على جميع الإعلانات المتاحة لك، واختر المناسب.</p>
     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
@@ -1188,6 +1193,7 @@ async function init() {
   document.getElementById('user-name').textContent = firstName;
   document.getElementById('user-initial').textContent = firstName[0];
   document.getElementById('welcome-name').textContent = firstName;
+  renderMyAvatar();
 
   // ====== بوابة الموافقة: المعلن لازم يكون مفعّلاً قبل استخدام المنصة ======
   // أي حالة غير 'pending'/'rejected' (بما فيها القديمة بدون قيمة) تُعتبر مفعّلة،
@@ -1954,6 +1960,49 @@ window.addEventListener('pageshow', function(e) {
     renderUnified();
   }
 });
+
+function renderMyAvatar() {
+  if (typeof currentUser === 'undefined' || !currentUser) return;
+  var url = currentUser.avatar_url;
+  var initial = ((currentUser.name || 'م').trim().charAt(0)) || 'م';
+  var wrap = document.getElementById('my-avatar-wrap');
+  if (wrap) {
+    wrap.innerHTML = url
+      ? '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+      : '<span style="font-size:32px;font-weight:600;color:var(--accent-ink)">' + initial + '</span>';
+  }
+  var nav = document.getElementById('user-initial');
+  if (nav && url) { nav.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'; nav.style.background = 'transparent'; }
+}
+
+async function handleAvatarUpload(e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { showToast('اختر ملف صورة صحيح', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('الصورة أكبر من 5 ميجا، اختر أصغر', 'error'); return; }
+  var btn = document.getElementById('avatar-btn');
+  var orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري الرفع...'; }
+  try {
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    var path = currentUser.id + '_' + Date.now() + '.' + ext;
+    var up = await supabaseClient.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+    if (up.error) throw up.error;
+    var pub = supabaseClient.storage.from('avatars').getPublicUrl(path);
+    var url = pub.data.publicUrl;
+    var res = await supabaseClient.rpc('set_my_avatar', { url: url });
+    if (res.error) throw res.error;
+    currentUser.avatar_url = url;
+    saveCurrentUser(currentUser);
+    renderMyAvatar();
+    showToast('تم تحديث صورتك ✓');
+  } catch (err) {
+    console.error('avatar upload error', err);
+    showToast('فشل رفع الصورة. حاول مرة ثانية.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
+}
 
 init();
 </script>

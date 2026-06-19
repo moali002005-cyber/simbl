@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-i18n-title="creators_title">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تصفّح المعلنين - سيمبل</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/translations.js"></script>
+<script src="/i18n.js"></script>
+<style>
+:root{--cream:#ffffff;--cream-darker:#f5f5f4;--ink:#0a0a0a;--ink-soft:#3a3a3a;--ink-muted:#6b6b6b;--ink-faint:#a0a0a0;--accent:#13B9B2;--accent-ink:#0c4f4b;--line:rgba(10,10,10,0.08);--line-strong:rgba(10,10,10,0.16);--font-display:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;--font-body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.7;min-height:100vh;}
+.container{max-width:1200px;margin:0 auto;padding:0 32px;}
+.nav{background:var(--cream);padding:16px 0;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;}
+.logo{display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:var(--ink);}
+.logo-eye{width:40px;height:40px;display:block;}
+.logo-mark{font-family:var(--font-display);font-size:16px;font-weight:500;position:relative;padding-left:10px;line-height:1;}
+.logo-mark::after{content:'';position:absolute;bottom:0;left:0;width:4px;height:4px;background:var(--accent);border-radius:50%;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.btn-back{background:#fff;color:var(--ink);border:1px solid var(--line-strong);padding:8px 16px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}
+.btn-back:hover{border-color:var(--ink-soft);}
+.hero{padding:38px 24px 16px;text-align:center;}
+.hero-title{font-family:var(--font-display);font-size:32px;font-weight:600;margin:0 0 8px;}
+.hero-sub{font-size:15px;color:var(--ink-soft);max-width:560px;margin:0 auto 16px;}
+.count-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:100px;border:1px solid rgba(19,185,178,0.30);color:var(--accent-ink);background:#fff;font-size:13px;font-weight:600;}
+.count-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);}
+.search-wrap{max-width:520px;margin:20px auto 0;}
+.search-input{width:100%;padding:13px 18px;border:1px solid var(--line-strong);border-radius:100px;font-family:inherit;font-size:15px;background:#fff;color:var(--ink);text-align:center;}
+.search-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(19,185,178,0.14);}
+.filters{padding:20px 0 6px;display:flex;flex-direction:column;gap:10px;}
+.filter-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.filter-label{font-size:12px;font-weight:600;color:var(--ink-muted);min-width:90px;}
+.chip{background:#fff;color:var(--ink-soft);padding:7px 14px;border-radius:100px;border:1px solid var(--line);font-family:inherit;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.chip:hover{border-color:var(--ink-soft);}
+.chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;padding:22px 0 60px;}
+.vcard{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;text-align:center;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .25s;}
+.vcard:hover{transform:translateY(-3px);border-color:rgba(19,185,178,0.45);box-shadow:0 10px 30px -14px rgba(10,10,10,0.2);}
+.vband{height:44px;background:var(--accent);}
+.vav-ring{width:62px;height:62px;border-radius:50%;margin:-32px auto 0;padding:3px;background:#fff;box-shadow:0 0 0 1px rgba(10,10,10,0.06);}
+.vbody{padding:8px 14px 16px;}
+.vname{font-family:var(--font-display);font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vhandle{font-size:12px;color:var(--ink-muted);direction:ltr;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vfoll{font-size:24px;font-weight:600;color:var(--accent);font-family:var(--font-display);margin-top:10px;line-height:1.1;}
+.vfoll-lbl{font-size:11px;color:var(--ink-faint);margin-bottom:10px;}
+.tag{font-size:11px;padding:4px 10px;border-radius:100px;background:var(--cream-darker);color:var(--ink-soft);font-weight:500;display:inline-flex;align-items:center;gap:4px;}
+.empty,.loading-wrap{grid-column:1/-1;text-align:center;padding:70px 32px;color:var(--ink-muted);}
+.empty .ic{font-size:42px;opacity:.5;margin-bottom:10px;}
+.empty h3{font-family:var(--font-display);font-size:19px;color:var(--ink);margin-bottom:6px;}
+.loading-pill{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(19,185,178,0.2);border-radius:100px;padding:10px 22px;font-family:var(--font-display);font-size:13px;font-weight:500;color:var(--accent-ink);}
+.loading-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,10,10,0.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.modal-backdrop.show{display:flex;}
+.modal{background:#fff;border-radius:22px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;position:relative;text-align:center;}
+.modal-close{position:absolute;top:14px;left:14px;background:rgba(255,255,255,0.9);border:0;width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer;color:var(--ink-muted);z-index:2;}
+.m-band{height:64px;background:var(--accent);border-radius:22px 22px 0 0;}
+.m-ring{width:96px;height:96px;border-radius:50%;margin:-48px auto 0;padding:3px;background:#fff;box-shadow:0 0 0 2px var(--accent);}
+.m-name{font-family:var(--font-display);font-size:19px;font-weight:600;margin-top:12px;}
+.m-handle{font-size:13px;color:var(--ink-muted);direction:ltr;}
+.m-stats{display:flex;align-items:center;margin:16px 18px 14px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.m-stat{flex:1;text-align:center;}
+.m-sn{font-size:17px;font-weight:600;font-family:var(--font-display);}
+.m-sl{font-size:11px;color:var(--ink-faint);margin-top:2px;}
+.m-div{width:1px;height:26px;background:var(--line);}
+.m-bio{font-size:13px;color:var(--ink-soft);line-height:1.7;margin:0 18px 16px;}
+.m-actions{display:flex;gap:10px;padding:0 18px;margin-bottom:14px;}
+.m-btn{flex:1;text-align:center;padding:11px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}
+.m-btn.primary{background:var(--accent);color:#fff;border:0;}
+.m-btn.primary:hover{background:var(--accent-ink);}
+.m-btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line-strong);}
+.m-watch{margin:0 18px 18px;border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--ink-muted);}
+.m-watch-ic{width:46px;height:46px;border-radius:50%;background:rgba(19,185,178,0.10);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.toast-wrap{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+.toast{display:flex;align-items:center;gap:10px;background:#fff;color:var(--ink);border:1px solid var(--line);border-right:4px solid var(--accent);border-radius:14px;padding:13px 18px;font-size:14px;font-weight:500;box-shadow:0 14px 36px -12px rgba(10,10,10,0.28);opacity:0;transform:translateY(-12px);transition:all .28s cubic-bezier(0.22,1,0.36,1);}
+.toast.show{opacity:1;transform:translateY(0);}
+@media (max-width:640px){.container{padding:0 16px;}.hero-title{font-size:26px;}.filter-label{min-width:100%;}}
+</style>
+</head>
+<body>
+<div class="toast-wrap" id="toast-wrap"></div>
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/brand.html" class="logo" aria-label="سيمبل">
+      <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(25 100 100)"/><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(-25 100 100)"/><path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/><circle cx="100" cy="100" r="8" fill="#0a0a0a"/></g></svg>
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <div class="nav-right">
+      <button type="button" data-i18n-toggle onclick="simblI18n.toggle()" style="background:#fff;border:1.5px solid rgba(10,10,10,0.28);color:var(--ink);padding:8px 16px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">EN</button>
+      <a href="/brand.html" class="btn-back">العودة للوحة</a>
+    </div>
+  </div>
+</nav>
+<main class="container">
+  <section class="hero">
+    <h1 class="hero-title">تصفّح المعلنين</h1>
+    <p class="hero-sub">اكتشف المؤثرين المسجّلين في سيمبل واختر الأنسب لحملتك.</p>
+    <div class="count-pill"><span class="count-dot"></span><span id="count-text">جاري التحميل...</span></div>
+    <div class="search-wrap"><input type="text" class="search-input" id="search" placeholder="ابحث بالاسم أو الحساب..." oninput="applyFilters()"></div>
+  </section>
+  <section class="filters">
+    <div class="filter-row" id="row-tier"><span class="filter-label">نطاق المتابعين</span></div>
+    <div class="filter-row" id="row-cat"><span class="filter-label">التصنيف</span></div>
+    <div class="filter-row" id="row-plat"><span class="filter-label">المنصة</span></div>
+  </section>
+  <section class="grid" id="grid"><div class="loading-wrap"><div class="loading-pill"><span class="loading-dot"></span>جاري تحميل المعلنين...</div></div></section>
+</main>
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeProfile()"><div class="modal" id="modal-body"></div></div>
+<script src="/supabase-config.js"></script>
+<script>
+let allCreators = [];
+let filters = { tier:'all', cat:'all', plat:'all' };
+const CAT = { general:'عام', lifestyle:'لايف ستايل', beauty:'جمال وعناية', fashion:'موضة', food:'طعام', travel:'سفر', fitness:'رياضة', tech:'تقنية', parenting:'أمومة وأطفال' };
+const PLAT = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', x:'إكس', youtube:'يوتيوب' };
+const TIERS = [
+  { key:'all', label:'الكل' },
+  { key:'u20', label:'أقل من ٢٠ك', min:0, max:19999 },
+  { key:'20-50', label:'٢٠ك–٥٠ك', min:20000, max:49999 },
+  { key:'50-100', label:'٥٠ك–١٠٠ك', min:50000, max:99999 },
+  { key:'100-200', label:'١٠٠ك–٢٠٠ك', min:100000, max:199999 },
+  { key:'200+', label:'٢٠٠ك فأكثر', min:200000, max:Infinity }
+];
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtFollowers(n){ n=parseInt(n)||0; if(n>=1000000) return (n%1000000===0?n/1000000:(n/1000000).toFixed(1))+'M'; if(n>=1000) return Math.round(n/1000)+'K'; return String(n); }
+function avatarInner(c, size, fs){
+  if (c.avatar_url) return '<img src="'+escHtml(c.avatar_url)+'" alt="" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;">';
+  var initial = ((c.name||'؟').trim().charAt(0))||'؟';
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:rgba(19,185,178,0.14);color:#0c4f4b;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:'+fs+'px;">'+escHtml(initial)+'</div>';
+}
+function showToast(message){
+  var wrap=document.getElementById('toast-wrap'); var t=document.createElement('div'); t.className='toast';
+  t.innerHTML='<span>✓</span><span>'+message+'</span>'; wrap.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),320); },2500);
+}
+function buildChips(rowId, items, onPick){
+  var row=document.getElementById(rowId);
+  items.forEach(it=>{ var b=document.createElement('button'); b.className='chip'+(it.key==='all'?' active':''); b.textContent=it.label; b.dataset.key=it.key; b.onclick=()=>onPick(it.key,rowId); row.appendChild(b); });
+}
+function setActive(rowId,key){ document.querySelectorAll('#'+rowId+' .chip').forEach(c=>c.classList.toggle('active',c.dataset.key===key)); }
+function initChips(){
+  buildChips('row-tier', TIERS.map(t=>({key:t.key,label:t.label})), (k,r)=>{ filters.tier=k; setActive(r,k); applyFilters(); });
+  buildChips('row-cat', [{key:'all',label:'الكل'}].concat(Object.keys(CAT).map(k=>({key:k,label:CAT[k]}))), (k,r)=>{ filters.cat=k; setActive(r,k); applyFilters(); });
+  buildChips('row-plat', [{key:'all',label:'الكل'}].concat(Object.keys(PLAT).map(k=>({key:k,label:PLAT[k]}))), (k,r)=>{ filters.plat=k; setActive(r,k); applyFilters(); });
+}
+function matchTier(f){ if(filters.tier==='all') return true; var t=TIERS.find(x=>x.key===filters.tier); var n=parseInt(f)||0; return t&&n>=t.min&&n<=t.max; }
+function currentFiltered(){
+  var q=(document.getElementById('search').value||'').trim().toLowerCase();
+  return allCreators.filter(c=>{
+    if(!matchTier(c.followers)) return false;
+    if(filters.cat!=='all'&&c.category!==filters.cat) return false;
+    if(filters.plat!=='all'&&c.platform!==filters.plat) return false;
+    if(q){ var hay=((c.name||'')+' '+(c.handle||'')).toLowerCase(); if(hay.indexOf(q)===-1) return false; }
+    return true;
+  });
+}
+function applyFilters(){ renderGrid(currentFiltered()); }
+function renderGrid(list){
+  var grid=document.getElementById('grid');
+  if(!list.length){ grid.innerHTML='<div class="empty"><div class="ic">○</div><h3>لا يوجد مؤثرون مطابقون</h3><p>جرّب تغيير الفلاتر أو البحث</p></div>'; return; }
+  grid.innerHTML=list.map((c,i)=>{
+    var catLabel=CAT[c.category]||c.category||''; var platLabel=PLAT[c.platform]||c.platform||'';
+    return '<div class="vcard" onclick="openProfile('+i+')">'
+      + '<div class="vband"></div>'
+      + '<div class="vav-ring">'+avatarInner(c,56,22)+'</div>'
+      + '<div class="vbody">'
+      + '<div class="vname">'+escHtml(c.name||'')+'</div>'
+      + '<div class="vhandle">'+escHtml(c.handle||'')+'</div>'
+      + '<div class="vfoll">'+fmtFollowers(c.followers)+'</div><div class="vfoll-lbl"><span>متابع</span></div>'
+      + '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><span class="tag">'+escHtml(platLabel)+'</span>'+(catLabel?'<span class="tag">'+escHtml(catLabel)+'</span>':'')+'</div>'
+      + '</div></div>';
+  }).join('');
+  if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
+}
+function openProfile(idx){
+  var c=currentFiltered()[idx]; if(!c) return;
+  var catLabel=CAT[c.category]||c.category||''; var platLabel=PLAT[c.platform]||c.platform||'';
+  var isTT=c.platform==='tiktok';
+  var body=document.getElementById('modal-body');
+  body.innerHTML='<button class="modal-close" onclick="closeProfile()">✕</button>'
+    + '<div class="m-band"></div>'
+    + '<div class="m-ring">'+avatarInner(c,90,34)+'</div>'
+    + '<div class="m-name">'+escHtml(c.name||'')+'</div>'
+    + '<div class="m-handle">'+escHtml(c.handle||'')+'</div>'
+    + '<div class="m-stats">'
+    +   '<div class="m-stat"><div class="m-sn" style="color:var(--accent)">'+fmtFollowers(c.followers)+'</div><div class="m-sl"><span>متابع</span></div></div>'
+    +   '<div class="m-div"></div><div class="m-stat"><div class="m-sn" style="font-size:13px;padding-top:3px">'+escHtml(platLabel)+'</div><div class="m-sl"><span>المنصة</span></div></div>'
+    +   (catLabel?'<div class="m-div"></div><div class="m-stat"><div class="m-sn" style="font-size:13px;padding-top:3px">'+escHtml(catLabel)+'</div><div class="m-sl"><span>التصنيف</span></div></div>':'')
+    + '</div>'
+    + (c.bio?'<div class="m-bio">'+escHtml(c.bio)+'</div>':'')
+    + '<div class="m-actions">'
+    +   (c.website?'<a class="m-btn primary" href="'+escHtml(c.website)+'" target="_blank" rel="noopener"><span>زيارة الحساب</span> ↗</a>':'')
+    +   '<button class="m-btn ghost" onclick="copyHandle(\''+escHtml(c.handle||'')+'\')"><span>نسخ المعرّف</span></button>'
+    + '</div>'
+    + (c.website?'<a class="m-watch" href="'+escHtml(c.website)+'" target="_blank" rel="noopener" style="text-decoration:none"><div class="m-watch-ic">▶</div><div style="font-size:12px"><span>'+(isTT?'شاهد فيديوهاته على تيك توك':'افتح حسابه')+'</span> ↗</div></a>':'');
+  document.getElementById('modal').classList.add('show');
+  if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
+}
+function closeProfile(){ document.getElementById('modal').classList.remove('show'); }
+function copyHandle(h){ if(!h) return; var done=()=>showToast('تم نسخ المعرّف ✓'); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(h).then(done).catch(done); else done(); }
+async function init(){
+  if(typeof tryRestoreSession==='function'){ try{ await tryRestoreSession(); }catch(e){} }
+  var user=getCurrentUser();
+  if(!user){ alert('يرجى تسجيل الدخول أولاً'); window.location.href='/signup.html'; return; }
+  if(user.role==='creator'){ window.location.href='/creator.html'; return; }
+  initChips();
+  try{
+    var res=await supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url').order('followers',{ascending:false});
+    if(res.error) throw res.error;
+    allCreators=res.data||[];
+    document.getElementById('count-text').innerHTML=allCreators.length+' <span>مؤثر متاح</span>';
+    applyFilters();
+    if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
+  }catch(err){
+    console.error(err);
+    document.getElementById('grid').innerHTML='<div class="empty"><div class="ic">!</div><h3>حصل خطأ في تحميل المعلنين.</h3><p>حدّث الصفحة وحاول مرة أخرى.</p></div>';
+    document.getElementById('count-text').textContent='—';
+  }
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeProfile(); });
+init();
+</script>
+</body>
+</html>
