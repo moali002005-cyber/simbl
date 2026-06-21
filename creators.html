@@ -41,6 +41,10 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .chip{background:#fff;color:var(--ink-soft);padding:7px 14px;border-radius:100px;border:1px solid var(--line);font-family:inherit;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .chip:hover{border-color:var(--ink-soft);}
 .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.ptabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:20px 0 4px;overflow-x:auto;}
+.ptab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 18px;font-family:inherit;font-size:14px;color:var(--ink-muted);cursor:pointer;white-space:nowrap;transition:all .15s;margin-bottom:-1px;}
+.ptab:hover{color:var(--ink-soft);}
+.ptab.active{color:var(--accent-ink);font-weight:600;border-bottom-color:var(--accent);}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;padding:22px 0 60px;}
 .vcard{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;text-align:center;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .25s;}
 .vcard:hover{transform:translateY(-3px);border-color:rgba(19,185,178,0.45);box-shadow:0 10px 30px -14px rgba(10,10,10,0.2);}
@@ -103,13 +107,12 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
   <section class="hero">
     <h1 class="hero-title">تصفّح المعلنين</h1>
     <p class="hero-sub">اكتشف المؤثرين المسجّلين في سيمبل واختر الأنسب لحملتك.</p>
-    <div class="count-pill"><span class="count-dot"></span><span id="count-text">جاري التحميل...</span></div>
     <div class="search-wrap"><input type="text" class="search-input" id="search" placeholder="ابحث بالاسم أو الحساب..." oninput="applyFilters()"></div>
   </section>
+  <div class="ptabs" id="ptabs"></div>
   <section class="filters">
     <div class="filter-row" id="row-tier"><span class="filter-label">نطاق المتابعين</span></div>
     <div class="filter-row" id="row-cat"><span class="filter-label">التصنيف</span></div>
-    <div class="filter-row" id="row-plat"><span class="filter-label">المنصة</span></div>
   </section>
   <section class="grid" id="grid"><div class="loading-wrap"><div class="loading-pill"><span class="loading-dot"></span>جاري تحميل المعلنين...</div></div></section>
 </main>
@@ -149,7 +152,14 @@ function setActive(rowId,key){ document.querySelectorAll('#'+rowId+' .chip').for
 function initChips(){
   buildChips('row-tier', TIERS.map(t=>({key:t.key,label:t.label})), (k,r)=>{ filters.tier=k; setActive(r,k); applyFilters(); });
   buildChips('row-cat', [{key:'all',label:'الكل'}].concat(Object.keys(CAT).map(k=>({key:k,label:CAT[k]}))), (k,r)=>{ filters.cat=k; setActive(r,k); applyFilters(); });
-  buildChips('row-plat', [{key:'all',label:'الكل'}].concat(Object.keys(PLAT).map(k=>({key:k,label:PLAT[k]}))), (k,r)=>{ filters.plat=k; setActive(r,k); applyFilters(); });
+  buildPTabs();
+}
+function buildPTabs(){
+  var wrap=document.getElementById('ptabs');
+  var tabs=[{key:'all',label:'الكل'},{key:'tiktok',label:'تيك توك'},{key:'snapchat',label:'سناب شات'},{key:'instagram',label:'انستقرام'}];
+  tabs.forEach(t=>{ var b=document.createElement('button'); b.className='ptab'+(t.key===filters.plat?' active':''); b.textContent=t.label; b.dataset.key=t.key;
+    b.onclick=()=>{ filters.plat=t.key; document.querySelectorAll('#ptabs .ptab').forEach(x=>x.classList.toggle('active',x.dataset.key===t.key)); applyFilters(); };
+    wrap.appendChild(b); });
 }
 function matchTier(f){ if(filters.tier==='all') return true; var t=TIERS.find(x=>x.key===filters.tier); var n=parseInt(f)||0; return t&&n>=t.min&&n<=t.max; }
 function currentFiltered(){
@@ -216,13 +226,11 @@ async function init(){
     var res=await supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url').order('followers',{ascending:false});
     if(res.error) throw res.error;
     allCreators=res.data||[];
-    document.getElementById('count-text').innerHTML=allCreators.length+' <span>مؤثر متاح</span>';
     applyFilters();
     if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
   }catch(err){
     console.error(err);
     document.getElementById('grid').innerHTML='<div class="empty"><div class="ic">!</div><h3>حصل خطأ في تحميل المعلنين.</h3><p>حدّث الصفحة وحاول مرة أخرى.</p></div>';
-    document.getElementById('count-text').textContent='—';
   }
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeProfile(); });
