@@ -1146,3 +1146,9 @@ Object.assign(window.I18N_TEXT, {
   "اختر الأنسب لحملتك": "Pick the right one for your campaign",
   "تصفّح الكل ←": "Browse all ←"
 });
+
+// صورة الحساب في التسجيل
+Object.assign(window.I18N_TEXT, {
+  "صورة الحساب": "Account photo",
+  "مطلوبة — اختر صورة واضحة لحسابك، تظهر للشركات في دليل المؤثرين.": "Required — choose a clear photo of your account; it appears to brands in the creator directory."
+});

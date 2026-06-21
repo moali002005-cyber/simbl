@@ -292,6 +292,12 @@ textarea { resize: vertical; min-height: 80px; }
       <div class="form-section-title">بيانات المعلن</div>
 
       <div class="field">
+        <label>صورة الحساب</label>
+        <input type="file" name="avatar_file" accept="image/*" required>
+        <div class="hint">مطلوبة — اختر صورة واضحة لحسابك، تظهر للشركات في دليل المؤثرين.</div>
+      </div>
+
+      <div class="field">
         <label>الاسم الكامل</label>
         <input type="text" name="name" required placeholder="مثل: ليان عبدالله">
       </div>
@@ -534,6 +540,10 @@ async function submitForm(event, role) {
     userData.bio = fd.get('bio') || null;
     userData.website = fd.get('tiktok_url') || null;
     userData.approval_status = 'pending';
+    const avatarFileChk = fd.get('avatar_file');
+    if (!avatarFileChk || avatarFileChk.size === 0) { alert('صورة الحساب مطلوبة — اختر صورة لمتابعة التسجيل.'); submitBtn.disabled = false; submitBtn.textContent = originalText; return; }
+    if (!/^image\//.test(avatarFileChk.type)) { alert('الملف المختار ليس صورة صحيحة.'); submitBtn.disabled = false; submitBtn.textContent = originalText; return; }
+    if (avatarFileChk.size > 5 * 1024 * 1024) { alert('الصورة أكبر من 5 ميجا، اختر صورة أصغر.'); submitBtn.disabled = false; submitBtn.textContent = originalText; return; }
   } else {
     userData.company_name = fd.get('company_name');
     userData.industry = fd.get('industry');
@@ -589,6 +599,27 @@ async function submitForm(event, role) {
       }
     }
 
+    // ٣.٢) رفع صورة حساب المعلن إلى تخزين Supabase
+    if (role === 'creator') {
+      const avatarFile = fd.get('avatar_file');
+      if (avatarFile && avatarFile.size > 0) {
+        try {
+          const ext = (avatarFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+          const uid = (authData && authData.user && authData.user.id) ? authData.user.id : Date.now();
+          const path = uid + '-' + Date.now() + '.' + ext;
+          const { error: avErr } = await supabaseClient
+            .storage.from('avatars')
+            .upload(path, avatarFile, { contentType: avatarFile.type || undefined, upsert: true });
+          if (avErr) throw avErr;
+          const { data: avPub } = supabaseClient.storage.from('avatars').getPublicUrl(path);
+          userData.avatar_url = avPub.publicUrl;
+        } catch (avErr) {
+          console.error('Avatar upload error:', avErr);
+          throw new Error('AVATAR_UPLOAD_FAILED');
+        }
+      }
+    }
+
     // ٤) حفظ بيانات المستخدم في جدول users
     const savedUser = await dbSignup(userData);
     saveCurrentUser(savedUser);
@@ -606,6 +637,8 @@ async function submitForm(event, role) {
 
     if (rawMsg === 'CR_UPLOAD_FAILED') {
       alert('تعذّر رفع مستند السجل التجاري. تأكد من الملف وحاول مرة أخرى، أو جرّب من جهاز آخر / بعد تسجيل الدخول.');
+    } else if (rawMsg === 'AVATAR_UPLOAD_FAILED') {
+      alert('تعذّر رفع صورة الحساب. تأكد من الصورة وحاول مرة أخرى.');
     } else if (rawMsg === 'EMAIL_EXISTS'
         || msg.includes('already registered')
         || msg.includes('already been registered')
