@@ -1158,3 +1158,6 @@ Object.assign(window.I18N_TEXT, {
   "أقل من 20K": "Under 20K",
   "200K فأكثر": "200K+"
 });
+
+// نطاق فوق ٤ مليون
+Object.assign(window.I18N_TEXT, {"4M فأكثر": "4M+"});

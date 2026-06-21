@@ -139,7 +139,14 @@ const TIERS = [
   { key:'20-50', label:'20K–50K', min:20000, max:49999 },
   { key:'50-100', label:'50K–100K', min:50000, max:99999 },
   { key:'100-200', label:'100K–200K', min:100000, max:199999 },
-  { key:'200+', label:'200K فأكثر', min:200000, max:Infinity }
+  { key:'200-300', label:'200K–300K', min:200000, max:299999 },
+  { key:'300-500', label:'300K–500K', min:300000, max:499999 },
+  { key:'500-700', label:'500K–700K', min:500000, max:699999 },
+  { key:'700-1m', label:'700K–1M', min:700000, max:999999 },
+  { key:'1-2m', label:'1M–2M', min:1000000, max:1999999 },
+  { key:'2-3m', label:'2M–3M', min:2000000, max:2999999 },
+  { key:'3-4m', label:'3M–4M', min:3000000, max:3999999 },
+  { key:'4m+', label:'4M فأكثر', min:4000000, max:Infinity }
 ];
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtFollowers(n){ n=parseInt(n)||0; if(n>=1000000) return (n%1000000===0?n/1000000:(n/1000000).toFixed(1))+'M'; if(n>=1000) return Math.round(n/1000)+'K'; return String(n); }
