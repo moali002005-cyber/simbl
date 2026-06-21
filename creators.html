@@ -35,9 +35,19 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .search-wrap{max-width:520px;margin:20px auto 0;}
 .search-input{width:100%;padding:13px 18px;border:1px solid var(--line-strong);border-radius:100px;font-family:inherit;font-size:15px;background:#fff;color:var(--ink);text-align:center;}
 .search-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(19,185,178,0.14);}
-.filters{padding:20px 0 6px;display:flex;flex-direction:column;gap:10px;}
+.filters{padding:14px 0 6px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
 .filter-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 .filter-label{font-size:12px;font-weight:600;color:var(--ink-muted);min-width:90px;}
+.dd{position:relative;}
+.dd-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:9px 16px;font-family:inherit;font-size:13px;color:var(--ink-soft);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.dd-btn:hover{border-color:var(--ink-soft);}
+.dd-btn.on{border-color:var(--accent);color:var(--accent-ink);font-weight:600;}
+.dd-chev{font-size:10px;color:var(--ink-muted);}
+.dd-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;min-width:190px;box-shadow:0 10px 30px rgba(10,10,10,0.12);display:none;max-height:320px;overflow-y:auto;}
+.dd-menu.open{display:block;}
+.dd-opt{display:block;width:100%;text-align:right;background:none;border:none;border-radius:9px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
+.dd-opt:hover{background:#f5f5f4;}
+.dd-opt.active{background:rgba(19,185,178,0.10);color:var(--accent-ink);font-weight:600;}
 .chip{background:#fff;color:var(--ink-soft);padding:7px 14px;border-radius:100px;border:1px solid var(--line);font-family:inherit;font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .chip:hover{border-color:var(--ink-soft);}
 .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
@@ -111,8 +121,8 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
   </section>
   <div class="ptabs" id="ptabs"></div>
   <section class="filters">
-    <div class="filter-row" id="row-tier"><span class="filter-label">نطاق المتابعين</span></div>
-    <div class="filter-row" id="row-cat"><span class="filter-label">التصنيف</span></div>
+    <div class="dd" id="dd-tier"><button type="button" class="dd-btn" id="btn-tier" onclick="toggleDD('tier',event)"><span id="lbl-tier">نطاق المتابعين</span><span class="dd-chev">▾</span></button><div class="dd-menu" id="menu-tier"></div></div>
+    <div class="dd" id="dd-cat"><button type="button" class="dd-btn" id="btn-cat" onclick="toggleDD('cat',event)"><span id="lbl-cat">التصنيف</span><span class="dd-chev">▾</span></button><div class="dd-menu" id="menu-cat"></div></div>
   </section>
   <section class="grid" id="grid"><div class="loading-wrap"><div class="loading-pill"><span class="loading-dot"></span>جاري تحميل المعلنين...</div></div></section>
 </main>
@@ -125,11 +135,11 @@ const CAT = { general:'عام', lifestyle:'لايف ستايل', beauty:'جما�
 const PLAT = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', x:'إكس', youtube:'يوتيوب' };
 const TIERS = [
   { key:'all', label:'الكل' },
-  { key:'u20', label:'أقل من ٢٠ك', min:0, max:19999 },
-  { key:'20-50', label:'٢٠ك–٥٠ك', min:20000, max:49999 },
-  { key:'50-100', label:'٥٠ك–١٠٠ك', min:50000, max:99999 },
-  { key:'100-200', label:'١٠٠ك–٢٠٠ك', min:100000, max:199999 },
-  { key:'200+', label:'٢٠٠ك فأكثر', min:200000, max:Infinity }
+  { key:'u20', label:'أقل من 20K', min:0, max:19999 },
+  { key:'20-50', label:'20K–50K', min:20000, max:49999 },
+  { key:'50-100', label:'50K–100K', min:50000, max:99999 },
+  { key:'100-200', label:'100K–200K', min:100000, max:199999 },
+  { key:'200+', label:'200K فأكثر', min:200000, max:Infinity }
 ];
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtFollowers(n){ n=parseInt(n)||0; if(n>=1000000) return (n%1000000===0?n/1000000:(n/1000000).toFixed(1))+'M'; if(n>=1000) return Math.round(n/1000)+'K'; return String(n); }
@@ -150,8 +160,8 @@ function buildChips(rowId, items, onPick){
 }
 function setActive(rowId,key){ document.querySelectorAll('#'+rowId+' .chip').forEach(c=>c.classList.toggle('active',c.dataset.key===key)); }
 function initChips(){
-  buildChips('row-tier', TIERS.map(t=>({key:t.key,label:t.label})), (k,r)=>{ filters.tier=k; setActive(r,k); applyFilters(); });
-  buildChips('row-cat', [{key:'all',label:'الكل'}].concat(Object.keys(CAT).map(k=>({key:k,label:CAT[k]}))), (k,r)=>{ filters.cat=k; setActive(r,k); applyFilters(); });
+  buildDD('tier','نطاق المتابعين', TIERS.map(t=>({key:t.key,label:t.label})));
+  buildDD('cat','التصنيف', [{key:'all',label:'الكل'}].concat(Object.keys(CAT).map(k=>({key:k,label:CAT[k]}))));
   buildPTabs();
 }
 function buildPTabs(){
@@ -161,6 +171,24 @@ function buildPTabs(){
     b.onclick=()=>{ filters.plat=t.key; document.querySelectorAll('#ptabs .ptab').forEach(x=>x.classList.toggle('active',x.dataset.key===t.key)); applyFilters(); };
     wrap.appendChild(b); });
 }
+function buildDD(which, defaultLabel, items){
+  var menu=document.getElementById('menu-'+which);
+  var cur=(which==='tier')?filters.tier:filters.cat; menu.innerHTML='';
+  items.forEach(it=>{ var b=document.createElement('button'); b.type='button';
+    b.className='dd-opt'+(it.key===cur?' active':''); b.textContent=it.label; b.dataset.key=it.key; b.dataset.label=it.label;
+    b.onclick=function(e){ e.stopPropagation(); selectDD(which, it.key, it.label, defaultLabel); }; menu.appendChild(b); });
+}
+function selectDD(which, key, label, defaultLabel){
+  if(which==='tier') filters.tier=key; else filters.cat=key;
+  document.getElementById('lbl-'+which).textContent=(key==='all')?defaultLabel:label;
+  document.getElementById('btn-'+which).classList.toggle('on', key!=='all');
+  document.querySelectorAll('#menu-'+which+' .dd-opt').forEach(o=>o.classList.toggle('active', o.dataset.key===key));
+  closeDDs(); applyFilters();
+  if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
+}
+function toggleDD(which, e){ if(e) e.stopPropagation(); var m=document.getElementById('menu-'+which); var was=m.classList.contains('open'); closeDDs(); if(!was) m.classList.add('open'); }
+function closeDDs(){ var ms=document.querySelectorAll('.dd-menu'); for(var i=0;i<ms.length;i++) ms[i].classList.remove('open'); }
+document.addEventListener('click', closeDDs);
 function matchTier(f){ if(filters.tier==='all') return true; var t=TIERS.find(x=>x.key===filters.tier); var n=parseInt(f)||0; return t&&n>=t.min&&n<=t.max; }
 function currentFiltered(){
   var q=(document.getElementById('search').value||'').trim().toLowerCase();

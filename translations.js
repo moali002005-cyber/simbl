@@ -1152,3 +1152,9 @@ Object.assign(window.I18N_TEXT, {
   "صورة الحساب": "Account photo",
   "مطلوبة — اختر صورة واضحة لحسابك، تظهر للشركات في دليل المؤثرين.": "Required — choose a clear photo of your account; it appears to brands in the creator directory."
 });
+
+// نطاق المتابعين (صيغة 20K)
+Object.assign(window.I18N_TEXT, {
+  "أقل من 20K": "Under 20K",
+  "200K فأكثر": "200K+"
+});
