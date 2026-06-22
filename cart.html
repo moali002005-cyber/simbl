@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-i18n-title="cart_title">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سلة الحملة - سيمبل</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/translations.js"></script>
+<script src="/i18n.js"></script>
+<style>
+:root{--cream:#ffffff;--cream-darker:#f5f5f4;--ink:#0a0a0a;--ink-soft:#3a3a3a;--ink-muted:#6b6b6b;--ink-faint:#a0a0a0;--accent:#13B9B2;--accent-ink:#0c4f4b;--line:rgba(10,10,10,0.08);--line-strong:rgba(10,10,10,0.16);--font-display:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;--font-body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--cream-darker);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.7;min-height:100vh;}
+.container{max-width:760px;margin:0 auto;padding:0 20px;}
+.nav{background:var(--cream);padding:16px 0;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;}
+.nav-inner{max-width:760px;margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;align-items:center;}
+.logo{display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:var(--ink);}
+.logo-eye{width:40px;height:40px;display:block;}
+.logo-mark{font-family:var(--font-display);font-size:16px;font-weight:500;position:relative;padding-left:10px;line-height:1;}
+.logo-mark::after{content:'';position:absolute;bottom:0;left:0;width:4px;height:4px;background:var(--accent);border-radius:50%;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.btn-back{background:#fff;color:var(--ink);border:1px solid var(--line-strong);padding:8px 16px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;}
+.btn-back:hover{border-color:var(--ink-soft);}
+.head{padding:30px 0 10px;text-align:center;}
+.head h1{font-family:var(--font-display);font-size:26px;font-weight:600;margin:0 0 4px;}
+.head p{font-size:14px;color:var(--ink-muted);margin:0;}
+.wrap{padding:14px 0 40px;}
+.cart-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;}
+.cc-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.cc-av{width:48px;height:48px;border-radius:50%;flex-shrink:0;overflow:hidden;}
+.cc-av img{width:100%;height:100%;object-fit:cover;}
+.cc-av .ini{width:100%;height:100%;background:rgba(19,185,178,0.14);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px;}
+.cc-id{flex:1;min-width:0;}
+.cc-name{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cc-meta{font-size:12px;color:var(--ink-muted);direction:ltr;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cc-remove{flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);background:#fff;color:var(--ink-muted);font-size:14px;cursor:pointer;line-height:1;}
+.cc-remove:hover{color:#c93030;border-color:#e6bcbc;}
+.cc-field{margin-top:11px;}
+.cc-field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;}
+.cc-field input,.cc-field select,.cc-field textarea{width:100%;border:1px solid var(--line-strong);border-radius:11px;padding:10px 13px;font-family:inherit;font-size:13.5px;color:var(--ink);background:#fff;outline:none;}
+.cc-field input:focus,.cc-field select:focus,.cc-field textarea:focus{border-color:var(--accent);}
+.cc-field textarea{resize:vertical;min-height:48px;line-height:1.6;}
+.foot{position:sticky;bottom:0;background:var(--cream-darker);padding:14px 0 18px;border-top:1px solid var(--line);}
+.confirm-btn{width:100%;background:var(--ink);color:#fff;border:0;border-radius:100px;padding:15px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;}
+.confirm-btn:hover{background:#000;}
+.confirm-btn:disabled{opacity:.5;cursor:default;}
+.foot-note{text-align:center;font-size:11.5px;color:var(--ink-faint);margin-top:9px;}
+.empty{text-align:center;padding:70px 20px;color:var(--ink-muted);}
+.empty .ic{width:64px;height:64px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--accent);}
+.empty h3{font-size:17px;font-weight:600;color:var(--ink);margin:0 0 6px;}
+.empty p{font-size:13.5px;margin:0 0 18px;}
+.empty a{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:11px 22px;border-radius:100px;font-size:13.5px;font-weight:600;}
+.done{text-align:center;padding:50px 20px;}
+.done .ic{width:72px;height:72px;border-radius:50%;background:rgba(19,185,178,0.12);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 18px;}
+.done h2{font-family:var(--font-display);font-size:22px;font-weight:600;margin:0 0 8px;}
+.done p{font-size:14px;color:var(--ink-muted);max-width:420px;margin:0 auto 22px;}
+.done a{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:12px 26px;border-radius:100px;font-size:14px;font-weight:600;}
+.toast-wrap{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+.toast{background:#fff;color:var(--ink);border:1px solid var(--line);border-right:4px solid var(--accent);border-radius:14px;padding:12px 18px;font-size:14px;font-weight:500;box-shadow:0 14px 36px -12px rgba(10,10,10,0.28);opacity:0;transform:translateY(-12px);transition:all .28s cubic-bezier(0.22,1,0.36,1);}
+.toast.show{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+<div class="toast-wrap" id="toast-wrap"></div>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/brand.html" class="logo" aria-label="سيمبل">
+      <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(25 100 100)"/><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(-25 100 100)"/><path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/><circle cx="100" cy="100" r="8" fill="#0a0a0a"/></g></svg>
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <div class="nav-right">
+      <button type="button" data-i18n-toggle onclick="simblI18n.toggle()" style="background:#fff;border:1.5px solid rgba(10,10,10,0.28);color:var(--ink);padding:8px 16px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">EN</button>
+      <a href="/creators.html" class="btn-back"><span>تصفّح المعلنين</span></a>
+    </div>
+  </div>
+</nav>
+
+<div class="head">
+  <h1><span>سلة الحملة</span></h1>
+  <p><span>حدّد شروط كل مؤثر، ثم اعتمد ليبدأ وكيل التفاوض</span></p>
+</div>
+
+<div class="container">
+  <div class="wrap" id="wrap"><div class="empty"><div class="ic">⏳</div><h3><span>جاري التحميل…</span></h3></div></div>
+</div>
+
+<div class="container" id="foot-c" style="display:none">
+  <div class="foot">
+    <button class="confirm-btn" id="confirm-btn" onclick="confirmCart()"><span>اعتماد وإرسال للوكيل</span> ←</button>
+    <div class="foot-note"><span>بعد الاعتماد يبدأ وكيل التفاوض بمراسلة كل مؤثر تلقائيًا</span></div>
+  </div>
+</div>
+
+<script src="/supabase-config.js"></script>
+<script>
+var CREATORS=[], CFG={};
+function getCart(){ try{ return JSON.parse(localStorage.getItem('simbl_cart')||'[]'); }catch(e){ return []; } }
+function setCart(a){ localStorage.setItem('simbl_cart', JSON.stringify(a)); }
+function loadCfg(){ try{ CFG=JSON.parse(localStorage.getItem('simbl_cart_cfg')||'{}'); }catch(e){ CFG={}; } }
+function saveCfg(){ localStorage.setItem('simbl_cart_cfg', JSON.stringify(CFG)); }
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtFollowers(n){ n=Number(n)||0; if(n>=1000000) return (n/1000000).toFixed(n%1000000?1:0)+'M'; if(n>=1000) return (n/1000).toFixed(n%1000?1:0)+'K'; return String(n); }
+var PLAT={tiktok:'تيك توك',snapchat:'سناب شات',instagram:'انستقرام',x:'إكس',youtube:'يوتيوب'};
+var TIMINGS=[['24h','خلال ٢٤ ساعة (مستعجل)'],['3d','خلال ٣ أيام'],['1w','خلال أسبوع'],['2w','خلال أسبوعين'],['custom','تاريخ محدّد']];
+
+function showToast(msg){ var w=document.getElementById('toast-wrap'); var t=document.createElement('div'); t.className='toast'; t.innerHTML='<span>'+escHtml(msg)+'</span>'; w.appendChild(t); if(window.simblI18n&&document.documentElement.lang==='en')simblI18n.apply(); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),300); },2200); }
+
+function avatarHtml(c){
+  if(c.avatar_url) return '<div class="cc-av"><img src="'+escHtml(c.avatar_url)+'" alt=""></div>';
+  var ini=((c.name||'؟').trim().charAt(0))||'؟';
+  return '<div class="cc-av"><div class="ini">'+escHtml(ini)+'</div></div>';
+}
+
+function render(){
+  var wrap=document.getElementById('wrap');
+  if(!CREATORS.length){
+    wrap.innerHTML='<div class="empty"><div class="ic"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2.5 4h2l2.2 11a1.4 1.4 0 0 0 1.4 1.1h8.4a1.4 1.4 0 0 0 1.4-1.1L20.5 7H6"/></svg></div><h3><span>سلتك فارغة</span></h3><p><span>أضف مؤثرين من صفحة التصفّح لتبدأ حملتك</span></p><a href="/creators.html"><span>تصفّح المعلنين</span></a></div>';
+    document.getElementById('foot-c').style.display='none';
+    if(window.simblI18n&&document.documentElement.lang==='en')simblI18n.apply();
+    return;
+  }
+  wrap.innerHTML=CREATORS.map(function(c){
+    var cfg=CFG[c.id]||{};
+    var meta='@'+escHtml(c.handle||'')+' · '+fmtFollowers(c.followers)+' · '+escHtml(PLAT[c.platform]||c.platform||'');
+    var opts='<option value=""><span>اختر…</span></option>'+TIMINGS.map(function(t){ return '<option value="'+t[0]+'"'+(cfg.timing===t[0]?' selected':'')+'>'+t[1]+'</option>'; }).join('');
+    return '<div class="cart-card" data-id="'+escHtml(c.id)+'">'
+      + '<div class="cc-head">'+avatarHtml(c)
+      +   '<div class="cc-id"><div class="cc-name">'+escHtml(c.name||'—')+'</div><div class="cc-meta">'+meta+'</div></div>'
+      +   '<button class="cc-remove" onclick="removeItem(\''+escHtml(c.id)+'\')" aria-label="إزالة">✕</button>'
+      + '</div>'
+      + '<div class="cc-field"><label><span>ميزانية التفاوض (ر.س)</span></label><input type="number" min="0" inputmode="numeric" placeholder="مثال: 3000" value="'+escHtml(cfg.budget||'')+'" oninput="setCfg(\''+escHtml(c.id)+'\',\'budget\',this.value)"></div>'
+      + '<div class="cc-field"><label><span>موعد النشر المطلوب</span></label><select onchange="setCfg(\''+escHtml(c.id)+'\',\'timing\',this.value);toggleDate(\''+escHtml(c.id)+'\',this.value)">'+opts+'</select>'
+      +   '<input type="date" id="date-'+escHtml(c.id)+'" style="margin-top:8px;display:'+(cfg.timing==='custom'?'block':'none')+'" value="'+escHtml(cfg.date||'')+'" oninput="setCfg(\''+escHtml(c.id)+'\',\'date\',this.value)"></div>'
+      + '<div class="cc-field"><label><span>وصف سريع</span></label><textarea rows="2" placeholder="باختصار: المطلوب من المؤثر والرسالة الأساسية…" oninput="setCfg(\''+escHtml(c.id)+'\',\'brief\',this.value)">'+escHtml(cfg.brief||'')+'</textarea></div>'
+      + '</div>';
+  }).join('');
+  document.getElementById('foot-c').style.display='block';
+  if(window.simblI18n&&document.documentElement.lang==='en')simblI18n.apply();
+}
+
+function setCfg(id, key, val){ if(!CFG[id]) CFG[id]={}; CFG[id][key]=val; saveCfg(); }
+function toggleDate(id, val){ var d=document.getElementById('date-'+id); if(d) d.style.display=(val==='custom')?'block':'none'; }
+function removeItem(id){
+  var a=getCart(); var i=a.indexOf(id); if(i>=0) a.splice(i,1); setCart(a);
+  delete CFG[id]; saveCfg();
+  CREATORS=CREATORS.filter(function(c){ return c.id!==id; });
+  showToast('أُزيل من السلة'); render();
+}
+
+function confirmCart(){
+  for(var i=0;i<CREATORS.length;i++){
+    var c=CREATORS[i], cfg=CFG[c.id]||{};
+    if(!cfg.budget || Number(cfg.budget)<=0){ showToast('أدخل ميزانية التفاوض لكل مؤثر'); return; }
+    if(!cfg.timing){ showToast('اختر موعد النشر لكل مؤثر'); return; }
+    if(cfg.timing==='custom' && !cfg.date){ showToast('حدّد التاريخ المطلوب'); return; }
+  }
+  var n=CREATORS.length;
+  document.getElementById('foot-c').style.display='none';
+  document.getElementById('wrap').innerHTML='<div class="done"><div class="ic">✓</div><h2><span>تم تجهيز الحملة</span></h2><p><span>جهّزت شروط</span> '+n+' <span>من المؤثرين. ربط وكيل التفاوض ليبدأ المراسلة تلقائيًا قيد التفعيل — وبيكون جاهز قريبًا.</span></p><a href="/brand.html"><span>العودة للوحة</span></a></div>';
+  if(window.simblI18n&&document.documentElement.lang==='en')simblI18n.apply();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function init(){
+  if(typeof tryRestoreSession==='function'){ try{ await tryRestoreSession(); }catch(e){} }
+  var user=getCurrentUser();
+  if(!user){ alert('يرجى تسجيل الدخول أولاً'); window.location.href='/signup.html'; return; }
+  if(user.role==='creator'){ window.location.href='/creator.html'; return; }
+  loadCfg();
+  var ids=getCart();
+  if(!ids.length){ CREATORS=[]; render(); return; }
+  try{
+    var res=await supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, avatar_url').in('id', ids);
+    if(res.error) throw res.error;
+    var byId={}; (res.data||[]).forEach(function(c){ byId[c.id]=c; });
+    CREATORS=ids.map(function(id){ return byId[id]; }).filter(Boolean);
+    var live=CREATORS.map(function(c){ return c.id; });
+    if(live.length!==ids.length){ setCart(live); }
+    render();
+  }catch(err){
+    console.error(err);
+    document.getElementById('wrap').innerHTML='<div class="empty"><div class="ic">!</div><h3><span>تعذّر تحميل السلة</span></h3><p><span>حدّث الصفحة وحاول مرة أخرى</span></p></div>';
+  }
+}
+init();
+</script>
+</body>
+</html>

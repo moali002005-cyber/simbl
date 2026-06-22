@@ -96,6 +96,9 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .toast-wrap{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
 .toast{display:flex;align-items:center;gap:10px;background:#fff;color:var(--ink);border:1px solid var(--line);border-right:4px solid var(--accent);border-radius:14px;padding:13px 18px;font-size:14px;font-weight:500;box-shadow:0 14px 36px -12px rgba(10,10,10,0.28);opacity:0;transform:translateY(-12px);transition:all .28s cubic-bezier(0.22,1,0.36,1);}
 .toast.show{opacity:1;transform:translateY(0);}
+.cart-btn{margin-top:12px;width:100%;padding:9px;border-radius:100px;border:1px solid var(--accent);background:#fff;color:var(--accent-ink);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;}
+.cart-btn:hover{background:rgba(19,185,178,0.08);}
+.cart-btn.in{background:var(--accent);color:#fff;border-color:var(--accent);}
 @media (max-width:640px){.container{padding:0 16px;}.hero-title{font-size:26px;}.filter-label{min-width:100%;}}
 </style>
 </head>
@@ -108,6 +111,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
       <span class="logo-mark">سيمبل</span>
     </a>
     <div class="nav-right">
+      <a href="/cart.html" aria-label="السلة" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1.5px solid rgba(10,10,10,0.18);border-radius:100px;text-decoration:none;color:var(--ink);"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.2"/><circle cx="18" cy="20" r="1.2"/><path d="M2.5 4h2l2.2 11a1.4 1.4 0 0 0 1.4 1.1h8.4a1.4 1.4 0 0 0 1.4-1.1L20.5 7H6"/></svg><span id="cart-badge" style="position:absolute;top:-5px;left:-6px;min-width:18px;height:18px;padding:0 4px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;border-radius:100px;display:none;align-items:center;justify-content:center;">0</span></a>
       <button type="button" data-i18n-toggle onclick="simblI18n.toggle()" style="background:#fff;border:1.5px solid rgba(10,10,10,0.28);color:var(--ink);padding:8px 16px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">EN</button>
       <a href="/brand.html" class="btn-back">العودة للوحة</a>
     </div>
@@ -221,6 +225,7 @@ function renderGrid(list){
       + '<div class="vhandle">'+escHtml(c.handle||'')+'</div>'
       + '<div class="vfoll">'+fmtFollowers(c.followers)+'</div><div class="vfoll-lbl"><span>متابع</span></div>'
       + '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><span class="tag">'+escHtml(platLabel)+'</span>'+(catLabel?'<span class="tag">'+escHtml(catLabel)+'</span>':'')+'</div>'
+      + '<button data-cart-id="'+escHtml(c.id)+'" class="cart-btn'+(inCart(c.id)?' in':'')+'" onclick="toggleCart(\''+escHtml(c.id)+'\',event)"><span class="cart-lbl">'+(inCart(c.id)?'في السلة ✓':'أضف للسلة')+'</span></button>'
       + '</div></div>';
   }).join('');
   if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
@@ -241,6 +246,7 @@ function openProfile(idx){
     +   (catLabel?'<div class="m-div"></div><div class="m-stat"><div class="m-sn" style="font-size:13px;padding-top:3px">'+escHtml(catLabel)+'</div><div class="m-sl"><span>التصنيف</span></div></div>':'')
     + '</div>'
     + (c.bio?'<div class="m-bio">'+escHtml(c.bio)+'</div>':'')
+    + '<div style="padding:0 18px;margin-bottom:10px"><button data-cart-id="'+escHtml(c.id)+'" class="cart-btn'+(inCart(c.id)?' in':'')+'" onclick="toggleCart(\''+escHtml(c.id)+'\',event)" style="margin-top:0"><span class="cart-lbl">'+(inCart(c.id)?'في السلة ✓':'أضف للسلة')+'</span></button></div>'
     + '<div class="m-actions">'
     +   (c.website?'<a class="m-btn primary" href="'+escHtml(c.website)+'" target="_blank" rel="noopener"><span>زيارة الحساب</span> ↗</a>':'')
     +   '<button class="m-btn ghost" onclick="copyHandle(\''+escHtml(c.handle||'')+'\')"><span>نسخ المعرّف</span></button>'
@@ -250,6 +256,11 @@ function openProfile(idx){
   if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
 }
 function closeProfile(){ document.getElementById('modal').classList.remove('show'); }
+function getCart(){ try{ return JSON.parse(localStorage.getItem('simbl_cart')||'[]'); }catch(e){ return []; } }
+function inCart(id){ return getCart().indexOf(id)>=0; }
+function updateCartBadge(){ var n=getCart().length; var b=document.getElementById('cart-badge'); if(b){ b.textContent=n; b.style.display=n?'inline-flex':'none'; } }
+function toggleCart(id, ev){ if(ev){ ev.stopPropagation(); } var a=getCart(); var i=a.indexOf(id); var nowIn; if(i>=0){ a.splice(i,1); nowIn=false; } else { a.push(id); nowIn=true; } localStorage.setItem('simbl_cart', JSON.stringify(a)); updateCartBadge(); showToast(nowIn?'أُضيف للسلة ✓':'أُزيل من السلة'); document.querySelectorAll('[data-cart-id="'+id+'"]').forEach(function(btn){ btn.classList.toggle('in',nowIn); var lbl=btn.querySelector('.cart-lbl'); if(lbl) lbl.textContent=nowIn?'في السلة ✓':'أضف للسلة'; }); if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply(); }
+document.addEventListener('DOMContentLoaded', updateCartBadge);
 function copyHandle(h){ if(!h) return; var done=()=>showToast('تم نسخ المعرّف ✓'); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(h).then(done).catch(done); else done(); }
 async function init(){
   if(typeof tryRestoreSession==='function'){ try{ await tryRestoreSession(); }catch(e){} }

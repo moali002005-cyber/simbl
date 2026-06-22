@@ -44,7 +44,8 @@ window.I18N = {
     terms_title: "الشروط والأحكام - سيمبل",
     workflow_title: "مساحة العمل - سيمبل",
     brand_title: "لوحة الشركة - سيمبل",
-    creators_title: "تصفّح المعلنين - سيمبل"
+    creators_title: "تصفّح المعلنين - سيمبل",
+    cart_title: "سلة الحملة - سيمبل"
   },
   en: {
     page_title: "Simple: Smarter Communication, Faster Results",
@@ -88,7 +89,8 @@ window.I18N = {
     terms_title: "Terms & Conditions · Simple",
     workflow_title: "Workspace · Simple",
     brand_title: "Company Dashboard · Simple",
-    creators_title: "Browse Creators · Simple"
+    creators_title: "Browse Creators · Simple",
+    cart_title: "Campaign cart · Simple"
   }
 };
 
@@ -1161,3 +1163,34 @@ Object.assign(window.I18N_TEXT, {
 
 // نطاق فوق ٤ مليون
 Object.assign(window.I18N_TEXT, {"4M فأكثر": "4M+"});
+
+// سلة الحملة (cart)
+Object.assign(window.I18N_TEXT, {
+  "أضف للسلة": "Add to cart",
+  "في السلة ✓": "In cart ✓",
+  "سلة الحملة": "Campaign cart",
+  "حدّد شروط كل مؤثر، ثم اعتمد ليبدأ وكيل التفاوض": "Set each creator's terms, then approve to start the negotiation agent",
+  "ميزانية التفاوض (ر.س)": "Negotiation budget (SAR)",
+  "موعد النشر المطلوب": "Requested publish date",
+  "وصف سريع": "Quick brief",
+  "اعتماد وإرسال للوكيل": "Approve & send to agent",
+  "بعد الاعتماد يبدأ وكيل التفاوض بمراسلة كل مؤثر تلقائيًا": "After approval, the agent messages each creator automatically",
+  "اختر…": "Choose…",
+  "خلال ٢٤ ساعة (مستعجل)": "Within 24 hours (urgent)",
+  "خلال ٣ أيام": "Within 3 days",
+  "خلال أسبوع": "Within a week",
+  "خلال أسبوعين": "Within two weeks",
+  "تاريخ محدّد": "Specific date",
+  "سلتك فارغة": "Your cart is empty",
+  "أضف مؤثرين من صفحة التصفّح لتبدأ حملتك": "Add creators from the browse page to start your campaign",
+  "جاري التحميل…": "Loading…",
+  "تم تجهيز الحملة": "Campaign ready",
+  "جهّزت شروط": "You set terms for",
+  "من المؤثرين. ربط وكيل التفاوض ليبدأ المراسلة تلقائيًا قيد التفعيل — وبيكون جاهز قريبًا.": "creators. Connecting the negotiation agent to message them automatically is being activated — ready soon.",
+  "تعذّر تحميل السلة": "Couldn't load the cart",
+  "أُضيف للسلة ✓": "Added to cart ✓",
+  "أُزيل من السلة": "Removed from cart",
+  "أدخل ميزانية التفاوض لكل مؤثر": "Enter a budget for each creator",
+  "اختر موعد النشر لكل مؤثر": "Choose a publish date for each creator",
+  "حدّد التاريخ المطلوب": "Set the requested date"
+});
