@@ -1277,7 +1277,11 @@ function renderUnified() {
     ? allCampaigns
     : allCampaigns.filter(c => c.brand_industry === currentFilter);
 
-  if (filtered.length === 0) {
+  // عروض الدعوات المباشرة: حملتها مخفية من التصفّح، فنعرض طلبها كبطاقة عرض مستقلة
+  const allCampIds = new Set(allCampaigns.map(c => c.id));
+  const directOffers = myApplications.filter(a => a.status !== 'rejected' && !allCampIds.has(a.campaign_id) && a.campaigns);
+
+  if (filtered.length === 0 && directOffers.length === 0) {
     list.innerHTML = `
       <div class="empty">
         <div class="icon">○</div>
@@ -1294,6 +1298,8 @@ function renderUnified() {
     const myApp = myApplications.find(a => a.campaign_id === c.id);
     (myApp ? appliedItems : openItems).push({ c, myApp });
   });
+  // أضِف الدعوات المباشرة في المقدّمة
+  directOffers.forEach(a => appliedItems.unshift({ c: a.campaigns, myApp: a }));
 
   const html = [...appliedItems, ...openItems].map(({ c, myApp }) =>
     myApp ? renderOfferCard(c, myApp) : renderBrowseCard(c)
