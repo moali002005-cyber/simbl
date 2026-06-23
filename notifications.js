@@ -400,7 +400,7 @@ function formatNotifTime(iso) {
   return date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' });
 }
 
-function toggleNotifications(event) {
+async function toggleNotifications(event) {
   if (event) event.stopPropagation();
   const dropdown = document.getElementById('notif-dropdown');
   if (!dropdown) return;
@@ -408,8 +408,9 @@ function toggleNotifications(event) {
   if (dropdown.classList.contains('show')) {
     // نعرض البيانات الحالية فوراً (لو موجودة)
     renderNotifList();
-    // ثم نحدث في الخلفية
-    loadNotifications();
+    // نحدّث من القاعدة ثم نعلّمها كمقروءة (تثبت ولا ترجع غير مقروءة)
+    await loadNotifications();
+    markAllAsRead();
   }
 }
 
@@ -442,11 +443,8 @@ async function markAllAsRead() {
   renderNotifList();
 
   try {
-    await supabaseClient
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false);
+    const { error } = await supabaseClient.rpc('mark_my_notifications_read');
+    if (error) throw error;
   } catch (err) {
     console.error('Failed to mark all as read:', err);
   }
