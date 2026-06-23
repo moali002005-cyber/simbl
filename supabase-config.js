@@ -43,7 +43,7 @@ async function dbSignup(userData) {
   const { data, error } = await supabaseClient
     .from('users')
     .insert([userData])
-    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test')
+    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url')
     .single();
   if (error) throw error;
   return data;
@@ -168,7 +168,7 @@ async function tryRestoreSession() {
   try {
     const { data, error } = await supabaseClient
       .from('users')
-      .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test')
+      .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url')
       .eq('id', userId)
       .maybeSingle();
 
