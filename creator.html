@@ -1981,18 +1981,121 @@ function renderMyAvatar() {
   if (nav && url) { nav.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">'; nav.style.background = 'transparent'; }
 }
 
-async function handleAvatarUpload(e) {
+// ===== صورة الحساب: اختيار -> محرّر قص دائري (تكبير/تصغير + تحريك) -> رفع =====
+var CR = { img:null, natW:0, natH:0, scale:1, base:1, panX:0, panY:0, VP:280, dragging:false, lastX:0, lastY:0, built:false };
+
+function handleAvatarUpload(e) {
   var file = e.target.files && e.target.files[0];
+  if (e.target) e.target.value = '';
   if (!file) return;
   if (!/^image\//.test(file.type)) { showToast('اختر ملف صورة صحيح', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { showToast('الصورة أكبر من 5 ميجا، اختر أصغر', 'error'); return; }
+  if (file.size > 12 * 1024 * 1024) { showToast('الصورة كبيرة جدًا، اختر أصغر', 'error'); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev){ openCropper(ev.target.result); };
+  reader.onerror = function(){ showToast('تعذّر قراءة الصورة', 'error'); };
+  reader.readAsDataURL(file);
+}
+
+function buildCropper(){
+  if (CR.built) return;
+  var html = ''
+    + '<div id="cropper" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,10,10,0.80);align-items:center;justify-content:center;padding:20px;">'
+    +   '<div style="background:#fff;border-radius:20px;padding:18px;max-width:340px;width:100%;text-align:center;font-family:inherit;">'
+    +     '<div style="font-weight:600;font-size:15px;margin-bottom:14px;color:var(--ink);">عدّل صورتك</div>'
+    +     '<div id="cr-view" style="position:relative;width:280px;height:280px;max-width:74vw;max-height:74vw;margin:0 auto;overflow:hidden;border-radius:14px;background:#f0f0ef;touch-action:none;cursor:grab;">'
+    +       '<img id="cr-img" alt="" draggable="false" style="position:absolute;left:0;top:0;-webkit-user-drag:none;user-select:none;pointer-events:none;max-width:none;">'
+    +       '<div style="position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,0.32);outline:2px solid rgba(255,255,255,0.9);pointer-events:none;"></div>'
+    +     '</div>'
+    +     '<div style="display:flex;align-items:center;gap:10px;margin:16px 4px 2px;">'
+    +       '<span style="font-size:18px;color:#999;line-height:1;">－</span>'
+    +       '<input id="cr-zoom" type="range" min="1" max="3" step="0.01" value="1" style="flex:1;accent-color:#13B9B2;">'
+    +       '<span style="font-size:18px;color:#999;line-height:1;">＋</span>'
+    +     '</div>'
+    +     '<div style="font-size:11.5px;color:#9aa3a0;margin-top:4px;">حرّك الصورة بإصبعك، وكبّر/صغّر بالشريط</div>'
+    +     '<div style="display:flex;gap:10px;margin-top:16px;">'
+    +       '<button type="button" id="cr-cancel" style="flex:1;background:#fff;border:1px solid rgba(10,10,10,0.16);color:var(--ink);padding:12px;border-radius:100px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">إلغاء</button>'
+    +       '<button type="button" id="cr-apply" style="flex:1;background:var(--accent);border:0;color:#fff;padding:12px;border-radius:100px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">تطبيق ورفع</button>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+  var view = document.getElementById('cr-view');
+  view.addEventListener('pointerdown', function(e){ CR.dragging=true; CR.lastX=e.clientX; CR.lastY=e.clientY; try{ view.setPointerCapture(e.pointerId); }catch(_){} });
+  view.addEventListener('pointermove', function(e){ if(!CR.dragging) return; CR.panX += (e.clientX-CR.lastX); CR.panY += (e.clientY-CR.lastY); CR.lastX=e.clientX; CR.lastY=e.clientY; renderCrop(); });
+  view.addEventListener('pointerup', function(){ CR.dragging=false; });
+  view.addEventListener('pointercancel', function(){ CR.dragging=false; });
+  view.addEventListener('wheel', function(e){ e.preventDefault(); var zin=document.getElementById('cr-zoom'); var z=Math.min(3,Math.max(1,parseFloat(zin.value)+(e.deltaY<0?0.08:-0.08))); zin.value=z; setZoom(z); }, {passive:false});
+  document.getElementById('cr-zoom').addEventListener('input', function(){ setZoom(parseFloat(this.value)); });
+  document.getElementById('cr-cancel').addEventListener('click', closeCropper);
+  document.getElementById('cr-apply').addEventListener('click', applyCrop);
+  CR.built = true;
+}
+
+function openCropper(dataUrl){
+  buildCropper();
+  var im = new Image();
+  im.onload = function(){
+    CR.img = im; CR.natW = im.naturalWidth; CR.natH = im.naturalHeight;
+    var view = document.getElementById('cr-view');
+    CR.VP = view.clientWidth || 280;
+    CR.base = CR.VP / Math.min(CR.natW, CR.natH);
+    CR.scale = CR.base; CR.panX = 0; CR.panY = 0;
+    document.getElementById('cr-zoom').value = '1';
+    var el = document.getElementById('cr-img'); el.src = dataUrl;
+    renderCrop();
+    document.getElementById('cropper').style.display = 'flex';
+  };
+  im.onerror = function(){ showToast('تعذّر فتح الصورة', 'error'); };
+  im.src = dataUrl;
+}
+
+function clampPan(){
+  var halfW = CR.natW*CR.scale/2, halfH = CR.natH*CR.scale/2;
+  var mx = Math.max(0, halfW - CR.VP/2), my = Math.max(0, halfH - CR.VP/2);
+  if (CR.panX > mx) CR.panX = mx; if (CR.panX < -mx) CR.panX = -mx;
+  if (CR.panY > my) CR.panY = my; if (CR.panY < -my) CR.panY = -my;
+}
+
+function renderCrop(){
+  clampPan();
+  var el = document.getElementById('cr-img');
+  var w = CR.natW*CR.scale, h = CR.natH*CR.scale;
+  el.style.width = w+'px'; el.style.height = h+'px';
+  el.style.left = (CR.VP/2 + CR.panX - w/2)+'px';
+  el.style.top  = (CR.VP/2 + CR.panY - h/2)+'px';
+}
+
+function setZoom(z){
+  var old = CR.scale; CR.scale = CR.base * z;
+  if (old > 0) { CR.panX *= CR.scale/old; CR.panY *= CR.scale/old; }
+  renderCrop();
+}
+
+function closeCropper(){ var m=document.getElementById('cropper'); if(m) m.style.display='none'; }
+
+function applyCrop(){
+  var OUT = 512, ratio = OUT/CR.VP;
+  var c = document.createElement('canvas'); c.width = OUT; c.height = OUT;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,OUT,OUT);
+  var w = CR.natW*CR.scale, h = CR.natH*CR.scale;
+  var x = (CR.VP/2 + CR.panX - w/2)*ratio, y = (CR.VP/2 + CR.panY - h/2)*ratio;
+  ctx.drawImage(CR.img, x, y, w*ratio, h*ratio);
+  var ap = document.getElementById('cr-apply'); ap.disabled = true; ap.textContent = 'جاري الرفع...';
+  c.toBlob(function(blob){
+    if (!blob) { ap.disabled=false; ap.textContent='تطبيق ورفع'; showToast('تعذّر تجهيز الصورة','error'); return; }
+    closeCropper();
+    uploadAvatarBlob(blob).then(function(){ ap.disabled=false; ap.textContent='تطبيق ورفع'; });
+  }, 'image/jpeg', 0.9);
+}
+
+async function uploadAvatarBlob(blob){
   var btn = document.getElementById('avatar-btn');
   var orig = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = 'جاري الرفع...'; }
   try {
-    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-    var path = currentUser.id + '_' + Date.now() + '.' + ext;
-    var up = await supabaseClient.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+    var path = currentUser.id + '_' + Date.now() + '.jpg';
+    var up = await supabaseClient.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
     if (up.error) throw up.error;
     var pub = supabaseClient.storage.from('avatars').getPublicUrl(path);
     var url = pub.data.publicUrl;
