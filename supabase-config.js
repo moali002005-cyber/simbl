@@ -54,6 +54,7 @@ async function dbGetCampaigns() {
     .from('campaigns')
     .select('*, users!campaigns_brand_id_fkey(company_name)')
     .eq('status', 'active')
+    .eq('is_direct', false)
     .eq('is_test', !!getCurrentUser()?.is_test)
     .order('created_at', { ascending: false });
   if (error) throw error;

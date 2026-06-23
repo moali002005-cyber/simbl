@@ -1194,3 +1194,12 @@ Object.assign(window.I18N_TEXT, {
   "اختر موعد النشر لكل مؤثر": "Choose a publish date for each creator",
   "حدّد التاريخ المطلوب": "Set the requested date"
 });
+
+// إطلاق حملة السلة (المرحلة ٢)
+Object.assign(window.I18N_TEXT, {
+  "جاري الإرسال…": "Sending…",
+  "تم إطلاق الحملة": "Campaign launched",
+  "أرسلنا دعوات التفاوض لـ": "We sent negotiation invites to",
+  "من المؤثرين، وبيبدأ الوكيل بمراسلتهم. تابع المفاوضات من لوحة الشركة.": "creators. The agent will start messaging them. Track negotiations from your dashboard.",
+  "متابعة المفاوضات": "Track negotiations"
+});

@@ -153,18 +153,30 @@ function removeItem(id){
   showToast('أُزيل من السلة'); render();
 }
 
-function confirmCart(){
+async function confirmCart(){
   for(var i=0;i<CREATORS.length;i++){
     var c=CREATORS[i], cfg=CFG[c.id]||{};
     if(!cfg.budget || Number(cfg.budget)<=0){ showToast('أدخل ميزانية التفاوض لكل مؤثر'); return; }
     if(!cfg.timing){ showToast('اختر موعد النشر لكل مؤثر'); return; }
     if(cfg.timing==='custom' && !cfg.date){ showToast('حدّد التاريخ المطلوب'); return; }
   }
-  var n=CREATORS.length;
-  document.getElementById('foot-c').style.display='none';
-  document.getElementById('wrap').innerHTML='<div class="done"><div class="ic">✓</div><h2><span>تم تجهيز الحملة</span></h2><p><span>جهّزت شروط</span> '+n+' <span>من المؤثرين. ربط وكيل التفاوض ليبدأ المراسلة تلقائيًا قيد التفعيل — وبيكون جاهز قريبًا.</span></p><a href="/brand.html"><span>العودة للوحة</span></a></div>';
-  if(window.simblI18n&&document.documentElement.lang==='en')simblI18n.apply();
-  window.scrollTo({top:0,behavior:'smooth'});
+  var btn=document.getElementById('confirm-btn'); var orig=btn.innerHTML; btn.disabled=true; btn.innerHTML='<span>جاري الإرسال…</span>';
+  var user=getCurrentUser();
+  var items=CREATORS.map(function(c){ var cfg=CFG[c.id]||{}; return { creatorId:c.id, budget:cfg.budget, timing:cfg.timing, date:cfg.date||null, brief:cfg.brief||'' }; });
+  try{
+    var res=await fetch('/api/start-campaign',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ brandId:user.id, items:items }) });
+    var data=await res.json();
+    if(!res.ok) throw new Error(data.error||'فشل الإرسال');
+    var n=data.created||0;
+    localStorage.removeItem('simbl_cart'); localStorage.removeItem('simbl_cart_cfg'); CFG={}; CREATORS=[];
+    document.getElementById('foot-c').style.display='none';
+    document.getElementById('wrap').innerHTML='<div class="done"><div class="ic">✓</div><h2><span>تم إطلاق الحملة</span></h2><p><span>أرسلنا دعوات التفاوض لـ</span> '+n+' <span>من المؤثرين، وبيبدأ الوكيل بمراسلتهم. تابع المفاوضات من لوحة الشركة.</span></p><a href="/brand.html"><span>متابعة المفاوضات</span></a></div>';
+    if(window.simblI18n&&document.documentElement.lang==='en')simblI18n.apply();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){
+    btn.disabled=false; btn.innerHTML=orig;
+    showToast('تعذّر الإطلاق: '+(e.message||e));
+  }
 }
 
 async function init(){
