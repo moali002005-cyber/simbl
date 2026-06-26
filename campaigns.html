@@ -1362,6 +1362,20 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
   animation: acIn .2s ease-out;
 }
 @keyframes acIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.xl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 10px; margin-top: 10px; background: #fff; }
+.xl-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 700px; }
+.xl-table th, .xl-table td { border: 1px solid var(--line); padding: 9px 11px; text-align: right; vertical-align: middle; white-space: nowrap; }
+.xl-table thead th { background: #eaf5f4; color: var(--ink); font-weight: 600; font-size: 12px; }
+.xl-table tbody tr.xl-clickable { cursor: pointer; }
+.xl-table tbody tr.xl-clickable:hover > td { background: rgba(19,185,178,0.05); }
+.xl-table tbody tr.xl-open > td { background: rgba(19,185,178,0.06); }
+.xl-table tbody tr.xl-needs > td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.xl-num { text-align: center; color: var(--ink-muted); }
+.xl-av { width: 26px; height: 26px; border-radius: 50%; background: #E1F5EE; color: #0F6E56; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.xl-pill { font-size: 11px; padding: 4px 9px; border-radius: 100px; white-space: nowrap; }
+.xl-detail > td { padding: 0; background: rgba(19,185,178,0.03); }
+.xl-detail .ac-body { border-top: none; }
 .ac-body .workflow-strip,
 .ac-body .stage-history,
 .ac-body .stage-action,
@@ -2454,37 +2468,38 @@ function renderDealRow(a, idx) {
   const isExpanded = forcedExpand || expandedAppId === a.id;
   const expandable = !isNegotiating;
   const stageNow = a.stage || 1;
-  const meta = (creator.followers ? (creator.followers / 1000).toFixed(0) + 'K' : 'معلن') + (creator.platform ? ' · ' + escHtml(creator.platform) : '');
-  const priceSmall = (!isNegotiating) ? (a.final_price || a.price).toLocaleString('ar-SA') : '';
+  const done = isApproved && stageNow >= 9;
+  const stageName = WORKFLOW_STAGES.find(s => s.id === stageNow)?.name || '';
 
-  let progressCell;
+  const platform = creator.platform ? (PLATFORM_LABELS[creator.platform] || creator.platform) : '—';
+  const followers = creator.followers ? (creator.followers / 1000).toFixed(0) + 'K' : '—';
+  const priceCell = (!isNegotiating) ? (a.final_price || a.price).toLocaleString('ar-SA') + ' ر.س' : '—';
+  const nameHtml = (isClosed && duesAccountLink(creator))
+    ? `<a class="ac-acct" href="${escHtml(duesAccountLink(creator))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escHtml(creator.name || 'مؤثر')} ↗</a>`
+    : escHtml(creator.name || 'مؤثر');
+
+  let stageCell, progressCell;
   if (isApproved) {
-    const done = stageNow >= 9;
     const pct = Math.min(Math.round((stageNow / 9) * 100), 100);
-    const stageName = WORKFLOW_STAGES.find(s => s.id === stageNow)?.name || '';
     const barColor = done ? '#1D9E75' : 'var(--accent)';
     const flagColor = done ? '#1D9E75' : '#0c4f4b';
-    progressCell = `
-      <div style="display:flex;align-items:center;gap:6px;">
-        <div style="position:relative;flex:1;height:7px;background:var(--line);border-radius:100px;">
-          <div style="position:absolute;right:0;top:0;height:100%;width:${pct}%;background:${barColor};border-radius:100px;"></div>
-        </div>
-        <span style="color:${flagColor};font-size:13px;line-height:1;">⚑</span>
-      </div>
-      <div style="font-size:11px;color:${done ? '#0F6E56' : 'var(--ink-muted)'};margin-top:4px;">${toArabic(stageNow)}/٩ · ${done ? 'مكتملة' : stageName}</div>`;
+    stageCell = `<span style="color:${done ? '#0F6E56' : 'var(--ink)'};">${toArabic(stageNow)}/٩ · ${done ? 'مكتملة' : stageName}</span>`;
+    progressCell = `<div style="display:flex;align-items:center;gap:6px;width:140px;"><div style="position:relative;flex:1;height:7px;background:var(--line);border-radius:100px;"><div style="position:absolute;right:0;top:0;height:100%;width:${pct}%;background:${barColor};border-radius:100px;"></div></div><span style="color:${flagColor};font-size:13px;">⚑</span></div>`;
   } else if (awaitingApproval) {
-    progressCell = `<div style="font-size:12px;color:var(--accent);font-weight:600;">جاهزة للتعميد</div>`;
+    stageCell = '<span style="color:var(--ink-muted);">—</span>';
+    progressCell = `<span style="color:var(--accent);font-weight:600;">جاهزة للتعميد</span>`;
   } else {
-    progressCell = `<div style="font-size:12px;color:var(--ink-muted);">⏳ الوكيل يفاوض الآن</div>`;
+    stageCell = '<span style="color:var(--ink-muted);">تفاوض</span>';
+    progressCell = `<span style="color:var(--ink-muted);">⏳ يفاوض</span>`;
   }
 
   let statusCell;
   if (isApproved) {
-    if (stageNow >= 9) statusCell = `<span style="font-size:11px;background:#E1F5EE;color:#0F6E56;padding:4px 9px;border-radius:100px;font-weight:600;white-space:nowrap;">مكتملة</span>`;
-    else if (isBrandTurn(stageNow)) statusCell = `<span style="font-size:11px;background:var(--accent);color:#fff;padding:4px 9px;border-radius:100px;white-space:nowrap;">دورك</span>`;
-    else statusCell = `<span style="font-size:11px;background:var(--line);color:var(--ink-muted);padding:4px 9px;border-radius:100px;white-space:nowrap;">بانتظاره</span>`;
+    if (done) statusCell = `<span class="xl-pill" style="background:#E1F5EE;color:#0F6E56;font-weight:600;">مكتملة</span>`;
+    else if (isBrandTurn(stageNow)) statusCell = `<span class="xl-pill" style="background:var(--accent);color:#fff;">دورك</span>`;
+    else statusCell = `<span class="xl-pill" style="background:var(--line);color:var(--ink-muted);">بانتظاره</span>`;
   } else if (awaitingApproval) {
-    statusCell = `<span style="font-size:11px;background:#FAEEDA;color:#854F0B;padding:4px 9px;border-radius:100px;white-space:nowrap;">بانتظار تعميدك</span>`;
+    statusCell = `<span class="xl-pill" style="background:#FAEEDA;color:#854F0B;">بانتظار تعميدك</span>`;
   } else {
     statusCell = `<span class="ac-chatbtn" onclick="event.stopPropagation(); startNegotiation('${a.id}')" style="font-size:11px;">💬 المفاوضة</span>`;
   }
@@ -2515,24 +2530,19 @@ function renderDealRow(a, idx) {
   }
 
   const needsYou = awaitingApproval || (isApproved && stageNow < 9 && isBrandTurn(stageNow));
-  const rowAccent = needsYou ? 'border-right:3px solid var(--accent);' : 'border-right:3px solid transparent;';
 
   return `
-    <div class="dt-row ${isExpanded ? 'open' : ''}" id="ac-${a.id}" ${expandable ? `onclick="toggleAppExpand('${a.id}')"` : ''} style="${expandable ? 'cursor:pointer;' : ''}${rowAccent}">
-      <div style="display:grid;grid-template-columns:26px 1fr 170px 92px;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line);">
-        <div style="font-size:12px;color:var(--ink-muted);">${toArabic(idx + 1)}</div>
-        <div style="display:flex;align-items:center;gap:9px;min-width:0;">
-          <div style="width:30px;height:30px;border-radius:50%;background:#E1F5EE;color:#0F6E56;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${escHtml(initial)}</div>
-          <div style="min-width:0;">
-            <div style="font-size:14px;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(isClosed && duesAccountLink(creator)) ? `<a class="ac-acct" href="${escHtml(duesAccountLink(creator))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escHtml(creator.name || 'مؤثر')} ↗</a>` : escHtml(creator.name || 'مؤثر')}</div>
-            <div style="font-size:11px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${meta}${priceSmall ? ' · ' + priceSmall + ' ر.س' : ''}</div>
-          </div>
-        </div>
-        <div>${progressCell}</div>
-        <div style="text-align:center;">${statusCell}</div>
-      </div>
-    </div>
-    ${isExpanded ? `<div class="ac-body" onclick="event.stopPropagation()" style="background:rgba(19,185,178,0.025);border-bottom:1px solid var(--line);">${expandedInner}</div>` : ''}
+    <tr class="${expandable ? 'xl-clickable' : ''}${needsYou ? ' xl-needs' : ''}${isExpanded ? ' xl-open' : ''}" id="ac-${a.id}" ${expandable ? `onclick="toggleAppExpand('${a.id}')"` : ''}>
+      <td class="xl-num">${toArabic(idx + 1)}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><span class="xl-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);">${nameHtml}</span></div></td>
+      <td>${platform}</td>
+      <td class="xl-num">${followers}</td>
+      <td>${priceCell}</td>
+      <td>${stageCell}</td>
+      <td>${progressCell}</td>
+      <td style="text-align:center;">${statusCell}</td>
+    </tr>
+    ${isExpanded ? `<tr class="xl-detail"><td colspan="8"><div class="ac-body" onclick="event.stopPropagation()">${expandedInner}</div></td></tr>` : ''}
   `;
 }
 
@@ -2578,12 +2588,12 @@ function renderSingleCampaign(c) {
               ${pendingApps.length > 0 ? `· <strong style="color:var(--ink-muted)">${pendingApps.length}</strong> قيد المراجعة` : ''}
             </div>
           </div>
-          <div class="deal-table" id="apps-${c.id}" style="background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:10px;">
-            <div style="display:grid;grid-template-columns:26px 1fr 170px 92px;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:11px;color:var(--ink-muted);">
-              <div>#</div><div>المعلن</div><div>التقدّم نحو خط النهاية</div><div>الحالة</div>
-            </div>
-            ${apps.map((a, idx) => renderDealRow(a, idx)).join('')}
-          </div>
+          <div class="xl-wrap"><table class="xl-table" id="apps-${c.id}">
+            <thead><tr>
+              <th class="xl-num">#</th><th>المعلن</th><th>المنصة</th><th class="xl-num">المتابعين</th><th>السعر النهائي</th><th>المرحلة</th><th>التقدّم نحو خط النهاية</th><th>الحالة</th>
+            </tr></thead>
+            <tbody>${apps.map((a, idx) => renderDealRow(a, idx)).join('')}</tbody>
+          </table></div>
         ` : `
           <div class="applications-summary">
             <div class="text">لم يتم تلقي أي عروض بعد</div>
