@@ -1393,8 +1393,7 @@ function renderOfferCard(c, a) {
         </div>
       </div>`;
   } else if (isApproved) {
-    expandedInner = renderWorkflowStrip(a.stage || 1)
-      + renderStageHistory(a.stage_data, a.stage || 1, (a.stage || 1) >= 9)
+    expandedInner = renderStageHistory(a.stage_data, a.stage || 1, (a.stage || 1) >= 9)
       + renderStageAction(a.id, a.stage || 1, 'creator');
   }
 
