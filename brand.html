@@ -1220,9 +1220,12 @@ textarea { resize: vertical; min-height: 80px; }
 /* ============ بطاقة تقييم المؤثر (طبقة الثقة) ============ */
 .rate-box { margin-top: 12px; background: rgba(19,185,178,0.05); border: 1px solid rgba(19,185,178,0.28); border-radius: 14px; padding: 14px 16px; }
 .rate-box.done { background: var(--cream-darker); border-color: var(--line); }
-.rate-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
-.rate-stars { display: flex; gap: 6px; margin-bottom: 10px; direction: ltr; justify-content: flex-end; }
-.rstar { font-size: 28px; line-height: 1; color: var(--line-strong); cursor: pointer; transition: transform .12s, color .12s; user-select: none; }
+.rate-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 12px; }
+.rate-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+.rate-crit { font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+.rate-stars { display: flex; gap: 5px; direction: ltr; justify-content: flex-end; }
+.rate-row .rate-stars { margin-bottom: 0; }
+.rstar { font-size: 24px; line-height: 1; color: var(--line-strong); cursor: pointer; transition: transform .12s, color .12s; user-select: none; }
 .rstar:hover { transform: scale(1.15); }
 .rstar.on { color: #E8B84B; }
 .rate-comment { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 10px; font-family: var(--font-body); font-size: 13px; resize: vertical; min-height: 44px; margin-bottom: 10px; background: #fff; color: var(--ink); }
@@ -2933,42 +2936,61 @@ async function setBrandPaid(applicationId) {
 }
 
 // ============ طبقة الثقة: تقييم المؤثر بعد اكتمال الصفقة ============
+const RATE_CRITERIA = [
+  { key: 'content',       label: 'جودة المحتوى' },
+  { key: 'punctuality',   label: 'الالتزام بالمواعيد' },
+  { key: 'communication', label: 'التواصل والاحترافية' },
+  { key: 'results',       label: 'النتائج والتفاعل' }
+];
+
 function renderRatingBlock(app) {
   if (!app || !app.creator_id) return '';
   if (ratedDeals.has(app.id)) {
     return `<div class="rate-box done"><div class="rate-done-line"><span class="rd-stars">★★★★★</span> شكرًا — تم تقييم المؤثر</div></div>`;
   }
-  const sel = selectedStars[app.id] || 0;
-  const stars = [1,2,3,4,5].map(n =>
-    `<span class="rstar${n <= sel ? ' on' : ''}" onclick="event.stopPropagation(); setStar('${app.id}',${n})">★</span>`
-  ).join('');
+  const sel = selectedStars[app.id] || {};
+  const rows = RATE_CRITERIA.map(cr => {
+    const v = sel[cr.key] || 0;
+    const stars = [1,2,3,4,5].map(n =>
+      `<span class="rstar${n <= v ? ' on' : ''}" onclick="event.stopPropagation(); setCriterion('${app.id}','${cr.key}',${n})">★</span>`
+    ).join('');
+    return `<div class="rate-row"><div class="rate-crit">${cr.label}</div><div class="rate-stars" id="rate-stars-${app.id}-${cr.key}">${stars}</div></div>`;
+  }).join('');
+  const allSet = RATE_CRITERIA.every(cr => sel[cr.key]);
   return `
     <div class="rate-box" id="rate-box-${app.id}" onclick="event.stopPropagation()">
       <div class="rate-title">⭐ قيّم تجربتك مع المؤثر</div>
-      <div class="rate-stars" id="rate-stars-${app.id}">${stars}</div>
+      ${rows}
       <textarea class="rate-comment" id="rate-comment-${app.id}" placeholder="تعليق اختياري يساعد الشركات الأخرى..." rows="2"></textarea>
-      <button class="sa-btn" id="rate-btn-${app.id}" onclick="event.stopPropagation(); submitRating('${app.id}','${app.creator_id}')"${sel ? '' : ' disabled'}>أرسل التقييم</button>
+      <button class="sa-btn" id="rate-btn-${app.id}" onclick="event.stopPropagation(); submitRating('${app.id}','${app.creator_id}')"${allSet ? '' : ' disabled'}>أرسل التقييم</button>
     </div>`;
 }
 
-function setStar(appId, n) {
-  selectedStars[appId] = n;
-  const wrap = document.getElementById('rate-stars-' + appId);
+function setCriterion(appId, key, n) {
+  if (!selectedStars[appId]) selectedStars[appId] = {};
+  selectedStars[appId][key] = n;
+  const wrap = document.getElementById('rate-stars-' + appId + '-' + key);
   if (wrap) Array.from(wrap.children).forEach((s, i) => s.classList.toggle('on', i < n));
+  const sel = selectedStars[appId];
+  const allSet = RATE_CRITERIA.every(cr => sel[cr.key]);
   const btn = document.getElementById('rate-btn-' + appId);
-  if (btn) btn.disabled = false;
+  if (btn) btn.disabled = !allSet;
 }
 
 async function submitRating(appId, creatorId) {
-  const n = selectedStars[appId];
-  if (!n) { showToast('اختر عدد النجوم أولاً', 'error'); return; }
+  const sel = selectedStars[appId] || {};
+  if (!RATE_CRITERIA.every(cr => sel[cr.key])) { showToast('قيّم المعايير الأربعة أولاً', 'error'); return; }
+  const overall = Math.round((sel.content + sel.punctuality + sel.communication + sel.results) / 4);
   const comment = (document.getElementById('rate-comment-' + appId)?.value || '').trim();
   const btn = document.getElementById('rate-btn-' + appId);
   if (btn) { btn.disabled = true; btn.textContent = 'جاري الإرسال...'; }
   try {
     const { error } = await supabaseClient.from('creator_ratings').insert([{
       application_id: appId, creator_id: creatorId, brand_id: currentUser.id,
-      stars: n, comment: comment || null
+      stars: overall,
+      q_content: sel.content, q_punctuality: sel.punctuality,
+      q_communication: sel.communication, q_results: sel.results,
+      comment: comment || null
     }]);
     if (error) throw error;
     ratedDeals.add(appId);
