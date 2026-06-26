@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة الشركة - سيمبل</title>
+<title>حملاتي - سيمبل</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1521,31 +1521,22 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 
 <main class="container">
 
-  <!-- ============ HERO ============ -->
-  <section class="hero">
-    <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
-    <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بكم</span></h1>
-    <p class="hero-sub">أطلق حملتك، ودع الوكيل الذكي يتفاوض على العروض ويقفل الصفقات لصالحك.</p>
+  <!-- ============ HERO (صفحة الحملات) ============ -->
+  <section class="hero" style="padding-top:24px;">
+    <div style="margin:0 0 12px;"><a href="/brand.html" style="display:inline-flex;align-items:center;gap:5px;color:var(--ink-soft);text-decoration:none;font-size:13px;font-weight:600;">→ الرئيسية</a></div>
+    <h1 class="hero-title">حملاتي والعروض</h1>
+    <p class="hero-sub">راجع العروض، تابع مفاوضات الوكيل، واعتمد الصفقات.</p>
     <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
       <button class="hero-cta" onclick="openCampaignModal()">+ حملة جديدة</button>
-      <button class="hero-cta" onclick="goToCampaigns()">صفقات أقفلها الوكيل (<span id="hero-closed-count">٠</span>)</button>
-      <button class="hero-cta" onclick="window.location.href='/dues.html'">📋 متابعة الحملات والمستحقات</button>
-    </div>
-    <style>@media (max-width:640px){#creators-teaser{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:12px!important;}#creators-teaser #teaser-avatars{justify-content:center!important;}}</style>
-    <div id="creators-teaser" onclick="window.location.href='/creators.html'" style="max-width:640px;margin:22px auto 0;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 20px;display:flex;align-items:center;gap:14px;text-align:right;transition:border-color .2s,transform .2s;" onmouseover="this.style.borderColor='rgba(19,185,178,0.45)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--line)';this.style.transform='none'">
-      <div style="flex:1;min-width:0">
-        <div style="font-family:var(--font-display);font-weight:600;font-size:16px">نخبة المؤثرين</div>
-        <div style="font-size:13px;color:var(--ink-muted)">اختر الأنسب لحملتك</div>
-      </div>
-      <div id="teaser-avatars" style="display:flex"></div>
-      <span style="background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:9px 18px;border-radius:100px;white-space:nowrap">تصفّح الكل ←</span>
-    </div>
-    <div class="hero-features">
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الحملة</span>
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>يتفاوض الوكيل</span>
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>يقفل الصفقة</span>
+      <button class="hero-cta" onclick="window.location.href='/dues.html'" style="background:#fff;color:var(--ink);border:1.5px solid rgba(10,10,10,0.18);">📋 المستحقات</button>
     </div>
   </section>
+
+  <!-- ============ APP CONTENT ============ -->
+  <div id="app-section" class="section-divider"></div>
+
+  <div class="campaign-pills" id="campaign-pills"></div>
+  <div class="campaigns-list" id="campaigns-list"></div>
 </main>
 
 <div class="modal-backdrop" id="campaign-modal">
@@ -1816,7 +1807,7 @@ function closedDealsLabel(n) {
 }
 
 function goToCampaigns() {
-  window.location.href = '/campaigns.html';
+  document.getElementById('app-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ====== تحكّم نموذج الإعلان (تاريخ النشر + المنصة) ======
@@ -1863,7 +1854,7 @@ async function init() {
   const companyName = currentUser.company_name || 'الشركة';
   document.getElementById('user-name').textContent = companyName;
   document.getElementById('user-initial').textContent = companyName[0];
-  document.getElementById('welcome-name').textContent = companyName;
+  var _wn = document.getElementById('welcome-name'); if (_wn) _wn.textContent = companyName;
 
   // ====== بوابة الموافقة: الشركة لازم تكون مفعّلة قبل استخدام المنصة ======
   // أي حالة غير 'pending'/'rejected' (بما فيها القديمة بدون قيمة) تُعتبر مفعّلة،
@@ -1954,9 +1945,8 @@ function updateHeroStats() {
   const allApps = Object.values(campaignApps).flat();
   const closed = allApps.filter(a => a.status === 'closed').length;
 
-  document.getElementById('hero-status').textContent =
-    `${activeCampaignsLabel(active)} · ${closedDealsLabel(closed)}`;
-  document.getElementById('hero-closed-count').textContent = toArabic(closed);
+  var _hs = document.getElementById('hero-status'); if (_hs) _hs.textContent = `${activeCampaignsLabel(active)} · ${closedDealsLabel(closed)}`;
+  var _hc = document.getElementById('hero-closed-count'); if (_hc) _hc.textContent = toArabic(closed);
 }
 
 // ============ ملخّص المستحقات ============
@@ -2200,7 +2190,6 @@ function renderStats() {
 function renderCampaigns() {
   const list = document.getElementById('campaigns-list');
   const pillsContainer = document.getElementById('campaign-pills');
-  if (!list || !pillsContainer) return;
 
   if (myCampaigns.length === 0) {
     pillsContainer.innerHTML = '';
@@ -3250,8 +3239,8 @@ async function submitCampaign(event) {
       console.error('Push failed:', pushErr);
     }
 
-    // عرض رادار الإطلاق ثم الانتقال لصفحة الحملات لعرض الحملة الجديدة
-    showLaunchRadar(() => { window.location.href = '/campaigns.html'; });
+    // عرض رادار الإطلاق ثم تحديث البيانات بالخلفية
+    showLaunchRadar(() => { loadData().catch(console.error); });
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
