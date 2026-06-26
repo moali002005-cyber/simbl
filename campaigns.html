@@ -2245,8 +2245,15 @@ function selectCampaign(campaignId) {
 }
 
 function toggleAppExpand(appId) {
-  expandedAppId = expandedAppId === appId ? null : appId;
+  const willExpand = (expandedAppId !== appId);
+  expandedAppId = willExpand ? appId : null;
   renderCampaigns();
+  if (willExpand) {
+    requestAnimationFrame(function () {
+      var el = document.getElementById('ac-' + appId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
 }
 
 // ============ Brief helpers (copy + read more) ============
@@ -2531,13 +2538,12 @@ function renderSingleCampaign(c) {
                 const stageNow = a.stage || 1;
                 const isDone = stageNow >= 9;
                 expandedInner = (a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : '')
-                  + (isDone ? '' : renderWorkflowStrip(stageNow))
-                  + renderStageHistory(a.stage_data, stageNow)
+                  + renderStageHistory(a.stage_data, stageNow, stageNow >= 9)
                   + renderStageAction(a.id, stageNow, 'brand');
               }
 
               return `
-                <div class="ac-card ${isExpanded ? 'open' : ''} ${expandable ? '' : 'no-expand'}">
+                <div class="ac-card ${isExpanded ? 'open' : ''} ${expandable ? '' : 'no-expand'}" id="ac-${a.id}">
                   <div class="ac-head" ${expandable ? `onclick="toggleAppExpand('${a.id}')" style="cursor:pointer;"` : 'style="cursor:default;"'}>
                     <div class="ac-avatar">${brandInitial}</div>
                     <div class="ac-main">
@@ -2716,7 +2722,7 @@ function renderWorkflowStrip(currentStage) {
     </div>`;
 }
 
-function renderStageHistory(stageData, currentStage) {
+function renderStageHistory(stageData, currentStage, expanded) {
   if (!stageData) return '';
   const completedStages = Object.keys(stageData)
     .map(k => parseInt(k))
@@ -2776,7 +2782,7 @@ function renderStageHistory(stageData, currentStage) {
     `;
   }).join('');
   const hid = 'hist-' + Math.random().toString(36).slice(2, 8);
-  return `<div class="stage-history collapsed" id="${hid}">
+  return `<div class="stage-history ${expanded ? '' : 'collapsed'}" id="${hid}">
     <button type="button" class="hist-toggle" onclick="event.stopPropagation(); toggleHistory('${hid}')">
       <span><i class="hist-ic"></i> سجلّ المراحل المكتملة (${toArabic(completedStages.length)})</span>
       <span class="hist-chev">▾</span>
