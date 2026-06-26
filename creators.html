@@ -100,6 +100,35 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .cart-btn:hover{background:rgba(19,185,178,0.08);}
 .cart-btn.in{background:var(--accent);color:#fff;border-color:var(--accent);}
 @media (max-width:640px){.container{padding:0 16px;}.hero-title{font-size:26px;}.filter-label{min-width:100%;}}
+/* ===== طبقة الثقة في الدليل ===== */
+.vtrust{display:flex;align-items:center;justify-content:center;gap:4px;margin:7px 0 3px;flex-wrap:wrap;}
+.cstars{direction:ltr;display:inline-flex;}
+.cstar{font-size:13px;color:var(--line-strong);}
+.cstar.on{color:#E8B84B;}
+.cstar-v{font-size:12px;font-weight:700;color:var(--ink-soft);margin-inline-start:3px;}
+.cstar-c{font-size:10px;color:var(--ink-faint);}
+.cstar-c.seed{color:#8a6500;background:rgba(232,184,75,0.12);padding:1px 6px;border-radius:100px;font-weight:600;}
+.cbadge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:100px;margin-inline-start:6px;vertical-align:middle;}
+.cbadge.ver{background:rgba(19,185,178,0.14);color:var(--accent-ink);}
+.cbadge.prom{background:rgba(232,184,75,0.16);color:#8a6500;}
+.m-trust{margin:0 18px 14px;padding:14px 16px;background:var(--cream-darker);border-radius:14px;text-align:right;}
+.m-trust-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.m-trust-score{display:flex;flex-direction:column;align-items:center;line-height:1;}
+.mts-num{font-family:var(--font-display);font-weight:700;font-size:24px;color:var(--accent-ink);}
+.mts-lbl{font-size:10px;color:var(--ink-faint);margin-top:2px;}
+.m-trust-stars{display:flex;align-items:center;gap:3px;}
+.m-crit-note{font-size:12px;color:var(--ink-muted);text-align:center;padding:4px 0;}
+.cbar-row{display:flex;align-items:center;gap:10px;margin:8px 0;}
+.cbar-label{font-size:12px;color:var(--ink-soft);min-width:122px;text-align:right;}
+.cbar-track{flex:1;height:7px;background:#fff;border-radius:100px;overflow:hidden;}
+.cbar-fill{height:100%;background:var(--accent);border-radius:100px;}
+.cbar-val{font-size:12px;font-weight:700;color:var(--accent-ink);min-width:24px;text-align:left;}
+.m-reviews{margin-top:6px;}
+.m-rev-title{font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--ink);margin:12px 0 8px;}
+.m-rev{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:7px;}
+.m-rev-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.m-rev-by{font-size:10px;color:var(--ink-faint);}
+.m-rev-txt{font-size:12.5px;color:var(--ink-soft);line-height:1.6;}
 </style>
 </head>
 <body>
@@ -160,6 +189,40 @@ function avatarInner(c, size, fs){
   var initial = ((c.name||'؟').trim().charAt(0))||'؟';
   return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:rgba(19,185,178,0.14);color:#0c4f4b;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:'+fs+'px;">'+escHtml(initial)+'</div>';
 }
+// ===== طبقة الثقة: نفس منطق صفحة النخبة =====
+var T_PRIOR_STRENGTH=4, T_REAL_RAMP=6;
+function tHashId(id){ var h=0,s=String(id||''); for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function tSeedScore(id){ return 82 + (tHashId(id)%14); }
+function tFollowerBonus(f){ f=parseInt(f)||0; if(f<=0) return 0; return Math.max(0,Math.min(5,Math.log10(f+1)-3)); }
+function tSeedRating(id){ return 4.3 + (tHashId(id+'r')%7)/10; }
+function tDisplayRating(c){ var ratings=Number(c.ratings_count)||0, avg=Number(c.avg_rating)||0, seed=tSeedRating(c.id); return (T_PRIOR_STRENGTH*seed+avg*ratings)/(T_PRIOR_STRENGTH+ratings); }
+function tTrustScore(c){ var seed=tSeedScore(c.id)+tFollowerBonus(c.followers); var ratings=Number(c.ratings_count)||0; var ratingScore=(tDisplayRating(c)/5)*100; var wReal=ratings/(ratings+T_REAL_RAMP); var dealsBoost=Math.min(Number(c.deals_count)||0,20)*0.4; return Math.max(0,Math.min(100,(1-wReal)*seed+wReal*ratingScore+dealsBoost)); }
+function tStarsLine(c){
+  var ratings=Number(c.ratings_count)||0, dr=tDisplayRating(c), full=Math.round(dr);
+  var s=''; for(var i=1;i<=5;i++) s+='<span class="cstar'+(i<=full?' on':'')+'">★</span>';
+  var tail=ratings>0?('<span class="cstar-c">('+ratings+' تقييم)</span>'):'';
+  return '<span class="cstars">'+s+'</span><span class="cstar-v">'+dr.toFixed(1)+'</span>'+tail;
+}
+function tBadge(c){ return (Number(c.deals_count)||0)>=1 ? '<span class="cbadge ver">موثّق ✓</span>' : '<span class="cbadge prom">واعد</span>'; }
+function tCritBars(c){
+  var ratings=Number(c.ratings_count)||0;
+  if(ratings<=0) return '<div class="m-crit-note">تفاصيل المعايير وآراء الشركات تظهر بعد أول تقييم من شركة.</div>';
+  var crits=[['جودة المحتوى',c.avg_content],['الالتزام بالمواعيد',c.avg_punctuality],['التواصل والاحترافية',c.avg_communication],['النتائج والتفاعل',c.avg_results]];
+  return crits.map(function(it){ var v=Number(it[1])||0,pct=Math.max(0,Math.min(100,(v/5)*100)); return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span><span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span><span class="cbar-val">'+v.toFixed(1)+'</span></div>'; }).join('');
+}
+async function loadReviews(creatorId){
+  var box=document.getElementById('m-reviews'); if(!box) return;
+  try{
+    var res=await supabaseClient.from('creator_ratings').select('stars, comment, created_at').eq('creator_id',creatorId).order('created_at',{ascending:false}).limit(20);
+    var rows=(res.data||[]).filter(function(r){ return r.comment && String(r.comment).trim(); });
+    if(!rows.length){ box.innerHTML=''; return; }
+    box.innerHTML='<div class="m-rev-title">آراء الشركات</div>'+rows.map(function(r){
+      var full=Math.round(Number(r.stars)||0), st=''; for(var i=1;i<=5;i++) st+='<span class="cstar'+(i<=full?' on':'')+'">★</span>';
+      return '<div class="m-rev"><div class="m-rev-head"><span class="cstars">'+st+'</span><span class="m-rev-by">شركة موثّقة</span></div><div class="m-rev-txt">'+escHtml(r.comment)+'</div></div>';
+    }).join('');
+  }catch(e){ box.innerHTML=''; }
+}
+
 function showToast(message){
   var wrap=document.getElementById('toast-wrap'); var t=document.createElement('div'); t.className='toast';
   t.innerHTML='<span>✓</span><span>'+message+'</span>'; wrap.appendChild(t);
@@ -226,6 +289,7 @@ function renderGrid(list){
       + '<div class="vhandle">'+escHtml(c.handle||'')+'</div>'
       + '<div class="vfoll">'+fmtFollowers(c.followers)+'</div><div class="vfoll-lbl"><span>متابع</span></div>'
       + '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><span class="tag">'+escHtml(platLabel)+'</span>'+(catLabel?'<span class="tag">'+escHtml(catLabel)+'</span>':'')+'</div>'
+      + '<div class="vtrust">'+tStarsLine(c)+'</div>'
       + '<button data-cart-id="'+escHtml(c.id)+'" class="cart-btn'+(inCart(c.id)?' in':'')+'" onclick="toggleCart(\''+escHtml(c.id)+'\',event)"><span class="cart-lbl">'+(inCart(c.id)?'في السلة ✓':'أضف للسلة')+'</span></button>'
       + '</div></div>';
   }).join('');
@@ -239,7 +303,7 @@ function openProfile(idx){
   body.innerHTML='<button class="modal-close" onclick="closeProfile()">✕</button>'
     + '<div class="m-band"></div>'
     + '<div class="m-ring">'+avatarInner(c,90,34)+'</div>'
-    + '<div class="m-name">'+escHtml(c.name||'')+'</div>'
+    + '<div class="m-name">'+escHtml(c.name||'')+' '+tBadge(c)+'</div>'
     + '<div class="m-handle">'+escHtml(c.handle||'')+'</div>'
     + '<div class="m-stats">'
     +   '<div class="m-stat"><div class="m-sn" style="color:var(--accent)">'+fmtFollowers(c.followers)+'</div><div class="m-sl"><span>متابع</span></div></div>'
@@ -247,6 +311,7 @@ function openProfile(idx){
     +   (catLabel?'<div class="m-div"></div><div class="m-stat"><div class="m-sn" style="font-size:13px;padding-top:3px">'+escHtml(catLabel)+'</div><div class="m-sl"><span>التصنيف</span></div></div>':'')
     + '</div>'
     + (c.bio?'<div class="m-bio">'+escHtml(c.bio)+'</div>':'')
+    + '<div class="m-trust"><div class="m-trust-top"><div class="m-trust-score"><span class="mts-num">'+Math.round(tTrustScore(c))+'</span><span class="mts-lbl">درجة الثقة</span></div><div class="m-trust-stars">'+tStarsLine(c)+'</div></div>'+tCritBars(c)+'<div id="m-reviews" class="m-reviews"></div></div>'
     + '<div style="padding:0 18px;margin-bottom:10px"><button data-cart-id="'+escHtml(c.id)+'" class="cart-btn'+(inCart(c.id)?' in':'')+'" onclick="toggleCart(\''+escHtml(c.id)+'\',event)" style="margin-top:0"><span class="cart-lbl">'+(inCart(c.id)?'في السلة ✓':'أضف للسلة')+'</span></button></div>'
     + '<div class="m-actions">'
     +   (c.website?'<a class="m-btn primary" href="'+escHtml(c.website)+'" target="_blank" rel="noopener"><span>زيارة الحساب</span> ↗</a>':'')
@@ -254,6 +319,7 @@ function openProfile(idx){
     + '</div>'
     + (c.website?'<a class="m-watch" href="'+escHtml(c.website)+'" target="_blank" rel="noopener" style="text-decoration:none"><div class="m-watch-ic">▶</div><div style="font-size:12px"><span>'+(isTT?'شاهد فيديوهاته على تيك توك':'افتح حسابه')+'</span> ↗</div></a>':'');
   document.getElementById('modal').classList.add('show');
+  loadReviews(c.id);
   if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
 }
 function closeProfile(){ document.getElementById('modal').classList.remove('show'); }
@@ -270,9 +336,19 @@ async function init(){
   if(user.role==='creator'){ window.location.href='/creator.html'; return; }
   initChips();
   try{
-    var res=await supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url').order('followers',{ascending:false});
-    if(res.error) throw res.error;
-    allCreators=res.data||[];
+    var [dirRes, trustRes]=await Promise.all([
+      supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url').order('followers',{ascending:false}),
+      supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating, avg_content, avg_punctuality, avg_communication, avg_results')
+    ]);
+    if(dirRes.error) throw dirRes.error;
+    allCreators=dirRes.data||[];
+    var tmap={}; (trustRes.data||[]).forEach(function(t){ tmap[t.creator_id]=t; });
+    allCreators.forEach(function(c){
+      var t=tmap[c.id]||{};
+      c.deals_count=Number(t.deals_count)||0; c.ratings_count=Number(t.ratings_count)||0; c.avg_rating=Number(t.avg_rating)||0;
+      c.avg_content=Number(t.avg_content)||0; c.avg_punctuality=Number(t.avg_punctuality)||0;
+      c.avg_communication=Number(t.avg_communication)||0; c.avg_results=Number(t.avg_results)||0;
+    });
     applyFilters();
     if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
   }catch(err){

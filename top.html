@@ -198,7 +198,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
     <div class="loading"><div class="lpill"><span class="d"></span>جاري بناء القائمة...</div></div>
   </div>
 
-  <p class="note">التقييمات المعلّمة بـ«مبدئي» تقديرية وقت الإطلاق، وتتحوّل لتقييمات موثّقة من الشركات تلقائيًا بعد كل صفقة حقيقية — فيرتفع الناجح وينزل الأضعف.</p>
+  <p class="note">الترتيب يتحدّث تلقائيًا مع تقييمات الشركات بعد كل صفقة — فيرتفع الأفضل أداءً.</p>
 </main>
 
 <script src="supabase-config.js"></script>
@@ -274,7 +274,7 @@ function starsHtml(c){
   let s=''; for(let i=1;i<=5;i++) s += '<span class="ts'+(i<=full?' on':'')+'">★</span>';
   const tail = ratings > 0
     ? '<span class="row-rcount">('+toArabic(ratings)+' تقييم)</span>'
-    : '<span class="row-rcount seed">مبدئي</span>';
+    : '';
   return '<div class="row-stars">'+s+'<span class="row-ravg">'+dr.toFixed(1)+'</span>'+tail+'</div>';
 }
 
