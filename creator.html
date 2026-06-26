@@ -1322,7 +1322,7 @@ function renderCreatorDealCard(c, a) {
   const awaitingApproval = isClosed && !isApproved;
   const isNegotiating = !isClosed;
   const stageNow = a.stage || 1;
-  const price = (a.final_price || a.price);
+  const price = (a.final_price || a.price || 0);
 
   let badge;
   if (isApproved) {
@@ -1370,6 +1370,8 @@ function renderCreatorDealCard(c, a) {
 function renderUnified() {
   const list = document.getElementById('unified-list');
   if (!list) return;
+  if (!Array.isArray(allCampaigns)) allCampaigns = [];
+  if (!Array.isArray(myApplications)) myApplications = [];
 
   // ===== صفقاتي: كل التطبيقات (غير مرفوضة) — مستقلة عن التصنيف =====
   const allCampIds = new Set(allCampaigns.map(c => c.id));
@@ -1404,14 +1406,21 @@ function renderUnified() {
 
   let matrixHtml = '';
   if (appliedItems.length > 0) {
+    const cardsHtml = appliedItems.map(({ c, myApp }) => {
+      try { return renderCreatorDealCard(c, myApp); }
+      catch (e) { console.error('deal card render error:', e, c, myApp); return ''; }
+    }).join('');
     matrixHtml = `
       <div style="font-size:15px;font-weight:600;color:var(--ink);margin:2px 0 10px;">صفقاتي</div>
-      <div style="display:flex;flex-direction:column;gap:12px;">${appliedItems.map(({ c, myApp }) => renderCreatorDealCard(c, myApp)).join('')}</div>`;
+      <div style="display:flex;flex-direction:column;gap:12px;">${cardsHtml}</div>`;
   }
 
   let openHtml = '';
   if (openItems.length > 0) {
-    openHtml = openItems.map(({ c }) => renderBrowseCard(c)).join('');
+    openHtml = openItems.map(({ c }) => {
+      try { return renderBrowseCard(c); }
+      catch (e) { console.error('browse card render error:', e, c); return ''; }
+    }).join('');
   } else {
     openHtml = `<div style="text-align:center;padding:30px;color:var(--ink-muted);font-size:13px;">لا توجد عروض جديدة في هذا التصنيف حاليًا</div>`;
   }
