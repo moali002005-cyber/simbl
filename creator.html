@@ -1073,6 +1073,16 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .cbar-val{font-size:12px;font-weight:700;color:var(--accent-ink);min-width:24px;text-align:left;}
 .mt-link{display:inline-block;margin-top:8px;font-size:13px;font-weight:600;color:var(--accent-ink);text-decoration:none;}
 .mt-link:hover{text-decoration:underline;}
+.mt-motiv{font-size:13px;color:var(--accent-ink);background:rgba(19,185,178,0.07);border:1px solid rgba(19,185,178,0.2);border-radius:12px;padding:10px 13px;margin:10px 0 4px;line-height:1.6;}
+.mt-tips{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;}
+.mt-tips summary{font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;}
+.mt-tips summary::before{content:'▾';font-size:11px;color:var(--ink-muted);transition:transform .2s;}
+.mt-tips[open] summary::before{transform:rotate(180deg);}
+.mt-tips summary::-webkit-details-marker{display:none;}
+.mt-tips ul{margin:10px 6px 4px;padding:0 16px 0 0;list-style:disc;}
+.mt-tips li{font-size:12.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:5px;}
+.mt-tips li b{color:var(--ink);font-weight:600;}
+.mt-tips-foot{font-size:12px;color:var(--accent-ink);font-weight:500;margin-top:6px;}
 </style>
 </head>
 <body>
@@ -1286,7 +1296,17 @@ async function loadMyTrust(){
       +     (rank>0?'<div class="mt-rank">ترتيبك: <b>#'+toArabic(rank)+'</b> من '+toArabic(total)+'</div>':'')
       +   '</div>'
       + '</div>'
+      + '<div class="mt-motiv">الشركات تتصفّح قائمة النخبة وتختار الأعلى تقييمًا. كل ما ارتفعت درجتك، وصلتك صفقات أكثر.</div>'
       + '<div class="mt-crit">'+mtCritBars(me)+'</div>'
+      + '<details class="mt-tips"><summary>كيف ترفع تقييمك؟</summary>'
+      +   '<ul>'
+      +     '<li><b>جودة المحتوى:</b> قدّم محتوى احترافي ومتقن يخدم هدف الحملة.</li>'
+      +     '<li><b>الالتزام بالمواعيد:</b> سلّم في الوقت المتفق عليه أو قبله.</li>'
+      +     '<li><b>التواصل والاحترافية:</b> ردّ بسرعة وكن واضحًا ومحترمًا في التعامل.</li>'
+      +     '<li><b>النتائج والتفاعل:</b> اهتم بوصول المحتوى وتفاعل جمهورك معه.</li>'
+      +   '</ul>'
+      +   '<div class="mt-tips-foot">كل صفقة تكملها بنجاح وتقييم عالٍ ترفعك في النخبة تلقائيًا.</div>'
+      + '</details>'
       + '<a class="mt-link" href="/top.html">شوف قائمة النخبة ←</a>'
       + '</div>';
   }catch(e){ box.innerHTML=''; }
