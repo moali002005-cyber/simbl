@@ -74,6 +74,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .row-stars .ts.on{color:var(--gold);}
 .row-ravg{font-size:11px;font-weight:700;color:var(--ink-soft);margin-inline-start:3px;}
 .row-rcount{font-size:10px;color:var(--ink-faint);}
+.row-rcount.seed{color:#8a6500;background:rgba(232,184,75,0.12);padding:1px 6px;border-radius:100px;font-weight:600;}
 .row-new{font-size:10.5px;color:#8a6500;font-weight:600;background:rgba(232,184,75,0.12);padding:3px 8px;border-radius:100px;}
 
 .empty{text-align:center;padding:70px 24px;color:var(--ink-muted);}
@@ -136,7 +137,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
     <div class="loading"><div class="lpill"><span class="d"></span>جاري بناء القائمة...</div></div>
   </div>
 
-  <p class="note">الدرجة تبدأ تقديرية وقت الإطلاق، وتتحوّل لدرجة موثّقة تلقائيًا كل ما تجمّعت تقييمات الشركات بعد كل صفقة.</p>
+  <p class="note">التقييمات المعلّمة بـ«مبدئي» تقديرية وقت الإطلاق، وتتحوّل لتقييمات موثّقة من الشركات تلقائيًا بعد كل صفقة حقيقية — فيرتفع الناجح وينزل الأضعف.</p>
 </main>
 
 <script src="supabase-config.js"></script>
@@ -169,14 +170,25 @@ function hashId(id){ let h=0; const s=String(id||''); for(let i=0;i<s.length;i++
 function seedScore(id){ return 82 + (hashId(id)%14); } // 82..95 ثابتة لكل مؤثر
 function followerBonus(f){ f=parseInt(f)||0; if(f<=0) return 0; return Math.max(0, Math.min(5, Math.log10(f+1)-3)); }
 
+// تقييم مبدئي عالٍ وثابت لكل مؤثر (4.3..4.9) — يظهر وقت الإطلاق قبل أي تقييم حقيقي
+function seedRating(id){ return 4.3 + (hashId(id + 'r') % 7) / 10; }
+
+// التقييم المعروض: يبدأ من المبدئي وينجذب تلقائيًا للتقييم الحقيقي كل ما زادت التقييمات
+function displayRating(c){
+  const ratings = Number(c.ratings_count)||0;
+  const avg = Number(c.avg_rating)||0;
+  const seed = seedRating(c.id);
+  return (PRIOR_STRENGTH*seed + avg*ratings) / (PRIOR_STRENGTH + ratings);
+}
+
 function trustScore(c){
   const seed = seedScore(c.id) + followerBonus(c.followers); // درجة بداية (~82..100)
   const ratings = Number(c.ratings_count)||0;
   const avg = Number(c.avg_rating)||0;
   const deals = Number(c.deals_count)||0;
 
-  // تقييم بايز المرجّح (يبدأ من المتوسط الافتراضي وينجذب لتقييمه الحقيقي)
-  const bayes = (PRIOR_STRENGTH*PRIOR_MEAN + avg*ratings) / (PRIOR_STRENGTH + ratings);
+  // تقييم بايز المرجّح (يبدأ من التقييم المبدئي للمؤثر وينجذب لتقييمه الحقيقي)
+  const bayes = displayRating(c);
   const ratingScore = (bayes/5)*100;
 
   // وزن الجزء الحقيقي يكبر مع عدد التقييمات
@@ -196,13 +208,13 @@ function badgeHtml(c){
 }
 function starsHtml(c){
   const ratings = Number(c.ratings_count)||0;
-  if (ratings > 0){
-    const avg = Number(c.avg_rating)||0;
-    const full = Math.round(avg);
-    let s=''; for(let i=1;i<=5;i++) s += '<span class="ts'+(i<=full?' on':'')+'">★</span>';
-    return '<div class="row-stars">'+s+'<span class="row-ravg">'+avg.toFixed(1)+'</span><span class="row-rcount">('+toArabic(ratings)+')</span></div>';
-  }
-  return '<div class="row-new">واعد · جديد</div>';
+  const dr = displayRating(c);
+  const full = Math.round(dr);
+  let s=''; for(let i=1;i<=5;i++) s += '<span class="ts'+(i<=full?' on':'')+'">★</span>';
+  const tail = ratings > 0
+    ? '<span class="row-rcount">('+toArabic(ratings)+' تقييم)</span>'
+    : '<span class="row-rcount seed">مبدئي</span>';
+  return '<div class="row-stars">'+s+'<span class="row-ravg">'+dr.toFixed(1)+'</span>'+tail+'</div>';
 }
 
 /* ===================== جلب البيانات ===================== */
