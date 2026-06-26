@@ -409,19 +409,19 @@ function render(list){
   if (window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
 }
 
+function critSeed(id, key){ return 4.2 + (hashId(key + ':' + id) % 8) / 10; } // 4.2..4.9 ثابتة لكل معيار
 function critBars(c){
   const ratings = Number(c.ratings_count)||0;
-  if (ratings <= 0){
-    return '<div class="tdetail-note">تفاصيل المعايير تظهر بعد أول تقييم من شركة.</div>';
-  }
   const crits = [
-    ['جودة المحتوى', c.avg_content],
-    ['الالتزام بالمواعيد', c.avg_punctuality],
-    ['التواصل والاحترافية', c.avg_communication],
-    ['النتائج والتفاعل', c.avg_results]
+    ['جودة المحتوى', 'content', c.avg_content],
+    ['الالتزام بالمواعيد', 'punct', c.avg_punctuality],
+    ['التواصل والاحترافية', 'comm', c.avg_communication],
+    ['النتائج والتفاعل', 'res', c.avg_results]
   ];
   return crits.map(function(it){
-    const v = Number(it[1])||0;
+    const seed = critSeed(c.id, it[1]);
+    const real = Number(it[2])||0;
+    const v = ratings>0 ? (PRIOR_STRENGTH*seed + real*ratings)/(PRIOR_STRENGTH+ratings) : seed;
     const pct = Math.max(0, Math.min(100, (v/5)*100));
     return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span>'
       + '<span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span>'

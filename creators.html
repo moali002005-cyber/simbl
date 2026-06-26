@@ -204,11 +204,11 @@ function tStarsLine(c){
   return '<span class="cstars">'+s+'</span><span class="cstar-v">'+dr.toFixed(1)+'</span>'+tail;
 }
 function tBadge(c){ return (Number(c.deals_count)||0)>=1 ? '<span class="cbadge ver">موثّق ✓</span>' : '<span class="cbadge prom">واعد</span>'; }
+function tCritSeed(id, key){ return 4.2 + (tHashId(key + ':' + id) % 8) / 10; }
 function tCritBars(c){
   var ratings=Number(c.ratings_count)||0;
-  if(ratings<=0) return '<div class="m-crit-note">تفاصيل المعايير وآراء الشركات تظهر بعد أول تقييم من شركة.</div>';
-  var crits=[['جودة المحتوى',c.avg_content],['الالتزام بالمواعيد',c.avg_punctuality],['التواصل والاحترافية',c.avg_communication],['النتائج والتفاعل',c.avg_results]];
-  return crits.map(function(it){ var v=Number(it[1])||0,pct=Math.max(0,Math.min(100,(v/5)*100)); return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span><span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span><span class="cbar-val">'+v.toFixed(1)+'</span></div>'; }).join('');
+  var crits=[['جودة المحتوى','content',c.avg_content],['الالتزام بالمواعيد','punct',c.avg_punctuality],['التواصل والاحترافية','comm',c.avg_communication],['النتائج والتفاعل','res',c.avg_results]];
+  return crits.map(function(it){ var seed=tCritSeed(c.id,it[1]); var real=Number(it[2])||0; var v=ratings>0?(T_PRIOR_STRENGTH*seed+real*ratings)/(T_PRIOR_STRENGTH+ratings):seed; var pct=Math.max(0,Math.min(100,(v/5)*100)); return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span><span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span><span class="cbar-val">'+v.toFixed(1)+'</span></div>'; }).join('');
 }
 async function loadReviews(creatorId){
   var box=document.getElementById('m-reviews'); if(!box) return;
