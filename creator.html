@@ -1083,18 +1083,19 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   <!-- ============ APP CONTENT ============ -->
   <div id="app-section" class="section-divider"></div>
 
-  <div class="section-head" id="section-head">
-    <h2 class="section-head-title">الإعلانات</h2>
-  </div>
+  <!-- صفقاتي (فوق مباشرة) -->
+  <div id="my-deals"></div>
 
-  <div class="filter-bar">
-    <span class="label">التصنيف:</span>
-    <button class="filter-pill active" onclick="filterCampaigns('all', this)">الكل</button>
-    <button class="filter-pill" onclick="filterCampaigns('perfumes', this)">عطور</button>
-    <button class="filter-pill" onclick="filterCampaigns('fashion', this)">موضة</button>
-    <button class="filter-pill" onclick="filterCampaigns('beauty', this)">جمال</button>
-    <button class="filter-pill" onclick="filterCampaigns('food', this)">طعام</button>
-    <button class="filter-pill" onclick="filterCampaigns('tech', this)">تقنية</button>
+  <div class="section-head" id="section-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <h2 class="section-head-title">الإعلانات</h2>
+    <select id="cat-filter" onchange="filterCampaigns(this.value)" style="font-family:inherit;font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);cursor:pointer;">
+      <option value="all">كل التصنيفات</option>
+      <option value="perfumes">عطور</option>
+      <option value="fashion">موضة</option>
+      <option value="beauty">جمال</option>
+      <option value="food">طعام</option>
+      <option value="tech">تقنية</option>
+    </select>
   </div>
 
   <div class="unified-list" id="unified-list"></div>
@@ -1383,15 +1384,28 @@ function renderUnified() {
   const list = document.getElementById('unified-list');
   if (!list) return;
 
+  // ===== صفقاتي: كل التطبيقات (غير مرفوضة) — مستقلة عن التصنيف =====
+  const allCampIds = new Set(allCampaigns.map(c => c.id));
+  const appliedCampIds = new Set(myApplications.filter(a => a.status !== 'rejected').map(a => a.campaign_id));
+
+  const appliedItems = [];
+  allCampaigns.forEach(c => {
+    const myApp = myApplications.find(a => a.status !== 'rejected' && a.campaign_id === c.id);
+    if (myApp) appliedItems.push({ c, myApp });
+  });
+  const directOffers = myApplications.filter(a => a.status !== 'rejected' && !allCampIds.has(a.campaign_id) && a.campaigns);
+  directOffers.forEach(a => appliedItems.unshift({ c: a.campaigns, myApp: a }));
+
+  // ===== عروض متاحة: حسب التصنيف، وما قدّمت عليها =====
   const filtered = currentFilter === 'all'
     ? allCampaigns
     : allCampaigns.filter(c => c.brand_industry === currentFilter);
+  const openItems = filtered.filter(c => !appliedCampIds.has(c.id)).map(c => ({ c }));
 
-  // عروض الدعوات المباشرة: حملتها مخفية من التصفّح، فنعرض طلبها كبطاقة عرض مستقلة
-  const allCampIds = new Set(allCampaigns.map(c => c.id));
-  const directOffers = myApplications.filter(a => a.status !== 'rejected' && !allCampIds.has(a.campaign_id) && a.campaigns);
+  const myDeals = document.getElementById('my-deals');
 
-  if (filtered.length === 0 && directOffers.length === 0) {
+  if (appliedItems.length === 0 && openItems.length === 0) {
+    if (myDeals) myDeals.innerHTML = '';
     list.innerHTML = `
       <div class="empty">
         <div class="icon">○</div>
@@ -1400,15 +1414,6 @@ function renderUnified() {
       </div>`;
     return;
   }
-
-  // رتّب: عروضك (اللي قدّمت عليها) أول، ثم المتاحة للتقديم
-  const appliedItems = [];
-  const openItems = [];
-  filtered.forEach(c => {
-    const myApp = myApplications.find(a => a.campaign_id === c.id);
-    (myApp ? appliedItems : openItems).push({ c, myApp });
-  });
-  directOffers.forEach(a => appliedItems.unshift({ c: a.campaigns, myApp: a }));
 
   let matrixHtml = '';
   if (appliedItems.length > 0) {
@@ -1425,11 +1430,13 @@ function renderUnified() {
 
   let openHtml = '';
   if (openItems.length > 0) {
-    openHtml = `<div style="font-size:15px;font-weight:600;color:var(--ink);margin:22px 0 8px;">عروض متاحة</div>`
-      + openItems.map(({ c }) => renderBrowseCard(c)).join('');
+    openHtml = openItems.map(({ c }) => renderBrowseCard(c)).join('');
+  } else {
+    openHtml = `<div style="text-align:center;padding:30px;color:var(--ink-muted);font-size:13px;">لا توجد عروض جديدة في هذا التصنيف حاليًا</div>`;
   }
 
-  list.innerHTML = matrixHtml + openHtml;
+  if (myDeals) myDeals.innerHTML = matrixHtml;
+  list.innerHTML = openHtml;
 }
 
 // بطاقة إعلان متاح للتقديم (ما قدّمت عليه بعد)
@@ -1975,10 +1982,8 @@ async function submitStageForm(applicationId) {
   }
 }
 
-function filterCampaigns(filter, btn) {
+function filterCampaigns(filter) {
   currentFilter = filter;
-  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
   renderUnified();
 }
 
