@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة المعلن - سيمبل</title>
+<title>الملف الشخصي - سيمبل</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1044,45 +1044,54 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 <main class="container">
 
   <!-- ============ HERO ============ -->
-  <section class="hero">
-    <div class="hero-pill"><span class="hero-dot"></span><span id="hero-status">جاري التحميل...</span></div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:8px;">
-      <div id="my-avatar-wrap" style="width:84px;height:84px;border-radius:50%;overflow:hidden;background:rgba(19,185,178,0.14);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--accent);"><span style="font-size:32px;font-weight:600;color:var(--accent-ink)">م</span></div>
+  <section class="hero" style="padding-top:18px;">
+    <div style="margin:0 0 10px;"><a href="/creator.html" style="display:inline-flex;align-items:center;gap:5px;color:var(--ink-soft);text-decoration:none;font-size:13px;font-weight:600;">→ الرئيسية</a></div>
+    <div style="text-align:center;">
+      <div style="position:relative;width:96px;height:96px;margin:0 auto;">
+        <div id="my-avatar-wrap" style="width:96px;height:96px;border-radius:50%;overflow:hidden;background:rgba(19,185,178,0.14);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--accent);"><span style="font-size:38px;font-weight:600;color:var(--accent-ink)">م</span></div>
+        <button type="button" id="avatar-plus" onclick="document.getElementById('avatar-input').click()" aria-label="غيّر صورتك" style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:30px;height:30px;border-radius:50%;background:var(--accent);border:3px solid #fff;color:#fff;font-size:19px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;">+</button>
+      </div>
       <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
-      <button type="button" id="avatar-btn" onclick="document.getElementById('avatar-input').click()" style="background:#fff;border:1.5px solid rgba(10,10,10,0.18);color:var(--ink);padding:7px 16px;border-radius:100px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">أضف / غيّر صورتك</button>
-      <div style="font-size:11px;color:var(--ink-muted);text-align:center;max-width:220px;">اختر الصورة لتعديلها — تقدر تقصّها وتكبّرها بعد الاختيار</div>
+      <h1 class="hero-title" style="font-size:21px;margin:14px 0 0;"><span id="welcome-name">حسابك</span></h1>
+      <div id="profile-handle" style="font-size:13px;color:var(--ink-muted);direction:ltr;margin-top:2px;"></div>
+      <div style="margin-top:10px;"><button type="button" id="edit-profile-btn" onclick="openEditProfile()" style="background:var(--cream-darker);border:0;color:var(--ink);font-family:inherit;font-size:12px;font-weight:600;padding:6px 20px;border-radius:100px;cursor:pointer;">تعديل الملف</button></div>
     </div>
-    <h1 class="hero-title">أهلًا <span class="nm" id="welcome-name">بك</span></h1>
-    <p class="hero-sub">اطّلع على جميع الإعلانات المتاحة لك، واختر المناسب.</p>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
-      <button class="hero-cta" onclick="goToList()">تصفّح الإعلانات (<span id="hero-app-count">٠</span> عروضك)</button>
-      <a href="/profile.html" class="hero-cta" style="background:#fff;color:var(--ink);border:1.5px solid rgba(10,10,10,0.18);text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">الملف الشخصي</a>
+
+    <div style="display:flex;justify-content:center;max-width:340px;margin:16px auto 0;">
+      <div style="flex:1;text-align:center;"><div id="stat-followers" style="font-weight:700;font-size:18px;">—</div><div style="font-size:11.5px;color:var(--ink-muted);">متابعين</div></div>
+      <div style="flex:1;text-align:center;border-right:1px solid var(--line);border-left:1px solid var(--line);"><div id="stat-deals" style="font-weight:700;font-size:18px;">٠</div><div style="font-size:11.5px;color:var(--ink-muted);">صفقات</div></div>
+      <div style="flex:1;text-align:center;"><div id="stat-active" style="font-weight:700;font-size:18px;">٠</div><div style="font-size:11.5px;color:var(--ink-muted);">عروض نشطة</div></div>
     </div>
-    <div class="hero-features">
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تصلك الإعلانات</span>
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تختار المناسب</span>
-      <span class="hero-feat"><span class="hero-feat-ic">✓</span>تقفل الصفقة</span>
-    </div>
+
+    <div id="profile-bio" style="text-align:center;font-size:12.5px;color:var(--ink-soft);padding:12px 22px 0;line-height:1.7;"></div>
+    <div id="profile-tags" style="display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap;"></div>
+
   </section>
 
-  <!-- ============ APP CONTENT ============ -->
-  <div id="app-section" class="section-divider"></div>
-
-  <div class="section-head" id="section-head">
-    <h2 class="section-head-title">الإعلانات</h2>
+  <!-- ============ PROFILE TABS (أرباحي / معلوماتي) ============ -->
+  <div id="profile-tabs" style="display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:6px 0 18px;">
+    <button type="button" class="ptab" data-tab="earnings" onclick="switchTab('earnings')" aria-label="أرباحي" style="flex:1;background:none;border:0;border-bottom:2px solid var(--accent);color:var(--accent-ink);padding:13px 0;cursor:pointer;display:flex;justify-content:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="23" height="23" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 8a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2"/><path d="M16 13h.5"/></svg>
+    </button>
+    <button type="button" class="ptab" data-tab="info" onclick="switchTab('info')" aria-label="معلوماتي" style="flex:1;background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-faint);padding:13px 0;cursor:pointer;display:flex;justify-content:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="23" height="23" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>
+    </button>
   </div>
 
-  <div class="filter-bar">
-    <span class="label">التصنيف:</span>
-    <button class="filter-pill active" onclick="filterCampaigns('all', this)">الكل</button>
-    <button class="filter-pill" onclick="filterCampaigns('perfumes', this)">عطور</button>
-    <button class="filter-pill" onclick="filterCampaigns('fashion', this)">موضة</button>
-    <button class="filter-pill" onclick="filterCampaigns('beauty', this)">جمال</button>
-    <button class="filter-pill" onclick="filterCampaigns('food', this)">طعام</button>
-    <button class="filter-pill" onclick="filterCampaigns('tech', this)">تقنية</button>
+  <!-- ============ TAB: EARNINGS ============ -->
+  <div id="tab-earnings">
+    <div style="background:var(--cream);border-radius:16px;padding:22px;text-align:center;margin-bottom:16px;">
+      <div style="font-size:12.5px;color:var(--ink-muted);">إجمالي أرباحك</div>
+      <div style="font-weight:700;font-size:32px;color:var(--ink);margin-top:6px;"><span id="earn-total">٠</span> <span style="font-size:15px;color:var(--accent);">ر.س</span></div>
+      <div id="earn-sub" style="font-size:12px;color:var(--ink-muted);margin-top:6px;"></div>
+    </div>
+    <div id="earn-list"></div>
   </div>
 
-  <div class="unified-list" id="unified-list"></div>
+  <!-- ============ TAB: INFO ============ -->
+  <div id="tab-info" style="display:none;">
+    <div id="info-list"></div>
+  </div>
 </main>
 
 <script src="supabase-config.js"></script>
@@ -1091,7 +1100,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 let currentUser = null;
 let allCampaigns = [];
 let myApplications = [];
-let currentFilter = 'all';
+let currentFilter = 'suit';
 let expandedAppId = null;
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
@@ -1266,46 +1275,122 @@ async function loadData() {
 }
 
 function updateHeroStats() {
-  const activeApps = myApplications.filter(a => a.status !== 'rejected').length;
-  const hs = document.getElementById('hero-status'); if (hs) hs.textContent = offersWaitingLabel(activeApps);
-  const hc = document.getElementById('hero-app-count'); if (hc) hc.textContent = toArabic(activeApps);
+  var set = function(id, val){ var el=document.getElementById(id); if(el) el.textContent = val; };
+  var nonRejected = myApplications.filter(function(a){ return a.status !== 'rejected'; });
+  var active = nonRejected.filter(function(a){ return a.status !== 'closed'; }).length;
+  var closedApproved = myApplications.filter(function(a){ return a.status === 'closed' && a.brand_approved === true; });
+  var deals = closedApproved.length;
+  var earnings = 0; closedApproved.forEach(function(a){ earnings += Number(a.final_price || a.price || 0); });
+
+  var f = Number(currentUser.followers) || 0;
+  var fStr = f >= 1000000 ? (f/1000000).toFixed(f%1000000?1:0)+'M' : (f >= 1000 ? (f/1000).toFixed(f%1000?1:0)+'K' : String(f));
+
+  set('hero-status', offersWaitingLabel(nonRejected.length));
+  set('welcome-name', currentUser.name || 'حسابك');
+  set('profile-handle', currentUser.handle ? ('@' + currentUser.handle) : '');
+  set('stat-followers', fStr);
+  set('stat-deals', toArabic(deals));
+  set('stat-active', toArabic(active));
+  set('earn-total', Number(earnings).toLocaleString('ar-SA'));
+  set('earn-sub', deals ? (toArabic(deals) + ' صفقة مكتملة') : 'ابدأ أول صفقة');
+
+  var bio = document.getElementById('profile-bio'); if (bio) bio.textContent = currentUser.bio || '';
+  var tags = document.getElementById('profile-tags');
+  if (tags) {
+    var PL = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', x:'إكس', youtube:'يوتيوب' };
+    var CL = { general:'عام', lifestyle:'لايف ستايل', beauty:'جمال وعناية', fashion:'موضة', food:'طعام', travel:'سفر', tech:'تقنية', sports:'رياضة', family:'أمومة وأطفال' };
+    var pill = function(txt){ return '<span style="font-size:11.5px;background:var(--cream-darker);color:var(--ink-soft);padding:4px 12px;border-radius:100px;">'+txt+'</span>'; };
+    var t = '';
+    if (currentUser.platform) t += pill(PL[currentUser.platform] || currentUser.platform);
+    if (currentUser.category) t += pill(CL[currentUser.category] || currentUser.category);
+    tags.innerHTML = t;
+  }
+
+  var elist = document.getElementById('earn-list');
+  if (elist) {
+    if (closedApproved.length) {
+      elist.innerHTML = closedApproved.map(function(a){
+        var amt = Number(a.final_price || a.price || 0).toLocaleString('ar-SA');
+        var title = (a.campaigns && a.campaigns.title) || 'صفقة';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;"><span style="font-size:13px;color:var(--ink);">'+title+'</span><span style="font-weight:600;font-size:13px;color:var(--accent-ink);">'+amt+' ر.س</span></div>';
+      }).join('');
+    } else {
+      elist.innerHTML = '<div style="text-align:center;color:var(--ink-soft);font-size:13px;padding:30px 0;">ما عندك صفقات مكتملة بعد — أول صفقة بتظهر هنا 🌿</div>';
+    }
+  }
+
+  var ilist = document.getElementById('info-list');
+  if (ilist) {
+    var PL2 = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', youtube:'يوتيوب', x:'إكس' };
+    var CL2 = { general:'عام', lifestyle:'لايف ستايل', beauty:'جمال وعناية', fashion:'موضة', food:'طعام', travel:'سفر', tech:'تقنية', sports:'رياضة', family:'أمومة وأطفال' };
+    var row = function(label, val){ return val ? '<div style="display:flex;justify-content:space-between;padding:13px 4px;border-bottom:1px solid var(--line);"><span style="font-size:13px;color:var(--ink-muted);">'+label+'</span><span style="font-size:13px;color:var(--ink);font-weight:500;">'+val+'</span></div>' : ''; };
+    ilist.innerHTML =
+      row('المنصة', currentUser.platform ? (PL2[currentUser.platform]||currentUser.platform) : '') +
+      row('التصنيف', currentUser.category ? (CL2[currentUser.category]||currentUser.category) : '') +
+      row('المتابعين', fStr) +
+      (currentUser.bio ? '<div style="padding:14px 4px;"><div style="font-size:12px;color:var(--ink-muted);margin-bottom:6px;">النبذة</div><div style="font-size:13px;color:var(--ink);line-height:1.7;">'+currentUser.bio+'</div></div>' : '');
+  }
+}
+
+function switchTab(name){
+  ['offers','earnings','info'].forEach(function(t){
+    var el = document.getElementById('tab-'+t); if(el) el.style.display = (t===name)?'':'none';
+  });
+  var btns = document.querySelectorAll('.ptab');
+  for (var i=0;i<btns.length;i++){
+    var on = btns[i].getAttribute('data-tab') === name;
+    btns[i].style.borderBottomColor = on ? 'var(--accent)' : 'transparent';
+    btns[i].style.color = on ? 'var(--accent-ink)' : 'var(--ink-faint)';
+  }
+}
+
+// تصنيف العرض إلى مجموعة: قائمة (تنفيذ نشط) / بانتظار الاتفاق / منتهية
+function offerGroup(a){
+  if (a.status === 'rejected') return 'done';
+  if (a.status === 'closed') {
+    if (a.brand_approved === true) {
+      var stg = a.stage || 1;
+      return stg >= 9 ? 'done' : 'active';
+    }
+    return 'awaiting';
+  }
+  return 'awaiting';
 }
 
 function renderUnified() {
   const list = document.getElementById('unified-list');
   if (!list) return;
 
-  const filtered = currentFilter === 'all'
-    ? allCampaigns
-    : allCampaigns.filter(c => c.brand_industry === currentFilter);
-
-  // عروض الدعوات المباشرة: حملتها مخفية من التصفّح، فنعرض طلبها كبطاقة عرض مستقلة
   const allCampIds = new Set(allCampaigns.map(c => c.id));
-  const directOffers = myApplications.filter(a => a.status !== 'rejected' && !allCampIds.has(a.campaign_id) && a.campaigns);
+  // كل عروض المعلن (المتقدّم عليها + الدعوات المباشرة)، بدون تكرار
+  const offers = [];
+  myApplications.forEach(a => {
+    const c = allCampaigns.find(x => x.id === a.campaign_id) || a.campaigns;
+    if (c) offers.push({ c, a });
+  });
 
-  if (filtered.length === 0 && directOffers.length === 0) {
-    list.innerHTML = `
-      <div class="empty">
-        <div class="icon">○</div>
-        <h3>لا توجد إعلانات</h3>
-        <p>لا توجد إعلانات في هذا التصنيف حالياً</p>
-      </div>`;
-    return;
+  const inGroup = currentFilter === 'done'
+    ? offers.filter(o => offerGroup(o.a) === 'done')
+    : offers.filter(o => offerGroup(o.a) !== 'done');
+  const offerCards = inGroup.map(o => renderOfferCard(o.c, o.a)).join('');
+
+  // الإعلانات المتاحة للتقديم (ما قدّم عليها) — تظهر ضمن "عروض تناسبك"
+  let openCards = '';
+  if (currentFilter !== 'done') {
+    const appliedIds = new Set(myApplications.map(a => a.campaign_id));
+    const open = allCampaigns.filter(c => !appliedIds.has(c.id));
+    if (open.length) {
+      openCards = '<div style="margin:20px 2px 10px;font-size:13px;color:var(--ink-muted);font-weight:600;">إعلانات متاحة للتقديم</div>'
+        + open.map(c => renderBrowseCard(c)).join('');
+    }
   }
 
-  // رتّب: عروضك (اللي قدّمت عليها) أول، ثم المتاحة للتقديم
-  const appliedItems = [];
-  const openItems = [];
-  filtered.forEach(c => {
-    const myApp = myApplications.find(a => a.campaign_id === c.id);
-    (myApp ? appliedItems : openItems).push({ c, myApp });
-  });
-  directOffers.forEach(a => appliedItems.unshift({ c: a.campaigns, myApp: a }));
-
-  const html = [...appliedItems, ...openItems].map(({ c, myApp }) =>
-    myApp ? renderOfferCard(c, myApp) : renderBrowseCard(c)
-  ).join('');
-  list.innerHTML = html;
+  if (!offerCards && !openCards) {
+    const msg = currentFilter === 'done' ? 'ما عندك إعلانات منتهية بعد' : 'ما عندك عروض حالياً — أول ما توصلك بتظهر هنا 🌿';
+    list.innerHTML = `<div class="empty"><div class="icon">○</div><h3>لا يوجد</h3><p>${msg}</p></div>`;
+    return;
+  }
+  list.innerHTML = offerCards + openCards;
 }
 
 // بطاقة إعلان متاح للتقديم (ما قدّمت عليه بعد)
