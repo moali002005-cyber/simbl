@@ -1217,6 +1217,19 @@ textarea { resize: vertical; min-height: 80px; }
 .pay-deadline { font-size: 12px; color: var(--ink-muted); margin-top: 8px; }
 .pay-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 
+/* ============ بطاقة تقييم المؤثر (طبقة الثقة) ============ */
+.rate-box { margin-top: 12px; background: rgba(19,185,178,0.05); border: 1px solid rgba(19,185,178,0.28); border-radius: 14px; padding: 14px 16px; }
+.rate-box.done { background: var(--cream-darker); border-color: var(--line); }
+.rate-title { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+.rate-stars { display: flex; gap: 6px; margin-bottom: 10px; direction: ltr; justify-content: flex-end; }
+.rstar { font-size: 28px; line-height: 1; color: var(--line-strong); cursor: pointer; transition: transform .12s, color .12s; user-select: none; }
+.rstar:hover { transform: scale(1.15); }
+.rstar.on { color: #E8B84B; }
+.rate-comment { width: 100%; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 10px; font-family: var(--font-body); font-size: 13px; resize: vertical; min-height: 44px; margin-bottom: 10px; background: #fff; color: var(--ink); }
+.rate-comment:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(19,185,178,0.14); }
+.rate-done-line { font-size: 13px; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; }
+.rate-done-line .rd-stars { color: #E8B84B; letter-spacing: 2px; direction: ltr; }
+
 /* ============ متابعة الحملات والمستحقات — بشكل شيت إكسل ============ */
 .dues-wrap { background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px 20px; margin:0 0 22px; }
 .dues-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
@@ -1532,13 +1545,13 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
       <button class="hero-cta" onclick="window.location.href='/dues.html'">📋 متابعة الحملات والمستحقات</button>
     </div>
     <style>@media (max-width:640px){#creators-teaser{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:12px!important;}#creators-teaser #teaser-avatars{justify-content:center!important;}}</style>
-    <div id="creators-teaser" onclick="window.location.href='/creators.html'" style="max-width:640px;margin:22px auto 0;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 20px;display:flex;align-items:center;gap:14px;text-align:right;transition:border-color .2s,transform .2s;" onmouseover="this.style.borderColor='rgba(19,185,178,0.45)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--line)';this.style.transform='none'">
+    <div id="creators-teaser" onclick="window.location.href='/top.html'" style="max-width:640px;margin:22px auto 0;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 20px;display:flex;align-items:center;gap:14px;text-align:right;transition:border-color .2s,transform .2s;" onmouseover="this.style.borderColor='rgba(19,185,178,0.45)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--line)';this.style.transform='none'">
       <div style="flex:1;min-width:0">
         <div style="font-family:var(--font-display);font-weight:600;font-size:16px">نخبة المؤثرين</div>
-        <div style="font-size:13px;color:var(--ink-muted)">اختر الأنسب لحملتك</div>
+        <div style="font-size:13px;color:var(--ink-muted)">أفضل ٥٠٠ مؤثر مرتّبين بدرجة الثقة</div>
       </div>
       <div id="teaser-avatars" style="display:flex"></div>
-      <span style="background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:9px 18px;border-radius:100px;white-space:nowrap">تصفّح الكل ←</span>
+      <span onclick="event.stopPropagation(); window.location.href='/creators.html'" style="background:var(--ink);color:#fff;font-size:13px;font-weight:500;padding:9px 18px;border-radius:100px;white-space:nowrap;cursor:pointer">تصفّح الكل ←</span>
     </div>
     <div class="hero-features">
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>تُطلق الحملة</span>
@@ -1710,6 +1723,8 @@ let myCampaigns = [];
 let campaignApps = {};
 let selectedCampaignId = null;
 let expandedAppId = null;
+let ratedDeals = new Set();        // معرّفات الصفقات اللي الشركة قيّمتها
+let selectedStars = {};            // appId -> عدد النجوم المختار قبل الإرسال
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
@@ -1959,6 +1974,13 @@ async function loadData() {
     campaignApps = {};
     myCampaigns.forEach(c => { campaignApps[c.id] = []; });
     allApps.forEach(a => { (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a); });
+
+    // جلب الصفقات اللي قيّمتها الشركة (طبقة الثقة) — عشان ما يتكرّر التقييم
+    try {
+      const { data: myRatings } = await supabaseClient
+        .from('creator_ratings').select('application_id, stars').eq('brand_id', currentUser.id);
+      ratedDeals = new Set((myRatings || []).map(r => r.application_id));
+    } catch (e) { ratedDeals = new Set(); }
 
     updateHeroStats();
     renderCampaigns();
@@ -2907,10 +2929,60 @@ async function setBrandPaid(applicationId) {
   }
 }
 
+// ============ طبقة الثقة: تقييم المؤثر بعد اكتمال الصفقة ============
+function renderRatingBlock(app) {
+  if (!app || !app.creator_id) return '';
+  if (ratedDeals.has(app.id)) {
+    return `<div class="rate-box done"><div class="rate-done-line"><span class="rd-stars">★★★★★</span> شكرًا — تم تقييم المؤثر</div></div>`;
+  }
+  const sel = selectedStars[app.id] || 0;
+  const stars = [1,2,3,4,5].map(n =>
+    `<span class="rstar${n <= sel ? ' on' : ''}" onclick="event.stopPropagation(); setStar('${app.id}',${n})">★</span>`
+  ).join('');
+  return `
+    <div class="rate-box" id="rate-box-${app.id}" onclick="event.stopPropagation()">
+      <div class="rate-title">⭐ قيّم تجربتك مع المؤثر</div>
+      <div class="rate-stars" id="rate-stars-${app.id}">${stars}</div>
+      <textarea class="rate-comment" id="rate-comment-${app.id}" placeholder="تعليق اختياري يساعد الشركات الأخرى..." rows="2"></textarea>
+      <button class="sa-btn" id="rate-btn-${app.id}" onclick="event.stopPropagation(); submitRating('${app.id}','${app.creator_id}')"${sel ? '' : ' disabled'}>أرسل التقييم</button>
+    </div>`;
+}
+
+function setStar(appId, n) {
+  selectedStars[appId] = n;
+  const wrap = document.getElementById('rate-stars-' + appId);
+  if (wrap) Array.from(wrap.children).forEach((s, i) => s.classList.toggle('on', i < n));
+  const btn = document.getElementById('rate-btn-' + appId);
+  if (btn) btn.disabled = false;
+}
+
+async function submitRating(appId, creatorId) {
+  const n = selectedStars[appId];
+  if (!n) { showToast('اختر عدد النجوم أولاً', 'error'); return; }
+  const comment = (document.getElementById('rate-comment-' + appId)?.value || '').trim();
+  const btn = document.getElementById('rate-btn-' + appId);
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري الإرسال...'; }
+  try {
+    const { error } = await supabaseClient.from('creator_ratings').insert([{
+      application_id: appId, creator_id: creatorId, brand_id: currentUser.id,
+      stars: n, comment: comment || null
+    }]);
+    if (error) throw error;
+    ratedDeals.add(appId);
+    delete selectedStars[appId];
+    showToast('شكرًا! تم حفظ تقييمك ✓');
+    await loadData();
+  } catch (err) {
+    console.error('rating error', err);
+    if (btn) { btn.disabled = false; btn.textContent = 'أرسل التقييم'; }
+    showToast('تعذّر حفظ التقييم: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
 function renderStageAction(applicationId, currentStage, viewerRole) {
   if (currentStage >= 9) {
     const found = findAppById(applicationId);
-    return renderBrandPaymentCard(found.app, found.campaign);
+    return renderBrandPaymentCard(found.app, found.campaign) + renderRatingBlock(found.app);
   }
   const info = STAGE_ACTIONS[currentStage];
   if (!info) return '';
