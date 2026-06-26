@@ -1050,6 +1050,29 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   .user-pill .user-name { display: none; }
   .hero-link { display: block; margin: 14px 0 0; }
 }
+/* ===== كرت ثقة المؤثر ===== */
+.mt-card{max-width:560px;margin:0 auto 8px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;}
+.mt-head{display:flex;align-items:center;gap:16px;margin-bottom:6px;}
+.mt-score{display:flex;flex-direction:column;align-items:center;line-height:1;flex-shrink:0;}
+.mt-num{font-family:var(--font-display);font-weight:700;font-size:30px;color:var(--accent-ink);}
+.mt-lbl{font-size:10px;color:var(--ink-faint);margin-top:3px;}
+.mt-info{flex:1;min-width:0;text-align:right;}
+.mt-stars{display:flex;align-items:center;gap:3px;margin-bottom:5px;}
+.cstars{direction:ltr;display:inline-flex;}
+.cstar{font-size:14px;color:var(--line-strong);}
+.cstar.on{color:#E8B84B;}
+.cstar-v{font-size:13px;font-weight:700;color:var(--ink-soft);margin-inline-start:4px;}
+.cstar-c{font-size:11px;color:var(--ink-faint);}
+.mt-rank{font-size:13px;color:var(--ink-soft);}
+.mt-rank b{color:var(--accent-ink);font-size:15px;}
+.mt-crit{margin:10px 0 4px;}
+.cbar-row{display:flex;align-items:center;gap:10px;margin:8px 0;}
+.cbar-label{font-size:12px;color:var(--ink-soft);min-width:122px;text-align:right;}
+.cbar-track{flex:1;height:7px;background:var(--cream-darker);border-radius:100px;overflow:hidden;}
+.cbar-fill{height:100%;background:var(--accent);border-radius:100px;}
+.cbar-val{font-size:12px;font-weight:700;color:var(--accent-ink);min-width:24px;text-align:left;}
+.mt-link{display:inline-block;margin-top:8px;font-size:13px;font-weight:600;color:var(--accent-ink);text-decoration:none;}
+.mt-link:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -1103,6 +1126,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
       <span class="hero-feat"><span class="hero-feat-ic">✓</span>تقفل الصفقة</span>
     </div>
   </section>
+
+  <div id="my-trust"></div>
 
   <!-- ============ APP CONTENT ============ -->
   <div id="app-section" class="section-divider"></div>
@@ -1227,6 +1252,46 @@ function startNegotiation(applicationId) {
   window.location.href = '/campaign.html?app=' + applicationId;
 }
 
+// ===== كرت ثقة المؤثر: نفس منطق صفحة النخبة =====
+var MT_PS=4, MT_RR=6;
+function mtHash(id){ var h=0,s=String(id||''); for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function mtSeedScore(id){ return 82+(mtHash(id)%14); }
+function mtFollowerBonus(f){ f=parseInt(f)||0; if(f<=0) return 0; return Math.max(0,Math.min(5,Math.log10(f+1)-3)); }
+function mtSeedRating(id){ return 4.3+(mtHash(id+'r')%7)/10; }
+function mtDisplayRating(c){ var r=Number(c.ratings_count)||0, a=Number(c.avg_rating)||0, s=mtSeedRating(c.id); return (MT_PS*s+a*r)/(MT_PS+r); }
+function mtTrustScore(c){ var seed=mtSeedScore(c.id)+mtFollowerBonus(c.followers); var r=Number(c.ratings_count)||0; var rs=(mtDisplayRating(c)/5)*100; var w=r/(r+MT_RR); var db=Math.min(Number(c.deals_count)||0,20)*0.4; return Math.max(0,Math.min(100,(1-w)*seed+w*rs+db)); }
+function mtStars(c){ var r=Number(c.ratings_count)||0, dr=mtDisplayRating(c), full=Math.round(dr); var s=''; for(var i=1;i<=5;i++) s+='<span class="cstar'+(i<=full?' on':'')+'">★</span>'; var tail=r>0?('<span class="cstar-c">('+r+' تقييم)</span>'):''; return '<span class="cstars">'+s+'</span><span class="cstar-v">'+dr.toFixed(1)+'</span>'+tail; }
+function mtCritSeed(id,key){ return 4.2+(mtHash(key+':'+id)%8)/10; }
+function mtCritBars(c){ var r=Number(c.ratings_count)||0; var crits=[['جودة المحتوى','content',c.avg_content],['الالتزام بالمواعيد','punct',c.avg_punctuality],['التواصل والاحترافية','comm',c.avg_communication],['النتائج والتفاعل','res',c.avg_results]]; return crits.map(function(it){ var seed=mtCritSeed(c.id,it[1]); var real=Number(it[2])||0; var v=r>0?(MT_PS*seed+real*r)/(MT_PS+r):seed; var pct=Math.max(0,Math.min(100,(v/5)*100)); return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span><span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span><span class="cbar-val">'+v.toFixed(1)+'</span></div>'; }).join(''); }
+
+async function loadMyTrust(){
+  var box=document.getElementById('my-trust'); if(!box||!currentUser) return;
+  try{
+    var rr=await Promise.all([
+      supabaseClient.from('creator_directory').select('id, followers'),
+      supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating, avg_content, avg_punctuality, avg_communication, avg_results')
+    ]);
+    var dir=(rr[0]&&rr[0].data)||[]; var tr=(rr[1]&&rr[1].data)||[];
+    var tmap={}; tr.forEach(function(t){ tmap[t.creator_id]=t; });
+    dir.forEach(function(c){ var t=tmap[c.id]||{}; c.ratings_count=Number(t.ratings_count)||0; c.avg_rating=Number(t.avg_rating)||0; c.deals_count=Number(t.deals_count)||0; c.avg_content=Number(t.avg_content)||0; c.avg_punctuality=Number(t.avg_punctuality)||0; c.avg_communication=Number(t.avg_communication)||0; c.avg_results=Number(t.avg_results)||0; c.score=mtTrustScore(c); });
+    dir.sort(function(a,b){ return (b.score-a.score)||(b.ratings_count-a.ratings_count)||((parseInt(b.followers)||0)-(parseInt(a.followers)||0)); });
+    var rank=0; for(var i=0;i<dir.length;i++){ if(dir[i].id===currentUser.id){ rank=i+1; break; } }
+    var me=null; for(var j=0;j<dir.length;j++){ if(dir[j].id===currentUser.id){ me=dir[j]; break; } }
+    if(!me){ var t2=tmap[currentUser.id]||{}; me={id:currentUser.id,followers:currentUser.followers,ratings_count:Number(t2.ratings_count)||0,avg_rating:Number(t2.avg_rating)||0,deals_count:Number(t2.deals_count)||0,avg_content:Number(t2.avg_content)||0,avg_punctuality:Number(t2.avg_punctuality)||0,avg_communication:Number(t2.avg_communication)||0,avg_results:Number(t2.avg_results)||0}; me.score=mtTrustScore(me); }
+    var total=dir.length;
+    box.innerHTML='<div class="mt-card">'
+      + '<div class="mt-head">'
+      +   '<div class="mt-score"><span class="mt-num">'+Math.round(me.score)+'</span><span class="mt-lbl">درجة الثقة</span></div>'
+      +   '<div class="mt-info"><div class="mt-stars">'+mtStars(me)+'</div>'
+      +     (rank>0?'<div class="mt-rank">ترتيبك: <b>#'+toArabic(rank)+'</b> من '+toArabic(total)+'</div>':'')
+      +   '</div>'
+      + '</div>'
+      + '<div class="mt-crit">'+mtCritBars(me)+'</div>'
+      + '<a class="mt-link" href="/top.html">شوف قائمة النخبة ←</a>'
+      + '</div>';
+  }catch(e){ box.innerHTML=''; }
+}
+
 async function init() {
   await tryRestoreSession();
 
@@ -1270,6 +1335,7 @@ async function init() {
   initNotifications('user-menu');
 
   await loadData();
+  loadMyTrust();
 }
 
 // شاشة "قيد المراجعة" / "غير مفعّل" — تمنع المحتوى حتى تفعيل الأدمن
