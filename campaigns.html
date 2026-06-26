@@ -1551,8 +1551,8 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
       </div>
 
       <div class="field">
-        <label>وصف الحملة</label>
-        <textarea name="description" required rows="3" placeholder="اشرح المنتج، الجمهور المستهدف، نوع المحتوى المطلوب..."></textarea>
+        <label>البريف الإعلاني</label>
+        <textarea name="description" required rows="4" placeholder="وضّح للمعلن: المنتج، الجمهور المستهدف، المحاور والنقاط المطلوبة، نوع المحتوى، الكلمات المفتاحية، أي مراجع أو أمثلة... (يُرسل للمعلن تلقائيًا في مرحلة البريف)"></textarea>
       </div>
 
       <div class="field-row">
@@ -2887,6 +2887,16 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   const isMyTurn = info.responsible === viewerRole;
   const myInfo = info[viewerRole] || {};
 
+  // مرحلة البريف (٤): يُسلَّم تلقائيًا من بريف الحملة (الوصف) بدون تدخل الشركة
+  if (isMyTurn && currentStage === 4) {
+    const camp = findAppById(applicationId).campaign;
+    const autoBrief = (camp && camp.description ? String(camp.description) : '').trim();
+    if (autoBrief) {
+      scheduleAutoBrief(applicationId);
+      return `<div class="stage-action waiting"><div class="sa-title">المرحلة الحالية: ${stageName}</div><div class="sa-desc">يُرسل البريف للمعلن تلقائيًا من حملتك...</div></div>`;
+    }
+  }
+
   if (isMyTurn) {
     const fields = STAGE_FIELDS[currentStage] || [];
     const inputsHtml = fields.map(f => {
@@ -2979,6 +2989,50 @@ async function submitStageForm(applicationId) {
 
 let editingCampaignId = null;
 let deletingCampaignId = null;
+
+// ====== تسليم البريف تلقائيًا من بريف الحملة (الوصف) عند مرحلة ٤ ======
+const autoBriefInFlight = new Set();
+function scheduleAutoBrief(applicationId) {
+  if (autoBriefInFlight.has(applicationId)) return;
+  setTimeout(function () { autoDeliverBrief(applicationId); }, 60);
+}
+async function autoDeliverBrief(applicationId) {
+  if (autoBriefInFlight.has(applicationId)) return;
+  const { app, campaign } = findAppById(applicationId);
+  if (!app || (app.stage || 1) !== 4) return;
+  const brief = (campaign && campaign.description ? String(campaign.description) : '').trim();
+  if (!brief) return;
+  autoBriefInFlight.add(applicationId);
+  try {
+    const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
+    existing[4] = { brief: brief, _auto: true, _at: new Date().toISOString() };
+    const { data: updated, error } = await supabaseClient
+      .from('applications')
+      .update({ stage: 5, stage_data: existing })
+      .eq('id', applicationId)
+      .select();
+    if (error) throw error;
+    if (!updated || updated.length === 0) throw new Error('لم يتم التحديث');
+
+    if (app.creator_id) {
+      const notif = STAGE_NOTIFICATIONS[5];
+      const campaignTitle = campaign?.title || 'صفقة';
+      if (notif) {
+        createNotification(app.creator_id, 'workflow_update', notif.title, `${campaignTitle}: ${notif.body}`, '/creator.html').catch(console.error);
+        fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+          body: JSON.stringify({ title: notif.title, body: `${campaignTitle}: ${notif.body}`, url: '/creator.html', target_users: [app.creator_id] })
+        }).catch(console.error);
+      }
+    }
+    await loadData();
+  } catch (err) {
+    console.error('auto brief failed:', err);
+  } finally {
+    autoBriefInFlight.delete(applicationId);
+  }
+}
 
 function setModalMode(mode, campaign) {
   const modal = document.getElementById('campaign-modal');
