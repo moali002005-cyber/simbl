@@ -472,29 +472,61 @@ async function createNotification(userId, type, title, message, link) {
   }
 }
 
-// إشعار كل المؤثرات بحملة جديدة
-async function notifyAllCreators(campaignTitle, brandName, campaignId) {
-  if (!window.supabaseClient) return;
+// ===== المطابقة الذكية: حدود النطاقات القديمة (للحملات المنشأة قبل التوحيد) =====
+const SIMBL_FOLLOWER_BOUNDS = {
+  '20-50k':   [20000, 50000],
+  '50-200k':  [50000, 200000],
+  '200-500k': [200000, 500000],
+  '500k+':    [500000, Infinity]
+};
+
+// المطابقة ١٠٠٪: نطاقات الحملة الآن نفس قيم شرائح المؤثر الرقمية (10000، 20000 ...).
+// القاعدة: شريحة المؤثر (followers) لازم تساوي إحدى الشرائح اللي اختارتها الشركة — تطابق تام.
+// مع دعم خلفي: لو الحملة قديمة وفيها نطاق نصّي (مثل 200-500k) نرجع لفحص الحدود.
+function simblFollowersMatch(followers, followerRange) {
+  const f = parseInt(followers, 10);
+  if (!f || isNaN(f)) return false;
+  const tokens = String(followerRange || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (tokens.length === 0) return true; // الشركة ما حددت شريحة → الكل يطابق
+  return tokens.some(tok => {
+    const legacy = SIMBL_FOLLOWER_BOUNDS[tok];
+    if (legacy) return f >= legacy[0] && f < legacy[1]; // نطاق قديم → فحص حدود
+    const exact = parseInt(tok, 10);                     // شريحة رقمية → مساواة تامة
+    return !isNaN(exact) && f === exact;
+  });
+}
+
+// إشعار المؤثرين المطابقين فقط (فلتر ١: المنصة مطابقة · فلتر ٢: المتابعون ضمن النطاق)
+async function notifyMatchedCreators(campaign, brandName) {
+  if (!window.supabaseClient || !campaign) return;
   try {
-    const { data: creators } = await supabaseClient
+    let q = supabaseClient
       .from('users')
-      .select('id')
+      .select('id, followers, platform')
       .eq('role', 'creator')
       .eq('is_test', !!(getCurrentUser()?.is_test));
 
+    // فلتر ١ — المنصة: مطابقة تامة لو الحملة محددة منصة
+    if (campaign.platform) q = q.eq('platform', campaign.platform);
+
+    const { data: creators } = await q;
     if (!creators || creators.length === 0) return;
 
-    const notifications = creators.map(c => ({
+    // فلتر ٢ — نطاق المتابعين (يتم في الكود لأن النطاق مخزّن كنص)
+    const matched = creators.filter(c => simblFollowersMatch(c.followers, campaign.follower_range));
+    if (matched.length === 0) return;
+
+    const notifications = matched.map(c => ({
       user_id: c.id,
       type: 'new_campaign',
-      title: `🎯 حملة جديدة من ${brandName}`,
-      message: campaignTitle,
+      title: `🎯 حملة جديدة تناسبك من ${brandName}`,
+      message: campaign.title,
       link: '/creator.html'
     }));
 
     await supabaseClient.from('notifications').insert(notifications);
   } catch (err) {
-    console.error('Failed to notify creators:', err);
+    console.error('Failed to notify matched creators:', err);
   }
 }
 
