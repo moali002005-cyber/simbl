@@ -463,6 +463,24 @@ body {
 /* ============ Accordion offer cards (مختصرة + توسّع) ============ */
 .applications-list { gap: 12px; }
 .unified-list { display: flex; flex-direction: column; gap: 12px; }
+.mx-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.mx-table { border-collapse: collapse; font-size: 12px; min-width: 800px; width: 100%; }
+.mx-table th, .mx-table td { border: 1px solid var(--line); padding: 0; text-align: center; white-space: nowrap; }
+.mx-table thead th { background: #eaf5f4; color: #0c4f4b; font-weight: 600; font-size: 11px; padding: 7px 4px; }
+.mx-idx { color: var(--ink-muted); width: 30px; text-align: center; }
+.mx-name { text-align: right; padding: 8px 10px; min-width: 150px; }
+.mx-cell { width: 64px; height: 44px; }
+.mx-cell.click { cursor: pointer; }
+.mx-in { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.mx-done { background: #CDEEDF; color: #0F6E56; }
+.mx-final { background: #1D9E75; color: #fff; }
+.mx-act { background: var(--accent); color: #fff; font-size: 13px; }
+.mx-wait { background: #FBF3E2; color: #854F0B; }
+.mx-future { color: #cfcfca; }
+.mx-cell.click:hover .mx-in { filter: brightness(0.96); }
+.mx-av { width: 26px; height: 26px; border-radius: 50%; background: #E1F5EE; color: #0F6E56; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.mx-detail > td { padding: 0; background: rgba(19,185,178,0.03); }
+.mx-detail .ac-body { border-top: none; }
 .ac-applybtn {
   background: var(--ink); color: #fff; border: 0;
   padding: 9px 18px; border-radius: 100px;
@@ -1268,6 +1286,99 @@ function updateHeroStats() {
   const hc = document.getElementById('hero-app-count'); if (hc) hc.textContent = toArabic(activeApps);
 }
 
+const MX_LABELS = ['العنوان','الشحن','الاستلام','البريف','المحتوى','الموافقة','النشر','البنكية','مكتمل'];
+let expandedCellStage = null;
+
+function openCell(appId, stage) {
+  if (expandedAppId === appId && expandedCellStage === stage) {
+    expandedAppId = null; expandedCellStage = null;
+  } else {
+    expandedAppId = appId; expandedCellStage = stage;
+  }
+  renderUnified();
+  if (expandedAppId) {
+    requestAnimationFrame(function () {
+      var el = document.getElementById('ac-' + appId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+}
+
+function renderStageDataView(a, s) {
+  const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+  const data = sd[s] || {};
+  const fields = STAGE_FIELDS[s] || [];
+  const stageName = WORKFLOW_STAGES.find(x => x.id === s)?.name || '';
+  const rows = fields.filter(f => data[f.name] !== undefined && data[f.name] !== '').map(f => {
+    const val = data[f.name];
+    const body = (f.type === 'url')
+      ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>`
+      : `<span style="font-size:13px;white-space:pre-wrap;">${escHtml(val)}</span>`;
+    return `<div style="margin-bottom:7px;"><strong style="font-size:12px;color:var(--ink-soft);">${f.label}:</strong> ${body}</div>`;
+  }).join('');
+  return `<div style="padding:2px;"><div style="font-weight:600;margin-bottom:9px;color:#0F6E56;">${toArabic(s)}. ${stageName} — مكتملة ✓</div>${rows || '<span style="color:var(--ink-muted);font-size:13px;">تمت بدون بيانات مُدخلة</span>'}</div>`;
+}
+
+function renderCreatorCellDetail(a) {
+  const isClosed = a.status === 'closed';
+  const isApproved = isClosed && a.brand_approved === true;
+  const awaitingApproval = isClosed && !isApproved;
+  const stageNow = a.stage || 1;
+  const s = expandedCellStage;
+  if (awaitingApproval) return `<div style="font-size:13px;color:#854F0B;padding:6px 2px;">⏳ بانتظار الشركة لاعتماد الصفقة وبدء التنفيذ.</div>`;
+  if (!isApproved) return '';
+  if (s != null && s > 0 && s < stageNow) return renderStageDataView(a, s);
+  if (s === stageNow && stageNow < 9 && isCreatorTurn(stageNow)) return renderStageAction(a.id, stageNow, 'creator');
+  if (stageNow >= 9) return `<div style="font-size:13px;color:#0F6E56;padding:6px 2px;font-weight:600;">الصفقة مكتملة 🎉</div>`;
+  return `<div style="font-size:13px;color:var(--ink-muted);padding:6px 2px;">بانتظار الشركة في مرحلة «${MX_LABELS[stageNow-1] || ''}».</div>`;
+}
+
+function renderCreatorDealRow(c, a, idx) {
+  const brandName = c.brand || a.campaigns?.users?.company_name || 'شركة';
+  const initial = (c.title || 'ح')[0];
+  const isClosed = a.status === 'closed';
+  const isApproved = isClosed && a.brand_approved === true;
+  const awaitingApproval = isClosed && !isApproved;
+  const stageNow = a.stage || 1;
+
+  let cells = '';
+  if (isApproved) {
+    for (let s = 1; s <= 9; s++) {
+      if (s < stageNow) {
+        cells += `<td class="mx-cell click" onclick="openCell('${a.id}',${s})"><div class="mx-in mx-done">✓</div></td>`;
+      } else if (s === stageNow) {
+        if (stageNow >= 9) {
+          cells += `<td class="mx-cell"><div class="mx-in mx-final">✓</div></td>`;
+        } else if (isCreatorTurn(s)) {
+          cells += `<td class="mx-cell click" onclick="openCell('${a.id}',${s})"><div class="mx-in mx-act" title="اضغط للتعبئة">✎</div></td>`;
+        } else {
+          cells += `<td class="mx-cell click" onclick="openCell('${a.id}',${s})"><div class="mx-in mx-wait" title="بانتظار الشركة">⏳</div></td>`;
+        }
+      } else {
+        cells += `<td class="mx-cell"><div class="mx-in mx-future">·</div></td>`;
+      }
+    }
+  } else if (awaitingApproval) {
+    cells = `<td colspan="9"><div class="mx-in" style="background:#FBF3E2;color:#854F0B;font-size:12px;font-weight:600;height:44px;">⏳ بانتظار تعميد الشركة</div></td>`;
+  } else {
+    cells = `<td colspan="9" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')"><div class="mx-in" style="font-size:12px;color:var(--ink-muted);height:44px;">💬 قيد التفاوض — اضغط لعرض المفاوضة</div></td>`;
+  }
+
+  const isExpanded = expandedAppId === a.id;
+  const detail = isExpanded
+    ? `<tr class="mx-detail"><td colspan="11"><div class="ac-body" onclick="event.stopPropagation()">${renderCreatorCellDetail(a)}</div></td></tr>`
+    : '';
+
+  return `
+    <tr id="ac-${a.id}">
+      <td class="mx-idx">${toArabic(idx + 1)}</td>
+      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><div style="min-width:0;"><div style="font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(c.title || 'حملة')}</div><div style="font-size:11px;color:var(--ink-muted);">${escHtml(brandName)}</div></div></div></td>
+      ${cells}
+    </tr>
+    ${detail}
+  `;
+}
+
 function renderUnified() {
   const list = document.getElementById('unified-list');
   if (!list) return;
@@ -1299,10 +1410,26 @@ function renderUnified() {
   });
   directOffers.forEach(a => appliedItems.unshift({ c: a.campaigns, myApp: a }));
 
-  const html = [...appliedItems, ...openItems].map(({ c, myApp }) =>
-    myApp ? renderOfferCard(c, myApp) : renderBrowseCard(c)
-  ).join('');
-  list.innerHTML = html;
+  let matrixHtml = '';
+  if (appliedItems.length > 0) {
+    matrixHtml = `
+      <div style="font-size:15px;font-weight:600;color:var(--ink);margin:2px 0 8px;">صفقاتي</div>
+      <div class="mx-wrap"><table class="mx-table">
+        <thead><tr>
+          <th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">الحملة</th>
+          ${MX_LABELS.map((lbl, i) => `<th>${toArabic(i + 1)}·${lbl}</th>`).join('')}
+        </tr></thead>
+        <tbody>${appliedItems.map(({ c, myApp }, idx) => renderCreatorDealRow(c, myApp, idx)).join('')}</tbody>
+      </table></div>`;
+  }
+
+  let openHtml = '';
+  if (openItems.length > 0) {
+    openHtml = `<div style="font-size:15px;font-weight:600;color:var(--ink);margin:22px 0 8px;">عروض متاحة</div>`
+      + openItems.map(({ c }) => renderBrowseCard(c)).join('');
+  }
+
+  list.innerHTML = matrixHtml + openHtml;
 }
 
 // بطاقة إعلان متاح للتقديم (ما قدّمت عليه بعد)
