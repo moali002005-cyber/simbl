@@ -68,8 +68,19 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .btn-apply:hover{background:var(--accent-ink);}
 
 .list{display:flex;flex-direction:column;gap:10px;padding:14px 0 60px;}
-.trow{display:grid;grid-template-columns:auto auto 1fr auto;gap:13px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px 15px;transition:transform .15s,border-color .15s,box-shadow .25s;}
+.titem{}
+.trow{display:grid;grid-template-columns:auto auto 1fr auto;gap:13px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px 15px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .25s;}
 .trow:hover{transform:translateY(-2px);border-color:rgba(19,185,178,0.4);box-shadow:0 8px 24px -14px rgba(10,10,10,0.2);}
+.titem.open .trow{transform:none;border-bottom-color:transparent;border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:none;}
+.tdetail{display:none;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 16px 16px;margin-top:-1px;padding:6px 16px 14px;}
+.titem.open .tdetail{display:block;}
+.tdetail-note{font-size:12px;color:var(--ink-faint);padding:8px 0;text-align:center;}
+.tchev{font-size:10px;color:var(--ink-faint);margin-top:3px;}
+.cbar-row{display:flex;align-items:center;gap:10px;margin:9px 0;}
+.cbar-label{font-size:12px;color:var(--ink-soft);min-width:128px;}
+.cbar-track{flex:1;height:7px;background:var(--cream-darker);border-radius:100px;overflow:hidden;}
+.cbar-fill{height:100%;background:var(--accent);border-radius:100px;transition:width .3s;}
+.cbar-val{font-size:12px;font-weight:700;color:var(--accent-ink);min-width:26px;text-align:left;}
 
 .rank{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:var(--cream-darker);color:var(--ink-muted);flex-shrink:0;}
 .rank.r1{background:var(--gold);color:#5a4500;}
@@ -279,7 +290,7 @@ async function init(){
   try{
     const [dirRes, trustRes] = await Promise.all([
       supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url'),
-      supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating')
+      supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating, avg_content, avg_punctuality, avg_communication, avg_results')
     ]);
     if (dirRes.error) throw dirRes.error;
 
@@ -293,6 +304,10 @@ async function init(){
       c.deals_count = Number(t.deals_count)||0;
       c.ratings_count = Number(t.ratings_count)||0;
       c.avg_rating = Number(t.avg_rating)||0;
+      c.avg_content = Number(t.avg_content)||0;
+      c.avg_punctuality = Number(t.avg_punctuality)||0;
+      c.avg_communication = Number(t.avg_communication)||0;
+      c.avg_results = Number(t.avg_results)||0;
       c.score = trustScore(c);
     });
 
@@ -368,7 +383,8 @@ function render(list){
     const rankCls = c.rank===1?'r1':c.rank===2?'r2':c.rank===3?'r3':'';
     const catLabel = CAT[c.category]||c.category||'';
     const platLabel = PLAT[c.platform]||c.platform||'';
-    return '<div class="trow">'
+    return '<div class="titem" id="ti-'+escHtml(c.id)+'">'
+      + '<div class="trow" onclick="toggleDetail(\''+escHtml(c.id)+'\')">'
       + '<div class="rank '+rankCls+'">'+toArabic(c.rank)+'</div>'
       + '<div class="tav">'+avatarInner(c,48,18)+'</div>'
       + '<div class="tmain">'
@@ -383,11 +399,39 @@ function render(list){
       + '<div class="tside">'
       +   '<div class="tscore"><span class="num">'+Math.round(c.score)+'</span><span class="lbl">درجة الثقة</span></div>'
       +   starsHtml(c)
+      +   '<span class="tchev">التفاصيل ▾</span>'
       + '</div>'
+      + '</div>'
+      + '<div class="tdetail">'+critBars(c)+'</div>'
       + '</div>';
   }).join('');
 
   if (window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
+}
+
+function critBars(c){
+  const ratings = Number(c.ratings_count)||0;
+  if (ratings <= 0){
+    return '<div class="tdetail-note">تفاصيل المعايير تظهر بعد أول تقييم من شركة.</div>';
+  }
+  const crits = [
+    ['جودة المحتوى', c.avg_content],
+    ['الالتزام بالمواعيد', c.avg_punctuality],
+    ['التواصل والاحترافية', c.avg_communication],
+    ['النتائج والتفاعل', c.avg_results]
+  ];
+  return crits.map(function(it){
+    const v = Number(it[1])||0;
+    const pct = Math.max(0, Math.min(100, (v/5)*100));
+    return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span>'
+      + '<span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span>'
+      + '<span class="cbar-val">'+v.toFixed(1)+'</span></div>';
+  }).join('');
+}
+
+function toggleDetail(id){
+  const el = document.getElementById('ti-'+id);
+  if (el) el.classList.toggle('open');
 }
 
 init();
