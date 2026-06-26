@@ -87,6 +87,35 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .rank.r2{background:#cfd2d6;color:#41464d;}
 .rank.r3{background:#dfa878;color:#5a3216;}
 
+/* ===== هيبة النخبة: أول 3 (ميداليات) وأول 10 ===== */
+.medal{position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:6px 2px 0;}
+.medal::before{content:'';position:absolute;inset:-9px;border-radius:50%;z-index:0;}
+.m1::before{background:radial-gradient(circle,rgba(232,184,75,0.38),transparent 70%);}
+.m2::before{background:radial-gradient(circle,rgba(199,204,209,0.45),transparent 70%);}
+.m3::before{background:radial-gradient(circle,rgba(217,160,106,0.38),transparent 70%);}
+.medal-core{position:relative;z-index:2;width:47px;height:47px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:20px;border:2px solid rgba(255,255,255,0.78);}
+.m1 .medal-core{background:radial-gradient(circle at 34% 28%,#F6DC8A,#E8B84B 58%,#C2901F);color:#5a4500;box-shadow:0 4px 15px -2px rgba(232,184,75,0.85),inset 0 -3px 6px rgba(140,95,0,0.35);}
+.m2 .medal-core{background:radial-gradient(circle at 34% 28%,#F2F4F6,#C7CCD1 58%,#949CA6);color:#3c4147;box-shadow:0 4px 13px -2px rgba(160,170,180,0.78),inset 0 -3px 6px rgba(80,90,100,0.3);}
+.m3 .medal-core{background:radial-gradient(circle at 34% 28%,#ECC39A,#D9A06A 58%,#B07840);color:#5a3216;box-shadow:0 4px 13px -2px rgba(205,139,92,0.72),inset 0 -3px 6px rgba(110,65,25,0.32);}
+.crown{position:absolute;top:-16px;left:50%;transform:translateX(-50%);z-index:3;width:34px;height:24px;}
+.crown svg{width:100%;height:100%;filter:drop-shadow(0 1px 1px rgba(140,95,0,0.45));}
+.mstar{position:absolute;top:-11px;left:50%;transform:translateX(-50%);z-index:3;width:17px;height:17px;}
+.m2 .mstar{color:#AEB6BF;} .m3 .mstar{color:#CD8B5C;}
+
+.titem.podium .trow{padding:16px;border-width:1.5px;}
+.titem.rank1 .trow{border-color:#E8B84B;background:linear-gradient(135deg,#fffdf6,#fff7e3);box-shadow:0 14px 36px -16px rgba(232,184,75,0.75);}
+.titem.rank2 .trow{border-color:#CDD2D7;background:linear-gradient(135deg,#fdfdfe,#f2f4f6);box-shadow:0 14px 32px -18px rgba(150,160,170,0.65);}
+.titem.rank3 .trow{border-color:#DBA774;background:linear-gradient(135deg,#fffbf7,#fcefe1);box-shadow:0 14px 32px -18px rgba(205,139,92,0.6);}
+.titem.podium .trow:hover{transform:translateY(-3px);}
+.titem.podium .tscore .num{font-size:27px;}
+.titem.podium .tav{width:56px;height:56px;}
+.titem.rank1 .tav{box-shadow:0 0 0 2.5px #E8B84B;}
+.titem.rank2 .tav{box-shadow:0 0 0 2.5px #CDD2D7;}
+.titem.rank3 .tav{box-shadow:0 0 0 2.5px #DBA774;}
+
+.titem.elite .trow{border-color:rgba(19,185,178,0.32);background:linear-gradient(180deg,#fff,#f8fdfd);}
+.titem.elite .rank{background:rgba(19,185,178,0.13);color:var(--accent-ink);box-shadow:0 0 0 1.5px rgba(19,185,178,0.28);}
+
 .tav{width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;}
 .tmain{min-width:0;}
 .tname{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px;}
@@ -369,6 +398,13 @@ function applyFilters(){
   render(list);
 }
 
+const CROWN_SVG = '<svg viewBox="0 0 100 72"><path d="M8 62 L17 24 L34 46 L50 10 L66 46 L83 24 L92 62 Z" fill="#E8B84B" stroke="#C2901F" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="10" r="6" fill="#F6DC8A"/><circle cx="17" cy="24" r="5" fill="#F6DC8A"/><circle cx="83" cy="24" r="5" fill="#F6DC8A"/><rect x="8" y="60" width="84" height="9" rx="3" fill="#C2901F"/></svg>';
+const STAR_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.2 6.8.9-5 4.7 1.3 6.8L12 17.8 5.7 21.3 7 14.5l-5-4.7 6.8-.9z" fill="currentColor"/></svg>';
+function medallion(r){
+  const top = r===1 ? '<div class="crown">'+CROWN_SVG+'</div>' : '<div class="mstar">'+STAR_SVG+'</div>';
+  return '<div class="medal m'+r+'">'+top+'<div class="medal-core">'+toArabic(r)+'</div></div>';
+}
+
 function render(list){
   const el = document.getElementById('list');
   const ct = document.getElementById('count-text');
@@ -380,13 +416,18 @@ function render(list){
   }
 
   el.innerHTML = list.map(c=>{
-    const rankCls = c.rank===1?'r1':c.rank===2?'r2':c.rank===3?'r3':'';
+    const r = c.rank;
+    let itemCls = 'titem';
+    if (r <= 3) itemCls += ' podium rank' + r;
+    else if (r <= 10) itemCls += ' elite';
     const catLabel = CAT[c.category]||c.category||'';
     const platLabel = PLAT[c.platform]||c.platform||'';
-    return '<div class="titem" id="ti-'+escHtml(c.id)+'">'
+    const avSize = r <= 3 ? 56 : 48;
+    const rankEl = r <= 3 ? medallion(r) : '<div class="rank">'+toArabic(r)+'</div>';
+    return '<div class="'+itemCls+'" id="ti-'+escHtml(c.id)+'">'
       + '<div class="trow" onclick="toggleDetail(\''+escHtml(c.id)+'\')">'
-      + '<div class="rank '+rankCls+'">'+toArabic(c.rank)+'</div>'
-      + '<div class="tav">'+avatarInner(c,48,18)+'</div>'
+      + rankEl
+      + '<div class="tav">'+avatarInner(c,avSize,r<=3?22:18)+'</div>'
       + '<div class="tmain">'
       +   '<div class="tname">'+escHtml(c.name||'مؤثر')+' '+badgeHtml(c)+'</div>'
       +   (c.handle?'<div class="thandle">'+escHtml(c.handle)+'</div>':'')
