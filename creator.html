@@ -1885,6 +1885,7 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   const stageName = WORKFLOW_STAGES.find(s => s.id === currentStage)?.name || '';
   const isMyTurn = info.responsible === viewerRole;
   const myInfo = info[viewerRole] || {};
+  const fields = STAGE_FIELDS[currentStage] || [];
 
   if (isMyTurn && currentStage === 5 && viewerRole === 'creator') {
     return `
