@@ -1877,8 +1877,26 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   const isMyTurn = info.responsible === viewerRole;
   const myInfo = info[viewerRole] || {};
 
+  if (isMyTurn && currentStage === 5 && viewerRole === 'creator') {
+    return `
+      <div class="stage-action mine" onclick="event.stopPropagation()">
+        <div class="sa-title">المرحلة الحالية: ${stageName}</div>
+        <div class="sa-desc">${myInfo.desc || ''}</div>
+        <form class="sa-form" id="stage-form-${applicationId}" onclick="event.stopPropagation()" onsubmit="event.preventDefault(); event.stopPropagation(); submitStageForm('${applicationId}')">
+          <input type="hidden" id="sf-${applicationId}-content_link" name="content_link">
+          <input type="hidden" id="sf-${applicationId}-_video_path" name="_video_path">
+          <input type="file" id="vid-input-${applicationId}" accept="video/*" style="display:none" onchange="handleVideoUpload(this,'${applicationId}')">
+          <button type="button" id="vid-btn-${applicationId}" class="sa-btn" style="background:#fff;color:var(--accent);border:1.5px solid var(--accent);margin-bottom:10px;" onclick="event.stopPropagation(); document.getElementById('vid-input-${applicationId}').click()">🎬 اختر الفيديو من جهازك</button>
+          <div id="vid-wrap-${applicationId}" style="margin-bottom:10px;"></div>
+          <div class="sa-field"><label for="sf-${applicationId}-note">ملاحظة (اختياري)</label><input type="text" id="sf-${applicationId}-note" name="note" placeholder="تفاصيل أو ملاحظات للشركة" onclick="event.stopPropagation()"></div>
+          <button type="submit" class="sa-btn" disabled onclick="event.stopPropagation()">${myInfo.label}</button>
+        </form>
+        <div style="font-size:11px;color:var(--ink-muted);margin-top:8px;">📹 ارفع الفيديو مباشرة من جهازك. يُحذف تلقائيًا من سيرفرنا بعد موافقة الشركة.</div>
+      </div>
+    `;
+  }
+
   if (isMyTurn) {
-    const fields = STAGE_FIELDS[currentStage] || [];
     const inputsHtml = fields.map(f => {
       const fid = `sf-${applicationId}-${f.name}`;
       if (f.type === 'textarea') {
@@ -2204,6 +2222,45 @@ function applyCrop(){
     closeCropper();
     uploadAvatarBlob(blob).then(function(){ ap.disabled=false; ap.textContent='تطبيق ورفع'; });
   }, 'image/jpeg', 0.9);
+}
+
+async function uploadContentVideo(file, appId) {
+  const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
+  const path = `${appId}_${Date.now()}.${ext}`;
+  const up = await supabaseClient.storage.from('content').upload(path, file, { upsert: true, contentType: file.type || 'video/mp4' });
+  if (up.error) throw up.error;
+  const pub = supabaseClient.storage.from('content').getPublicUrl(path);
+  return { url: pub.data.publicUrl, path };
+}
+
+async function handleVideoUpload(input, appId) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const maxMB = 200;
+  if (file.size > maxMB * 1024 * 1024) {
+    showToast(`حجم الفيديو أكبر من ${maxMB} ميجا. اختر فيديو أصغر أو اضغطه.`, 'error');
+    input.value = '';
+    return;
+  }
+  const wrap = document.getElementById('vid-wrap-' + appId);
+  const btn = document.getElementById('vid-btn-' + appId);
+  const submitB = document.querySelector('#stage-form-' + appId + ' button[type="submit"]');
+  btn.disabled = true; btn.textContent = 'جاري الرفع... ⏳';
+  if (wrap) wrap.innerHTML = '<div style="font-size:12px;color:var(--ink-muted)">جاري رفع الفيديو، لا تغلق الصفحة...</div>';
+  try {
+    const { url, path } = await uploadContentVideo(file, appId);
+    document.getElementById('sf-' + appId + '-content_link').value = url;
+    document.getElementById('sf-' + appId + '-_video_path').value = path;
+    if (wrap) wrap.innerHTML = `<video src="${url}" controls playsinline style="width:100%;border-radius:10px;max-height:260px;background:#000;"></video><div style="font-size:12px;color:#0F6E56;margin-top:6px;">✓ تم رفع الفيديو بنجاح</div>`;
+    btn.textContent = '🎬 تغيير الفيديو'; btn.disabled = false;
+    if (submitB) submitB.disabled = false;
+  } catch (e) {
+    console.error('video upload failed:', e);
+    showToast('فشل رفع الفيديو: ' + (e.message || 'حاول مرة أخرى'), 'error');
+    if (wrap) wrap.innerHTML = '';
+    btn.textContent = '🎬 اختر الفيديو من جهازك'; btn.disabled = false;
+    input.value = '';
+  }
 }
 
 async function uploadAvatarBlob(blob){

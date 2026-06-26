@@ -2501,9 +2501,14 @@ function renderStageDataView(a, s) {
   const stageName = WORKFLOW_STAGES.find(x => x.id === s)?.name || '';
   const rows = fields.filter(f => data[f.name] !== undefined && data[f.name] !== '').map(f => {
     const val = data[f.name];
-    const body = (f.type === 'url')
-      ? `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>`
-      : `<span style="font-size:13px;white-space:pre-wrap;">${escHtml(val)}</span>`;
+    let body;
+    if (f.name === 'content_link' && /\/object\/public\/content\//.test(val)) {
+      body = `<video src="${escHtml(val)}" controls playsinline style="width:100%;border-radius:10px;max-height:300px;background:#000;margin-top:5px;"></video>`;
+    } else if (f.type === 'url') {
+      body = `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>`;
+    } else {
+      body = `<span style="font-size:13px;white-space:pre-wrap;">${escHtml(val)}</span>`;
+    }
     return `<div style="margin-bottom:7px;"><strong style="font-size:12px;color:var(--ink-soft);">${f.label}:</strong> ${body}</div>`;
   }).join('');
   return `<div style="padding:2px;"><div style="font-weight:600;margin-bottom:9px;color:#0F6E56;">${toArabic(s)}. ${stageName} — مكتملة ✓</div>${rows || '<span style="color:var(--ink-muted);font-size:13px;">تمت بدون بيانات مُدخلة</span>'}</div>`;
@@ -2539,7 +2544,9 @@ function renderCellDetail(a) {
 
   if (s != null && s > 0 && s < stageNow) return renderStageDataView(a, s);
   if (s === stageNow && stageNow < 9 && isBrandTurn(stageNow)) {
-    return (a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : '')
+    const reviewVideo = (stageNow === 6) ? renderStageDataView(a, 5) : '';
+    return reviewVideo
+      + (a.deal_details ? `<div class="deal-row"><strong>الاتفاق:</strong> ${escHtml(a.deal_details)}</div>` : '')
       + renderStageAction(a.id, stageNow, 'brand');
   }
   if (stageNow >= 9) return `<div style="font-size:13px;color:#0F6E56;padding:6px 2px;font-weight:600;">الصفقة مكتملة 🎉</div>`;
@@ -3041,6 +3048,12 @@ async function submitStageForm(applicationId) {
     if (error) throw error;
     if (!updated || updated.length === 0) {
       throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+    }
+
+    // بعد موافقة الشركة على المحتوى (مرحلة ٦)، احذف فيديو المراجعة من التخزين
+    if (oldStage === 6) {
+      const vpath = (app.stage_data && app.stage_data[5] && app.stage_data[5]._video_path) || null;
+      if (vpath) supabaseClient.rpc('delete_content_file', { p_path: vpath }).catch(function (e) { console.error('video delete failed:', e); });
     }
 
     // إشعار المعلن (الطرف الآخر)
