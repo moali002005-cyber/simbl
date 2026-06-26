@@ -44,6 +44,29 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .chip:hover{border-color:var(--ink-soft);color:var(--ink);}
 .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
+.tools-row{display:flex;gap:10px;align-items:stretch;}
+.tools-row .search-input{flex:1;text-align:right;}
+.filter-btn{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line-strong);border-radius:100px;padding:0 18px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s;}
+.filter-btn:hover{border-color:var(--ink-soft);}
+.filter-btn.active{border-color:var(--accent);color:var(--accent-ink);}
+.filter-count{background:var(--accent);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:100px;display:none;align-items:center;justify-content:center;padding:0 5px;}
+.filter-btn.active .filter-count{display:inline-flex;}
+
+.sheet-overlay{position:fixed;inset:0;background:rgba(10,10,10,0.42);z-index:200;display:none;align-items:flex-end;justify-content:center;}
+.sheet-overlay.open{display:flex;}
+.sheet{background:#fff;width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:10px 22px 26px;max-height:82vh;overflow-y:auto;animation:sheetUp .25s ease;}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:.5;}to{transform:translateY(0);opacity:1;}}
+.sheet-handle{width:42px;height:4px;background:var(--line-strong);border-radius:100px;margin:6px auto 16px;}
+.sheet-head{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--ink);margin-bottom:18px;}
+.sheet-section{margin-bottom:22px;}
+.sheet-label{font-size:13px;font-weight:600;color:var(--ink-muted);margin-bottom:11px;}
+.sheet .chips{justify-content:flex-start;}
+.sheet-actions{display:flex;gap:10px;margin-top:4px;}
+.sheet-actions button{flex:1;padding:13px;border-radius:100px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border:0;}
+.btn-clear{background:#fff;border:1px solid var(--line-strong)!important;color:var(--ink);}
+.btn-apply{background:var(--accent);color:#fff;}
+.btn-apply:hover{background:var(--accent-ink);}
+
 .list{display:flex;flex-direction:column;gap:10px;padding:14px 0 60px;}
 .trow{display:grid;grid-template-columns:auto auto 1fr auto;gap:13px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px 15px;transition:transform .15s,border-color .15s,box-shadow .25s;}
 .trow:hover{transform:translateY(-2px);border-color:rgba(19,185,178,0.4);box-shadow:0 8px 24px -14px rgba(10,10,10,0.2);}
@@ -122,16 +145,43 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 
 <main class="container">
   <section class="hero">
-    <h1 class="hero-title">نخبة المؤثرين</h1>
-    <p class="hero-sub">أفضل المؤثرين في سيمبل، مرتّبين بدرجة ثقة مبنية على تقييمات الشركات وأداء الصفقات الحقيقي.</p>
+    <h1 class="hero-title">أفضل ١٠٠ مؤثر هذا الأسبوع</h1>
+    <p class="hero-sub">مرتّبون بتقييمات الشركات وأداء الصفقات الحقيقي على سيمبل.</p>
     <div class="count-pill"><span class="count-dot"></span><span id="count-text">جاري التحميل...</span></div>
 
     <div class="tools">
-      <input type="text" class="search-input" id="search" placeholder="ابحث باسم المؤثر أو معرّفه..." oninput="applyFilters()">
-      <div class="chips" id="plat-chips"></div>
-      <div class="chips" id="cat-chips"></div>
+      <div class="tools-row">
+        <input type="text" class="search-input" id="search" placeholder="ابحث باسم المؤثر أو معرّفه..." oninput="applyFilters()">
+        <button class="filter-btn" id="filter-btn" onclick="openFilters()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.4" fill="#fff"/><circle cx="15" cy="17" r="2.4" fill="#fff"/></svg>
+          <span>فلتر</span><span class="filter-count" id="filter-count"></span>
+        </button>
+      </div>
     </div>
   </section>
+
+  <!-- لوحة الفلتر المنبثقة (مثل تيك توك) -->
+  <div class="sheet-overlay" id="filter-sheet" onclick="if(event.target===this) closeFilters()">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.4" fill="#fff"/><circle cx="15" cy="17" r="2.4" fill="#fff"/></svg>
+        <span>الفلاتر</span>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-label">المنصة</div>
+        <div class="chips" id="plat-chips"></div>
+      </div>
+      <div class="sheet-section">
+        <div class="sheet-label">التصنيف</div>
+        <div class="chips" id="cat-chips"></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn-clear" onclick="clearFilters()">مسح الكل</button>
+        <button class="btn-apply" onclick="closeFilters()">عرض النتائج</button>
+      </div>
+    </div>
+  </div>
 
   <div class="list" id="list">
     <div class="loading"><div class="lpill"><span class="d"></span>جاري بناء القائمة...</div></div>
@@ -254,7 +304,7 @@ async function init(){
     );
 
     // أفضل 500 + ترقيم
-    RANKED = creators.slice(0, 500).map((c, i) => { c.rank = i + 1; return c; });
+    RANKED = creators.slice(0, 100).map((c, i) => { c.rank = i + 1; return c; });
 
     applyFilters();
   }catch(err){
@@ -274,7 +324,23 @@ function buildChips(){
 function pickPlat(k){ filters.plat=k; document.querySelectorAll('#plat-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.key===k)); applyFilters(); }
 function pickCat(k){ filters.cat=k; document.querySelectorAll('#cat-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.key===k)); applyFilters(); }
 
+function openFilters(){ const s=document.getElementById('filter-sheet'); if(s) s.classList.add('open'); }
+function closeFilters(){ const s=document.getElementById('filter-sheet'); if(s) s.classList.remove('open'); }
+function clearFilters(){
+  filters.plat='all'; filters.cat='all';
+  document.querySelectorAll('#plat-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.key==='all'));
+  document.querySelectorAll('#cat-chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.key==='all'));
+  applyFilters();
+}
+function updateFilterBadge(){
+  let n=0; if(filters.plat!=='all') n++; if(filters.cat!=='all') n++;
+  const btn=document.getElementById('filter-btn'); const cnt=document.getElementById('filter-count');
+  if(cnt) cnt.textContent = n ? toArabic(n) : '';
+  if(btn) btn.classList.toggle('active', n>0);
+}
+
 function applyFilters(){
+  updateFilterBadge();
   const q = (document.getElementById('search').value||'').trim().toLowerCase();
   const list = RANKED.filter(c=>{
     if (filters.plat!=='all' && c.platform!==filters.plat) return false;
@@ -291,7 +357,7 @@ function applyFilters(){
 function render(list){
   const el = document.getElementById('list');
   const ct = document.getElementById('count-text');
-  if (ct) ct.textContent = 'أفضل ' + toArabic(RANKED.length) + ' معلن';
+  if (ct) ct.textContent = 'أفضل ' + toArabic(RANKED.length) + ' مؤثر هذا الأسبوع';
 
   if (!list.length){
     el.innerHTML = '<div class="empty"><div class="ic">○</div><h3>لا يوجد مطابقون</h3><p>جرّب تغيير الفلاتر أو البحث</p></div>';
