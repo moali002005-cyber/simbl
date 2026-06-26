@@ -1394,13 +1394,13 @@ function renderOfferCard(c, a) {
       </div>`;
   } else if (isApproved) {
     expandedInner = renderWorkflowStrip(a.stage || 1)
-      + renderStageHistory(a.stage_data, a.stage || 1)
+      + renderStageHistory(a.stage_data, a.stage || 1, (a.stage || 1) >= 9)
       + renderStageAction(a.id, a.stage || 1, 'creator');
   }
 
   const expandable = !isNegotiating;
   return `
-    <div class="ac-card applied ${isExpanded ? 'open' : ''} ${expandable ? '' : 'no-expand'}">
+    <div class="ac-card applied ${isExpanded ? 'open' : ''} ${expandable ? '' : 'no-expand'}" id="ac-${a.id}">
       <div class="ac-head" ${expandable ? `onclick="toggleAppCard('${a.id}')" style="cursor:pointer;"` : 'style="cursor:default;"'}>
         <div class="ac-avatar">${brandInitial}</div>
         <div class="ac-main">
@@ -1420,8 +1420,15 @@ function renderOfferCard(c, a) {
 }
 
 function toggleAppCard(appId) {
-  expandedAppId = (expandedAppId === appId) ? null : appId;
+  const willExpand = (expandedAppId !== appId);
+  expandedAppId = willExpand ? appId : null;
   renderUnified();
+  if (willExpand) {
+    requestAnimationFrame(function () {
+      var el = document.getElementById('ac-' + appId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
 }
 
 // شريط تقدّم مصغّر للبطاقة المختصرة
@@ -1566,7 +1573,7 @@ function renderWorkflowStrip(currentStage) {
     </div>`;
 }
 
-function renderStageHistory(stageData, currentStage) {
+function renderStageHistory(stageData, currentStage, expanded) {
   if (!stageData) return '';
   const completedStages = Object.keys(stageData)
     .map(k => parseInt(k))
@@ -1626,7 +1633,7 @@ function renderStageHistory(stageData, currentStage) {
   }).join('');
   const completedCount = completedStages.length;
   const hid = 'hist-' + Math.random().toString(36).slice(2, 8);
-  return `<div class="stage-history collapsed" id="${hid}" onclick="event.stopPropagation()">
+  return `<div class="stage-history ${expanded ? '' : 'collapsed'}" id="${hid}" onclick="event.stopPropagation()">
     <button type="button" class="hist-toggle" onclick="event.stopPropagation(); toggleHistory('${hid}')">
       <span><i class="hist-ic"></i> سجلّ المراحل المكتملة (${toArabic(completedCount)})</span>
       <span class="hist-chev">▾</span>
