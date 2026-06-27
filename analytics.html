@@ -207,6 +207,25 @@ function render(camps, apps, ratings){
     + kpiCard('متوسط تقييمك', avgRating!=null ? avgRating.toFixed(1)+' <small>★</small>' : '—', avgRating!=null?('من '+ar(ratings.length)+' تقييم'):'لا تقييمات بعد', I.star)
     + '</div>';
 
+  // ===== نتائج المحتوى المنشور (من أرقام النشر التي يدخلها المؤثر) =====
+  function st7(a){ var sd=(a&&typeof a.stage_data==='object'&&a.stage_data)?a.stage_data:{}; return sd[7]||sd['7']||{}; }
+  var publishedApps = apps.filter(function(a){ var s=st7(a); return s && (s.publish_link || s.reach || s.likes); });
+  var videosPublished = publishedApps.length;
+  var totalReach = apps.reduce(function(s,a){ return s+(parseInt(st7(a).reach)||0); },0);
+  var totalLikes = apps.reduce(function(s,a){ return s+(parseInt(st7(a).likes)||0); },0);
+  var totalComments = apps.reduce(function(s,a){ return s+(parseInt(st7(a).comments)||0); },0);
+  var totalEng = totalLikes+totalComments;
+  var engRate = totalReach>0 ? (totalEng/totalReach*100) : null;
+
+  var contentSec = '<div class="section-t">نتائج المحتوى المنشور</div>'
+    + '<div class="kpis">'
+    + kpiCard('نسبة التفاعل', (engRate!=null ? engRate.toFixed(1)+' <small>٪</small>' : 'غ/م'), (engRate!=null?'تفاعل ÷ وصول':'لا توجد أرقام بعد'), I.star)
+    + kpiCard('فيديوهات منشورة', ar(videosPublished), 'منشورات موثّقة', I.apps)
+    + kpiCard('التفاعل الكلي', ar(totalEng), 'إعجابات + تعليقات', I.star, true)
+    + kpiCard('الوصول الكلي', arReach(totalReach), 'مشاهدات المنشورات', I.reach)
+    + '</div>'
+    + (videosPublished===0 ? '<div style="font-size:12.5px;color:var(--ink-muted);margin-top:-6px;">الأرقام تتعبّأ تلقائيًا أول ما يأكّد المؤثرون النشر ويدخلون أرقام منشوراتهم.</div>' : '');
+
   // per-campaign
   var rows = camps.map(function(c){
     var ca = apps.filter(function(a){return a.campaign_id===c.id;});
@@ -251,7 +270,7 @@ function render(camps, apps, ratings){
   });
   cards += '</div>';
 
-  box.innerHTML = kpis + chart + cards;
+  box.innerHTML = kpis + contentSec + chart + cards;
 }
 
 init();
