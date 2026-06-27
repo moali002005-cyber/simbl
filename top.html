@@ -181,7 +181,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
     </a>
     <div class="nav-right">
       <a href="/creators.html" class="btn-back">تصفّح الكل</a>
-      <a href="/brand.html" class="btn-back">→ الرئيسية</a>
+      <a href="/" class="btn-back">→ الرئيسية</a>
     </div>
   </div>
 </nav>
@@ -342,7 +342,6 @@ function starsHtml(c){
 async function init(){
   if (typeof tryRestoreSession === 'function') { try { await tryRestoreSession(); } catch(e){} }
   const user = getCurrentUser();
-  if (!user){ window.location.href='/signup.html'; return; }
   if (typeof initNotifications === 'function') { try { initNotifications('nav-right'); } catch(e){} }
 
   buildChips();
