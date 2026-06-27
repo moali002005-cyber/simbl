@@ -93,19 +93,14 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 .rank.r3{background:#dfa878;color:#5a3216;}
 
 /* ===== هيبة النخبة: أول 3 (ميداليات) وأول 10 ===== */
-.medal{position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:6px 2px 0;}
-.medal::before{content:'';position:absolute;inset:-9px;border-radius:50%;z-index:0;}
-.m1::before{background:radial-gradient(circle,rgba(232,184,75,0.38),transparent 70%);}
-.m2::before{background:radial-gradient(circle,rgba(199,204,209,0.45),transparent 70%);}
-.m3::before{background:radial-gradient(circle,rgba(217,160,106,0.38),transparent 70%);}
-.medal-core{position:relative;z-index:2;width:47px;height:47px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:20px;border:2px solid rgba(255,255,255,0.78);}
-.m1 .medal-core{background:radial-gradient(circle at 34% 28%,#F6DC8A,#E8B84B 58%,#C2901F);color:#5a4500;box-shadow:0 4px 15px -2px rgba(232,184,75,0.85),inset 0 -3px 6px rgba(140,95,0,0.35);}
-.m2 .medal-core{background:radial-gradient(circle at 34% 28%,#F2F4F6,#C7CCD1 58%,#949CA6);color:#3c4147;box-shadow:0 4px 13px -2px rgba(160,170,180,0.78),inset 0 -3px 6px rgba(80,90,100,0.3);}
-.m3 .medal-core{background:radial-gradient(circle at 34% 28%,#ECC39A,#D9A06A 58%,#B07840);color:#5a3216;box-shadow:0 4px 13px -2px rgba(205,139,92,0.72),inset 0 -3px 6px rgba(110,65,25,0.32);}
-.crown{position:absolute;top:-16px;left:50%;transform:translateX(-50%);z-index:3;width:34px;height:24px;}
+.medal{position:relative;width:66px;height:62px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:4px 0 0;}
+.medal::before{content:'';position:absolute;inset:2px;border-radius:50%;z-index:0;}
+.m1::before{background:radial-gradient(circle,rgba(232,184,75,0.40),transparent 64%);}
+.m2::before{background:radial-gradient(circle,rgba(199,204,209,0.46),transparent 64%);}
+.m3::before{background:radial-gradient(circle,rgba(205,139,92,0.40),transparent 64%);}
+.emblem{position:relative;z-index:2;width:66px;height:62px;overflow:visible;filter:drop-shadow(0 3px 5px rgba(60,40,0,0.28));}
+.crown{position:absolute;top:-15px;left:50%;transform:translateX(-50%);z-index:3;width:32px;height:22px;}
 .crown svg{width:100%;height:100%;filter:drop-shadow(0 1px 1px rgba(140,95,0,0.45));}
-.mstar{position:absolute;top:-11px;left:50%;transform:translateX(-50%);z-index:3;width:17px;height:17px;}
-.m2 .mstar{color:#AEB6BF;} .m3 .mstar{color:#CD8B5C;}
 
 .titem.podium .trow{padding:16px;border-width:1.5px;}
 .titem.rank1 .trow{border-color:#E8B84B;background:linear-gradient(135deg,#fffdf6,#fff7e3);box-shadow:0 14px 36px -16px rgba(232,184,75,0.75);}
@@ -440,9 +435,32 @@ function setScope(s){
   document.querySelectorAll('.scope-tab').forEach(t=>t.classList.toggle('active', t.dataset.scope===s));
   applyFilters();
 }
+const MEDAL = {
+  1:{aL:'#FBE7A6',aM:'#E8B84B',aD:'#A9760F',bL:'#F6DC8A',bD:'#C2901F',sA:'#7a5410',sB:'#9C6F1A',tw:'#F6DC8A'},
+  2:{aL:'#F7F9FB',aM:'#CBD0D5',aD:'#8E969F',bL:'#EDF0F2',bD:'#9AA2AB',sA:'#6E767F',sB:'#858D96',tw:'#EDF0F2'},
+  3:{aL:'#EECBA4',aM:'#CD8B5C',aD:'#9C5F33',bL:'#E3B488',bD:'#A9683A',sA:'#7A4A28',sB:'#8D5731',tw:'#E3B488'}
+};
+const LENS_MAIN = 'M-54 0 C-20 -9 20 -9 54 0 C20 9 -20 9 -54 0 Z';
+const LENS_SEC = 'M-32 0 C-12 -6 12 -6 32 0 C12 6 -12 6 -32 0 Z';
 function medallion(r){
-  const top = r===1 ? '<div class="crown">'+CROWN_SVG+'</div>' : '<div class="mstar">'+STAR_SVG+'</div>';
-  return '<div class="medal m'+r+'">'+top+'<div class="medal-core">'+toArabic(r)+'</div></div>';
+  var c = MEDAL[r] || MEDAL[1];
+  return '<div class="medal m'+r+'">'
+    + '<svg class="emblem" viewBox="0 0 140 140">'
+    +   '<defs>'
+    +     '<linearGradient id="mA'+r+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.aL+'"/><stop offset="0.5" stop-color="'+c.aM+'"/><stop offset="1" stop-color="'+c.aD+'"/></linearGradient>'
+    +     '<linearGradient id="mB'+r+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.bL+'"/><stop offset="1" stop-color="'+c.bD+'"/></linearGradient>'
+    +   '</defs>'
+    +   '<g transform="translate(70,70)">'
+    +     '<path d="'+LENS_SEC+'" transform="rotate(70)" fill="url(#mB'+r+')" stroke="'+c.sB+'" stroke-width="1.6" stroke-linejoin="round"/>'
+    +     '<path d="'+LENS_SEC+'" transform="rotate(-70)" fill="url(#mB'+r+')" stroke="'+c.sB+'" stroke-width="1.6" stroke-linejoin="round"/>'
+    +     '<path d="'+LENS_MAIN+'" transform="rotate(25)" fill="url(#mA'+r+')" stroke="'+c.sA+'" stroke-width="2.2" stroke-linejoin="round"/>'
+    +     '<path d="'+LENS_MAIN+'" transform="rotate(-25)" fill="url(#mA'+r+')" stroke="'+c.sA+'" stroke-width="2.2" stroke-linejoin="round"/>'
+    +     '<circle r="18" fill="#fffaf0" stroke="#13B9B2" stroke-width="3"/>'
+    +     '<ellipse cx="0" cy="-6" rx="10" ry="4" fill="#ffffff" opacity="0.45"/>'
+    +     '<text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-family="var(--font-display),sans-serif" font-size="26" font-weight="800" fill="#0c4f4b">'+toArabic(r)+'</text>'
+    +   '</g>'
+    +   '<g fill="'+c.tw+'"><path d="M116 34 l1.7 4.2 4.2 1.7 -4.2 1.7 -1.7 4.2 -1.7 -4.2 -4.2 -1.7 4.2 -1.7 Z"/><path d="M24 106 l1.4 3.6 3.6 1.4 -3.6 1.4 -1.4 3.6 -1.4 -3.6 -3.6 -1.4 3.6 -1.4 Z"/></g>'
+    + '</svg></div>';
 }
 
 function render(list){
