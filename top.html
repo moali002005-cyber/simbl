@@ -191,7 +191,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 
 <main class="container">
   <section class="hero">
-    <h1 class="hero-title">أفضل ١٠٠ مؤثر هذا الأسبوع</h1>
+    <h1 class="hero-title">أفضل ٥٠٠ مؤثر هذا الأسبوع</h1>
     <p class="hero-sub">مرتّبون بتقييمات الشركات وأداء الصفقات الحقيقي على سيمبل.</p>
     <div class="count-pill"><span class="count-dot"></span><span id="count-text">جاري التحميل...</span></div>
 
@@ -382,7 +382,7 @@ async function init(){
     );
 
     // أفضل 500 + ترقيم
-    RANKED = creators.slice(0, 100).map((c, i) => { c.rank = i + 1; return c; });
+    RANKED = creators.slice(0, 500).map((c, i) => { c.rank = i + 1; return c; });
     RANKED.forEach(c => { c.regional = regionalRank(c); });
 
     applyFilters();
@@ -458,7 +458,7 @@ function render(list){
   const isSa = scope === 'sa';
   let rows = list;
   if (!isSa) rows = list.slice().sort((a,b)=> a.regional - b.regional);
-  if (ct) ct.textContent = isSa ? ('أفضل ' + toArabic(RANKED.length) + ' مؤثر محليًا') : 'ترتيبك بين آلاف المؤثرين في الشرق الأوسط';
+  if (ct) ct.textContent = isSa ? 'أفضل ٥٠٠ مؤثر محليًا' : 'ترتيبك بين آلاف المؤثرين في الشرق الأوسط';
 
   if (!rows.length){
     el.innerHTML = '<div class="empty"><div class="ic">○</div><h3>لا يوجد مطابقون</h3><p>جرّب تغيير الفلاتر أو البحث</p></div>';
