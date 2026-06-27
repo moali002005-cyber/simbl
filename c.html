@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملف المؤثر · سيمبل</title>
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="ملف موثّق على سيمبل">
+<meta property="og:description" content="درجة ثقة وتقييمات حقيقية وترتيب بين أفضل المؤثرين على منصة سيمبل.">
+<meta property="og:type" content="profile">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase-config.js"></script>
+<style>
+:root{--cream:#ffffff;--cream-darker:#f5f5f4;--ink:#0a0a0a;--ink-soft:#3a3a3a;--ink-muted:#6b6b6b;--ink-faint:#a0a0a0;--accent:#13B9B2;--accent-ink:#0c4f4b;--gold:#E8B84B;--line:rgba(10,10,10,0.08);--font-display:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;--font-body:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:linear-gradient(180deg,#f7fbfb,#eef6f5);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.7;min-height:100vh;}
+.topbar{display:flex;justify-content:center;padding:18px;}
+.logo{display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;color:var(--ink);}
+.logo-eye{width:38px;height:38px;display:block;}
+.logo-mark{font-family:var(--font-display);font-size:15px;font-weight:500;position:relative;padding-left:10px;line-height:1;}
+.logo-mark::after{content:'';position:absolute;bottom:0;left:0;width:4px;height:4px;background:var(--accent);border-radius:50%;}
+.wrap{max-width:440px;margin:0 auto;padding:6px 16px 50px;}
+.mk-card{background:#fff;border:1px solid var(--line);border-radius:24px;padding:0 22px 24px;text-align:center;box-shadow:0 20px 50px -28px rgba(12,79,75,0.45);position:relative;overflow:hidden;}
+.mk-band{height:74px;margin:0 -22px 0;background:linear-gradient(120deg,#13B9B2,#0c4f4b);}
+.mk-ring{width:104px;height:104px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin:-52px auto 10px;box-shadow:0 6px 18px -8px rgba(0,0,0,0.3);}
+.mk-ring img,.mk-ring>div{width:96px!important;height:96px!important;font-size:36px!important;}
+.mk-name{font-family:var(--font-display);font-size:21px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;}
+.mk-handle{color:var(--ink-muted);font-size:14px;margin-top:2px;}
+.cflag{width:20px;height:14px;border-radius:2px;overflow:hidden;object-fit:cover;display:inline-block;vertical-align:middle;box-shadow:0 0 0 1px rgba(10,10,10,0.10);}
+.vbadge{font-size:11px;font-weight:600;padding:2px 9px;border-radius:100px;}
+.vbadge.verified{background:rgba(19,185,178,0.14);color:var(--accent-ink);}
+.vbadge.promising{background:rgba(232,184,75,0.16);color:#8a6500;}
+.mk-medal{display:flex;justify-content:center;margin:14px 0 2px;}
+.mk-rank-t{font-family:var(--font-display);font-weight:700;color:var(--accent-ink);font-size:15px;margin-bottom:6px;}
+.mk-rankpill{display:inline-block;background:rgba(19,185,178,0.12);color:var(--accent-ink);font-weight:600;font-size:13px;padding:6px 14px;border-radius:100px;margin:14px 0 4px;}
+.mk-score{margin:16px 0 6px;}
+.mk-score-n{font-family:var(--font-display);font-weight:800;font-size:46px;color:var(--accent-ink);display:block;line-height:1;}
+.mk-score-l{font-size:12px;color:var(--ink-muted);}
+.mk-stars{margin-bottom:6px;}
+.row-stars{display:inline-flex;align-items:center;gap:2px;font-size:16px;}
+.ts{color:#dde1e4;}.ts.on{color:var(--gold);}
+.row-ravg{font-weight:700;color:var(--accent-ink);margin-inline-start:6px;font-size:14px;}
+.row-rcount{color:var(--ink-muted);font-size:12px;margin-inline-start:4px;}
+.mk-stats{display:flex;justify-content:center;gap:0;margin:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 0;}
+.mk-stat{flex:1;}
+.mk-stat .n{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink);}
+.mk-stat .l{font-size:11px;color:var(--ink-muted);}
+.mk-stat+.mk-stat{border-right:1px solid var(--line);}
+.mk-crit{text-align:right;margin:14px 2px;}
+.cbar-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin:8px 0;}
+.cbar-label{font-size:13px;color:var(--ink-soft);white-space:nowrap;}
+.cbar-track{height:7px;background:var(--cream-darker);border-radius:100px;overflow:hidden;}
+.cbar-fill{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#0c8f89);border-radius:100px;}
+.cbar-val{font-size:12.5px;font-weight:700;color:var(--accent-ink);min-width:26px;text-align:left;}
+.mk-bio{font-size:14px;color:var(--ink-soft);background:var(--cream-darker);border-radius:14px;padding:12px 14px;margin:8px 0 4px;text-align:center;}
+.mk-cta{display:block;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;font-size:16px;padding:15px;border-radius:14px;margin-top:18px;box-shadow:0 10px 24px -10px rgba(19,185,178,0.7);}
+.mk-cta2{display:block;color:var(--accent-ink);text-decoration:none;font-weight:600;font-size:14px;padding:12px;margin-top:8px;}
+.mk-foot{margin-top:14px;font-size:12px;color:var(--ink-faint);}
+.mk-foot a{color:var(--ink-faint);text-decoration:none;}
+.nf{text-align:center;padding:50px 20px;color:var(--ink-muted);}
+.nf a{color:var(--accent-ink);font-weight:700;}
+.mkload{text-align:center;padding:60px 20px;color:var(--ink-muted);}
+/* الميدالية (مطابقة للنخبة) */
+.medal{position:relative;width:90px;height:84px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.medal::before{content:'';position:absolute;inset:2px;border-radius:50%;z-index:0;}
+.m1::before{background:radial-gradient(circle,rgba(232,184,75,0.40),transparent 64%);}
+.m2::before{background:radial-gradient(circle,rgba(199,204,209,0.46),transparent 64%);}
+.m3::before{background:radial-gradient(circle,rgba(205,139,92,0.40),transparent 64%);}
+.emblem{position:relative;z-index:2;width:90px;height:84px;overflow:visible;filter:drop-shadow(0 4px 6px rgba(60,40,0,0.30));}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="/" class="logo"><svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(25 100 100)"/><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(-25 100 100)"/><path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#ffffff" stroke="#13B9B2" stroke-width="7"/><circle cx="100" cy="100" r="8" fill="#0a0a0a"/></g></svg><span class="logo-mark">سيمبل</span></a></div>
+<div class="wrap"><div id="mk"><div class="mkload">جاري تحميل الملف…</div></div></div>
+<script>
+const arabicDigits=['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+function toArabic(n){ return String(n).split('').map(d=>arabicDigits[parseInt(d)]??d).join(''); }
+const CAT = { general:'عام', lifestyle:'لايف ستايل', beauty:'جمال وعناية', fashion:'موضة', food:'طعام', travel:'سفر', fitness:'رياضة', tech:'تقنية', parenting:'أمومة وأطفال' };
+const PLAT = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', x:'إكس', youtube:'يوتيوب' };
+const FLAG_SVGS = {
+  SA:'<rect width="24" height="16" fill="#0c7c3e"/><path d="M5 6 q3 -1.6 6 0 q3 1.6 6 0" stroke="#fff" stroke-width="1.1" fill="none" stroke-linecap="round"/><rect x="5" y="9.3" width="12.5" height="1.1" rx="0.5" fill="#fff"/><path d="M17 10 l2.2 -0.8 -0.6 1.6 z" fill="#fff"/>',
+  AE:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#00843d"/><rect y="10.66" width="24" height="5.34" fill="#000"/><rect width="6" height="16" fill="#ce1126"/>',
+  KW:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#007a3d"/><rect y="10.66" width="24" height="5.34" fill="#ce1126"/><path d="M0 0 L6 5.34 L6 10.66 L0 16 Z" fill="#000"/>',
+  QA:'<rect width="24" height="16" fill="#8d1b3d"/><rect width="8" height="16" fill="#fff"/>',
+  BH:'<rect width="24" height="16" fill="#ce1126"/><rect width="8" height="16" fill="#fff"/>',
+  OM:'<rect width="24" height="16" fill="#db161b"/><rect x="6" width="18" height="5.34" fill="#fff"/><rect x="6" y="10.66" width="18" height="5.34" fill="#16753a"/><rect width="6" height="16" fill="#db161b"/>',
+  YE:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#ce1126"/><rect y="10.66" width="24" height="5.34" fill="#000"/>',
+  EG:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#ce1126"/><rect y="10.66" width="24" height="5.34" fill="#000"/><circle cx="12" cy="8" r="1.3" fill="#c09a2b"/>',
+  JO:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#000"/><rect y="10.66" width="24" height="5.34" fill="#007a3d"/><path d="M0 0 L9 8 L0 16 Z" fill="#ce1126"/>',
+  LB:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="4" fill="#ce1126"/><rect y="12" width="24" height="4" fill="#ce1126"/><path d="M12 5.5 l1.4 3.5 -3.6 -2.1 h4.4 l-3.6 2.1 z" fill="#16753a"/>',
+  SY:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#ce1126"/><rect y="10.66" width="24" height="5.34" fill="#000"/><circle cx="10" cy="8" r="1" fill="#16753a"/><circle cx="14" cy="8" r="1" fill="#16753a"/>',
+  IQ:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#ce1126"/><rect y="10.66" width="24" height="5.34" fill="#000"/><rect x="9" y="7" width="6" height="2" rx="0.5" fill="#16753a"/>',
+  PS:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#000"/><rect y="10.66" width="24" height="5.34" fill="#007a3d"/><path d="M0 0 L9 8 L0 16 Z" fill="#ce1126"/>',
+  SD:'<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.34" fill="#ce1126"/><rect y="10.66" width="24" height="5.34" fill="#000"/><path d="M0 0 L9 8 L0 16 Z" fill="#007a3d"/>',
+  LY:'<rect width="24" height="16" fill="#000"/><rect width="24" height="5.34" fill="#e70013"/><rect y="10.66" width="24" height="5.34" fill="#239e46"/><circle cx="12" cy="8" r="1.7" fill="#fff"/><circle cx="12.7" cy="8" r="1.4" fill="#000"/>',
+  TN:'<rect width="24" height="16" fill="#e70013"/><circle cx="12" cy="8" r="4.3" fill="#fff"/><circle cx="12.8" cy="8" r="3.2" fill="#e70013"/><circle cx="13.9" cy="8" r="2.3" fill="#fff"/>',
+  DZ:'<rect width="24" height="16" fill="#fff"/><rect width="12" height="16" fill="#006233"/><circle cx="12" cy="8" r="3.3" fill="#d21034"/><circle cx="12.8" cy="8" r="2.5" fill="#fff"/>',
+  MA:'<rect width="24" height="16" fill="#c1272d"/><path d="M12 5 l1.4 4.3 -3.6 -2.6 h4.4 l-3.6 2.6 z" fill="#006233"/>'
+};
+const SA_FLAG = 'data:image/png;base64,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';
+function flagOf(code){ if(code==='SA' || !FLAG_SVGS[code]) return '<img class="cflag" src="'+SA_FLAG+'" alt="">'; return '<svg class="cflag" viewBox="0 0 24 16" preserveAspectRatio="none">'+FLAG_SVGS[code]+'</svg>'; }
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtFollowers(n){ n=parseInt(n)||0; if(n>=1000000) return (n%1000000===0?n/1000000:(n/1000000).toFixed(1))+'M'; if(n>=1000) return Math.round(n/1000)+'K'; return String(n); }
+function avatarInner(c, size, fs){
+  if (c.avatar_url) return '<img src="'+escHtml(c.avatar_url)+'" alt="" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;">';
+  var initial = ((c.name||'؟').trim().charAt(0))||'؟';
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:rgba(19,185,178,0.14);color:#0c4f4b;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:'+fs+'px;">'+escHtml(initial)+'</div>';
+}
+
+/* ===================== درجة الثقة (0–100) ===================== */
+// خلطة الإطلاق: درجة بداية عالية للكل (ثابتة لكل مؤثر) + إشارة متابعين بسيطة،
+// وأول ما تجي تقييمات حقيقية تبدأ تسحب الدرجة لمكانها الصح (القوي يطلع، الضعيف ينزل).
+const PRIOR_MEAN = 4.4;     // متوسط مبدئي افتراضي (من 5)
+const PRIOR_STRENGTH = 4;   // قوة المتوسط المبدئي (يسحب قليل التقييمات نحوه)
+const REAL_RAMP = 6;        // كل ما زادت التقييمات، طغى التقييم الحقيقي على درجة البداية
+
+function hashId(id){ let h=0; const s=String(id||''); for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function seedScore(id){ return 82 + (hashId(id)%14); } // 82..95 ثابتة لكل مؤثر
+function followerBonus(f){ f=parseInt(f)||0; if(f<=0) return 0; return Math.max(0, Math.min(5, Math.log10(f+1)-3)); }
+
+// تقييم مبدئي عالٍ وثابت لكل مؤثر (4.3..4.9) — يظهر وقت الإطلاق قبل أي تقييم حقيقي
+function seedRating(id){ return 4.3 + (hashId(id + 'r') % 7) / 10; }
+
+// التقييم المعروض: يبدأ من المبدئي وينجذب تلقائيًا للتقييم الحقيقي كل ما زادت التقييمات
+function displayRating(c){
+  const ratings = Number(c.ratings_count)||0;
+  const avg = Number(c.avg_rating)||0;
+  const seed = seedRating(c.id);
+  return (PRIOR_STRENGTH*seed + avg*ratings) / (PRIOR_STRENGTH + ratings);
+}
+
+function trustScore(c){
+  const seed = seedScore(c.id) + followerBonus(c.followers); // درجة بداية (~82..100)
+  const ratings = Number(c.ratings_count)||0;
+  const avg = Number(c.avg_rating)||0;
+  const deals = Number(c.deals_count)||0;
+
+  // تقييم بايز المرجّح (يبدأ من التقييم المبدئي للمؤثر وينجذب لتقييمه الحقيقي)
+  const bayes = displayRating(c);
+  const ratingScore = (bayes/5)*100;
+
+  // وزن الجزء الحقيقي يكبر مع عدد التقييمات
+  const wReal = ratings / (ratings + REAL_RAMP);
+
+  // مكوّن الإثبات: صفقات مكتملة (بسقف عشان ما يطغى على الجودة)
+  const dealsBoost = Math.min(deals, 20) * 0.4; // حتى +8
+
+  let s = (1 - wReal) * seed + wReal * ratingScore + dealsBoost;
+  return Math.max(0, Math.min(100, s));
+}
+
+function badgeHtml(c){
+  const deals = Number(c.deals_count)||0;
+  if (deals >= 1) return '<span class="vbadge verified">موثّق ✓</span>';
+  return '<span class="vbadge promising">واعد</span>';
+}
+function starsHtml(c){
+  const ratings = Number(c.ratings_count)||0;
+  const dr = displayRating(c);
+  const full = Math.round(dr);
+  let s=''; for(let i=1;i<=5;i++) s += '<span class="ts'+(i<=full?' on':'')+'">★</span>';
+  const tail = ratings > 0
+    ? '<span class="row-rcount">('+toArabic(ratings)+' تقييم)</span>'
+    : '';
+  return '<div class="row-stars">'+s+'<span class="row-ravg">'+dr.toFixed(1)+'</span>'+tail+'</div>';
+}
+
+
+function critSeed(id, key){ return 4.2 + (hashId(key + ':' + id) % 8) / 10; } // 4.2..4.9 ثابتة لكل معيار
+function critBars(c){
+  const ratings = Number(c.ratings_count)||0;
+  const crits = [
+    ['جودة المحتوى', 'content', c.avg_content],
+    ['الالتزام بالمواعيد', 'punct', c.avg_punctuality],
+    ['التواصل والاحترافية', 'comm', c.avg_communication],
+    ['النتائج والتفاعل', 'res', c.avg_results]
+  ];
+  return crits.map(function(it){
+    const seed = critSeed(c.id, it[1]);
+    const real = Number(it[2])||0;
+    const v = ratings>0 ? (PRIOR_STRENGTH*seed + real*ratings)/(PRIOR_STRENGTH+ratings) : seed;
+    const pct = Math.max(0, Math.min(100, (v/5)*100));
+    return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span>'
+      + '<span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span>'
+      + '<span class="cbar-val">'+v.toFixed(1)+'</span></div>';
+  }).join('');
+}
+
+
+const MEDAL = {
+  1:{aL:'#FBE7A6',aM:'#E8B84B',aD:'#A9760F',bL:'#F6DC8A',bD:'#C2901F',sA:'#7a5410',sB:'#9C6F1A',tw:'#F6DC8A'},
+  2:{aL:'#F7F9FB',aM:'#CBD0D5',aD:'#8E969F',bL:'#EDF0F2',bD:'#9AA2AB',sA:'#6E767F',sB:'#858D96',tw:'#EDF0F2'},
+  3:{aL:'#EECBA4',aM:'#CD8B5C',aD:'#9C5F33',bL:'#E3B488',bD:'#A9683A',sA:'#7A4A28',sB:'#8D5731',tw:'#E3B488'}
+};
+const LENS_MAIN = 'M-54 0 C-20 -9 20 -9 54 0 C20 9 -20 9 -54 0 Z';
+const LENS_SEC = 'M-32 0 C-12 -6 12 -6 32 0 C12 6 -12 6 -32 0 Z';
+function medallion(r){
+  var c = MEDAL[r] || MEDAL[1];
+  return '<div class="medal m'+r+'">'
+    + '<svg class="emblem" viewBox="0 0 140 140">'
+    +   '<defs>'
+    +     '<linearGradient id="mA'+r+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.aL+'"/><stop offset="0.5" stop-color="'+c.aM+'"/><stop offset="1" stop-color="'+c.aD+'"/></linearGradient>'
+    +     '<linearGradient id="mB'+r+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.bL+'"/><stop offset="1" stop-color="'+c.bD+'"/></linearGradient>'
+    +   '</defs>'
+    +   '<g transform="translate(70,70)">'
+    +     '<path d="'+LENS_SEC+'" transform="rotate(70)" fill="url(#mB'+r+')" stroke="'+c.sB+'" stroke-width="1.6" stroke-linejoin="round"/>'
+    +     '<path d="'+LENS_SEC+'" transform="rotate(-70)" fill="url(#mB'+r+')" stroke="'+c.sB+'" stroke-width="1.6" stroke-linejoin="round"/>'
+    +     '<path d="'+LENS_MAIN+'" transform="rotate(25)" fill="url(#mA'+r+')" stroke="'+c.sA+'" stroke-width="2.2" stroke-linejoin="round"/>'
+    +     '<path d="'+LENS_MAIN+'" transform="rotate(-25)" fill="url(#mA'+r+')" stroke="'+c.sA+'" stroke-width="2.2" stroke-linejoin="round"/>'
+    +     '<circle r="18" fill="#fffaf0" stroke="#13B9B2" stroke-width="3"/>'
+    +     '<ellipse cx="0" cy="-6" rx="10" ry="4" fill="#ffffff" opacity="0.45"/>'
+    +     '<text x="0" y="1" text-anchor="middle" dominant-baseline="central" font-family="var(--font-display),sans-serif" font-size="26" font-weight="800" fill="#0c4f4b">'+toArabic(r)+'</text>'
+    +   '</g>'
+    +   '<g fill="'+c.tw+'"><path d="M116 34 l1.7 4.2 4.2 1.7 -4.2 1.7 -1.7 4.2 -1.7 -4.2 -4.2 -1.7 4.2 -1.7 Z"/><path d="M24 106 l1.4 3.6 3.6 1.4 -3.6 1.4 -1.4 3.6 -1.4 -3.6 -3.6 -1.4 3.6 -1.4 Z"/></g>'
+    + '</svg></div>';
+}
+
+
+
+const params = new URLSearchParams(location.search);
+const qU = (params.get('u')||'').replace(/^@/,'').trim().toLowerCase();
+const qId = (params.get('id')||'').trim();
+
+function render(c){
+  const catLabel = CAT[c.category]||c.category||'';
+  const platLabel = PLAT[c.platform]||c.platform||'';
+  const rank = c.rank;
+  let rankBlock='';
+  if(rank<=3){
+    rankBlock = '<div class="mk-medal">'+medallion(rank)+'</div>'
+      + '<div class="mk-rank-t">'+['المركز الأول','المركز الثاني','المركز الثالث'][rank-1]+' على سيمبل هذا الأسبوع</div>';
+  } else if(rank<=100){
+    rankBlock = '<div class="mk-rankpill">ضمن أفضل ١٠٠ مؤثر · المركز '+toArabic(rank)+'</div>';
+  }
+  document.getElementById('mk').innerHTML =
+    '<div class="mk-card">'
+    + '<div class="mk-band"></div>'
+    + '<div class="mk-ring">'+avatarInner(c,96,36)+'</div>'
+    + '<div class="mk-name">'+flagOf(c.country||'SA')+' '+escHtml(c.name||'')+' '+badgeHtml(c)+'</div>'
+    + (c.handle?'<div class="mk-handle">'+escHtml(c.handle)+'</div>':'')
+    + rankBlock
+    + '<div class="mk-score"><span class="mk-score-n">'+Math.round(c.score)+'</span><span class="mk-score-l">درجة الثقة من ١٠٠</span></div>'
+    + '<div class="mk-stars">'+starsHtml(c)+'</div>'
+    + '<div class="mk-stats">'
+    +   '<div class="mk-stat"><div class="n">'+fmtFollowers(c.followers)+'</div><div class="l">متابع</div></div>'
+    +   '<div class="mk-stat"><div class="n">'+escHtml(platLabel)+'</div><div class="l">المنصة</div></div>'
+    +   (catLabel?'<div class="mk-stat"><div class="n">'+escHtml(catLabel)+'</div><div class="l">التصنيف</div></div>':'')
+    + '</div>'
+    + '<div class="mk-crit">'+critBars(c)+'</div>'
+    + (c.bio?'<div class="mk-bio">'+escHtml(c.bio)+'</div>':'')
+    + '<a class="mk-cta" href="/creators.html?id='+encodeURIComponent(c.id)+'">تواصل عبر سيمبل</a>'
+    + '<a class="mk-cta2" href="/signup.html">سجّل كمؤثر مثلهم على سيمبل</a>'
+    + '<div class="mk-foot"><a href="/">مدعوم بمنصة سيمبل</a></div>'
+    + '</div>';
+  document.title = (c.name||'مؤثر')+' · سيمبل';
+}
+
+async function init(){
+  const mk = document.getElementById('mk');
+  try{
+    const [dirRes, trustRes] = await Promise.all([
+      supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url'),
+      supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating, avg_content, avg_punctuality, avg_communication, avg_results')
+    ]);
+    if(dirRes.error) throw dirRes.error;
+    const dir = dirRes.data||[];
+    const tmap={}; (trustRes.data||[]).forEach(function(t){ tmap[t.creator_id]=t; });
+    dir.forEach(function(c){ var t=tmap[c.id]||{}; c.deals_count=Number(t.deals_count)||0; c.ratings_count=Number(t.ratings_count)||0; c.avg_rating=Number(t.avg_rating)||0; c.avg_content=Number(t.avg_content)||0; c.avg_punctuality=Number(t.avg_punctuality)||0; c.avg_communication=Number(t.avg_communication)||0; c.avg_results=Number(t.avg_results)||0; c.score=trustScore(c); });
+    dir.sort(function(a,b){ return (b.score-a.score)||(b.ratings_count-a.ratings_count)||((parseInt(b.followers)||0)-(parseInt(a.followers)||0)); });
+    dir.forEach(function(c,i){ c.rank=i+1; });
+    let me=null;
+    if(qId) me = dir.find(function(c){ return String(c.id)===qId; });
+    if(!me && qU) me = dir.find(function(c){ return String(c.handle||'').replace(/^@/,'').toLowerCase()===qU; });
+    if(!me){ mk.innerHTML='<div class="nf">ما لقينا هذا المؤثر.<br><a href="/creators.html">تصفّح كل المؤثرين ←</a></div>'; return; }
+    render(me);
+  }catch(e){ console.error(e); mk.innerHTML='<div class="nf">صار خطأ في التحميل. حدّث الصفحة وحاول مرة ثانية.</div>'; }
+}
+init();
+
+</script>
+</body>
+</html>
