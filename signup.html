@@ -489,15 +489,15 @@ textarea { resize: vertical; min-height: 80px; }
   <div class="success-screen" id="success-creator">
     <div class="success-icon">✓</div>
     <h2>تم استلام طلبك!</h2>
-    <p>سيتم مراجعة حسابك وتأكيده من قبل فريق سيمبل. بنبلّغك عند تفعيل حسابك لتبدأ باستعراض الحملات.</p>
-    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('creator')">الدخول للمنصة</button>
+    <p id="success-creator-msg">أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتح الرسالة واضغط الرابط لتأكيد حسابك، ثم سيراجعه فريق سيمبل ويفعّله.</p>
+    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('creator')">فهمت، تابع</button>
   </div>
 
   <div class="success-screen" id="success-brand">
     <div class="success-icon">✓</div>
     <h2>تم استلام طلبكم!</h2>
-    <p>سيتم مراجعة حسابكم وتأكيده من قبل فريق سيمبل. بنبلّغكم عند تفعيل الحساب لتبدؤوا بإطلاق حملاتكم.</p>
-    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('brand')">الدخول للمنصة</button>
+    <p id="success-brand-msg">أرسلنا رابط تأكيد إلى بريدكم الإلكتروني. افتحوا الرسالة واضغطوا الرابط لتأكيد الحساب، ثم سيراجعه فريق سيمبل ويفعّله.</p>
+    <button class="btn-submit" style="max-width:300px;margin:0 auto" onclick="goToDashboard('brand')">فهمت، تابع</button>
   </div>
 </main>
 
@@ -557,7 +557,25 @@ async function submitForm(event, role) {
   }
 
   try {
-    // ١) إنشاء حساب المصادقة
+    // ١) فحص مبدئي: هل الإيميل موجود مسبقاً في جدول users؟
+    //    (خط دفاع أول — يكشف المكرر مبكراً قبل إنشاء حساب المصادقة، بقدر ما تسمح به سياسات الحماية)
+    try {
+      const { data: pre } = await supabaseClient
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      if (pre) {
+        throw new Error('EMAIL_EXISTS');
+      }
+    } catch (preErr) {
+      if (preErr && preErr.message === 'EMAIL_EXISTS') throw preErr;
+      // أي خطأ آخر في الفحص (مثل منع القراءة من RLS) نتجاهله — القاعدة هي الحَكَم النهائي
+    }
+
+    // ٢) إنشاء حساب المصادقة
+    //    مع تفعيل تأكيد الإيميل، Supabase يرجّع identities فاضية لكل إيميل،
+    //    لذلك لا نعتمد على identities إطلاقاً للكشف عن التكرار (كان يسبب رفض كل إيميل جديد).
     const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
       email,
       password
@@ -566,12 +584,6 @@ async function submitForm(event, role) {
     if (authErr) {
       console.error('Auth signUp error:', authErr);
       throw authErr;
-    }
-
-    // ٢) كشف الإيميل الموجود مسبقاً (سلوك Supabase v2 الآمن):
-    // لمّا الإيميل يكون موجود، يرجع نجاح وهمي مع identities فاضية
-    if (authData && authData.user && Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
-      throw new Error('EMAIL_EXISTS');
     }
 
     // ٣) ربط الملف الشخصي بحساب المصادقة
@@ -621,7 +633,19 @@ async function submitForm(event, role) {
     }
 
     // ٤) حفظ بيانات المستخدم في جدول users
-    const savedUser = await dbSignup(userData);
+    //    القاعدة هي الحَكَم النهائي للتكرار: لو عمود email فريد (unique)،
+    //    أي إيميل مكرر يُرفض هنا بخطأ duplicate نلتقطه ونعرضه برسالة واضحة.
+    let savedUser;
+    try {
+      savedUser = await dbSignup(userData);
+    } catch (dbErr) {
+      const dm = ((dbErr && dbErr.message) ? dbErr.message : '').toLowerCase();
+      const dc = (dbErr && dbErr.code) ? String(dbErr.code) : '';
+      if (dc === '23505' || dm.includes('duplicate') || dm.includes('unique')) {
+        throw new Error('EMAIL_EXISTS');
+      }
+      throw dbErr;
+    }
     saveCurrentUser(savedUser);
 
     document.getElementById('role-selection').style.display = 'none';
