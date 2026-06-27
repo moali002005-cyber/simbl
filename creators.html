@@ -318,6 +318,10 @@ function renderGrid(list){
   }).join('');
   if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
 }
+function openProfileById(id){
+  var arr=currentFiltered();
+  for(var i=0;i<arr.length;i++){ if(String(arr[i].id)===String(id)){ openProfile(i); return; } }
+}
 function openProfile(idx){
   var c=currentFiltered()[idx]; if(!c) return;
   var catLabel=CAT[c.category]||c.category||''; var platLabel=PLAT[c.platform]||c.platform||'';
@@ -373,6 +377,8 @@ async function init(){
       c.avg_communication=Number(t.avg_communication)||0; c.avg_results=Number(t.avg_results)||0;
     });
     applyFilters();
+    var _pid = new URLSearchParams(location.search).get('id');
+    if(_pid) openProfileById(_pid);
     if(window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
   }catch(err){
     console.error(err);
