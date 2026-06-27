@@ -1091,6 +1091,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   <!-- ============ TAB: INFO ============ -->
   <div id="tab-info" style="display:none;">
     <div id="info-list"></div>
+    <div id="tiktok-connect"></div>
   </div>
 </main>
 
@@ -1224,10 +1225,13 @@ async function init() {
   let approvalStatus = currentUser.approval_status;
   try {
     const { data: meRow } = await supabaseClient
-      .from('users').select('approval_status').eq('id', currentUser.id).maybeSingle();
-    if (meRow && meRow.approval_status) {
-      approvalStatus = meRow.approval_status;
-      currentUser.approval_status = approvalStatus;
+      .from('users').select('approval_status, tiktok_connected').eq('id', currentUser.id).maybeSingle();
+    if (meRow) {
+      if (meRow.approval_status) {
+        approvalStatus = meRow.approval_status;
+        currentUser.approval_status = approvalStatus;
+      }
+      currentUser.tiktok_connected = !!meRow.tiktok_connected;
       saveCurrentUser(currentUser);
     }
   } catch (e) { /* نعتمد القيمة المخزّنة عند تعذّر الجلب */ }
@@ -1237,6 +1241,9 @@ async function init() {
   }
 
   initNotifications('user-menu');
+
+  handleTiktokReturn();
+  renderTiktokConnect();
 
   await loadData();
 }
@@ -2298,6 +2305,49 @@ async function saveProfile(){
   } finally {
     btn.disabled = false; btn.textContent = orig;
   }
+}
+
+// ===== ربط تيك توك (سحب أرقام المنشورات تلقائيًا) =====
+function handleTiktokReturn(){
+  try {
+    var p = new URLSearchParams(window.location.search);
+    var tk = p.get('tiktok');
+    if (!tk) return;
+    if (tk === 'connected') {
+      if (currentUser) { currentUser.tiktok_connected = true; saveCurrentUser(currentUser); }
+      showToast('تم ربط تيك توك ✓');
+    } else if (tk === 'denied') {
+      showToast('أُلغي ربط تيك توك', 'error');
+    } else {
+      showToast('تعذّر ربط تيك توك، حاول مرة ثانية', 'error');
+    }
+    history.replaceState(null, '', window.location.pathname);
+  } catch (e) { /* تجاهل */ }
+}
+
+function connectTiktok(){
+  if (!currentUser || !currentUser.id) { showToast('سجّل الدخول أولاً', 'error'); return; }
+  window.location.href = 'https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/tiktok-auth-start?creator=' + encodeURIComponent(currentUser.id);
+}
+
+function renderTiktokConnect(){
+  var box = document.getElementById('tiktok-connect');
+  if (!box) return;
+  var connected = !!(currentUser && currentUser.tiktok_connected);
+  var card = '<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-top:14px;">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+    +   '<span style="width:34px;height:34px;border-radius:10px;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;">♪</span>'
+    +   '<div style="font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--ink);">تيك توك</div>'
+    + '</div>';
+  if (connected) {
+    card += '<div style="font-size:13px;color:var(--ink-soft);line-height:1.7;">حسابك مربوط — نسحب أرقام منشوراتك (مشاهدات/إعجابات/تعليقات) تلقائيًا ونعرضها للشركات اللي تعاملت معها.</div>'
+      + '<div style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;font-weight:600;color:var(--accent-ink);background:rgba(19,185,178,0.10);border:1px solid rgba(19,185,178,0.28);border-radius:100px;padding:6px 14px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></span>مربوط ✓</div>';
+  } else {
+    card += '<div style="font-size:13px;color:var(--ink-soft);line-height:1.7;">اربط حسابك مرة وحدة، ونسحب أرقام منشوراتك تلقائيًا (مشاهدات/إعجابات/تعليقات) ونعرضها للشركات. ما نشوف رسائلك الخاصة ولا نقدر ننشر باسمك.</div>'
+      + '<button type="button" onclick="connectTiktok()" style="margin-top:14px;background:var(--ink);color:#fff;border:0;padding:11px 22px;border-radius:100px;font-family:var(--font-body);font-size:13px;font-weight:600;cursor:pointer;">اربط تيك توك</button>';
+  }
+  card += '</div>';
+  box.innerHTML = card;
 }
 
 init();
