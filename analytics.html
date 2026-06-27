@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تحليلات الشركة — سيمبل</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#ffffff; --bg:#f6faf9; --ink:#0a0a0a; --ink-soft:#3a3a3a; --ink-muted:#6b6b6b;
+  --accent:#13B9B2; --accent-ink:#0c4f4b; --line:rgba(10,10,10,0.08); --gold:#E8B84B;
+  --font:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.7;-webkit-font-smoothing:antialiased;}
+.nav{background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;}
+.nav-inner{max-width:1100px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink);font-weight:600;font-size:15px;}
+.logo svg{width:34px;height:34px;}
+.btn-back{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--line);color:var(--ink);text-decoration:none;font-weight:500;font-size:13.5px;padding:9px 16px;border-radius:100px;transition:border-color .2s;}
+.btn-back:hover{border-color:var(--ink);}
+.wrap{max-width:1100px;margin:0 auto;padding:34px 24px 70px;}
+.head h1{font-size:27px;font-weight:800;margin-bottom:4px;}
+.head p{color:var(--ink-muted);font-size:14.5px;}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-ink);background:rgba(19,185,178,0.12);padding:4px 11px;border-radius:100px;font-weight:600;margin-top:10px;}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 1.6s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;margin-top:26px;}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px;}
+.kpi .lbl{font-size:13px;color:var(--ink-muted);margin-bottom:7px;display:flex;align-items:center;gap:7px;}
+.kpi .lbl svg{width:16px;height:16px;color:var(--accent);}
+.kpi .val{font-size:26px;font-weight:800;color:var(--accent-ink);line-height:1.1;font-variant-numeric:tabular-nums;}
+.kpi .val small{font-size:13px;font-weight:600;color:var(--ink-muted);}
+.kpi .sub{font-size:12px;color:var(--ink-muted);margin-top:4px;}
+.kpi.hl{background:linear-gradient(135deg,#0c4f4b,#13B9B2);border:none;}
+.kpi.hl .lbl,.kpi.hl .val,.kpi.hl .sub{color:#fff;}
+.kpi.hl .lbl svg{color:#fff;}
+.kpi.hl .val small{color:rgba(255,255,255,0.85);}
+.section-t{font-size:18px;font-weight:700;margin:40px 0 14px;display:flex;align-items:center;gap:9px;}
+.chart{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;}
+.bar-row{margin-bottom:15px;}
+.bar-row:last-child{margin-bottom:0;}
+.bar-top{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;margin-bottom:6px;}
+.bar-top .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%;}
+.bar-top .ct{color:var(--ink-muted);font-variant-numeric:tabular-nums;}
+.bar-track{height:13px;background:#eef1f1;border-radius:8px;overflow:hidden;position:relative;}
+.bar-fill{height:100%;background:#cfeae8;border-radius:8px;position:absolute;inset-inline-start:0;top:0;}
+.bar-done{height:100%;background:linear-gradient(90deg,#13B9B2,#0c4f4b);border-radius:8px;position:absolute;inset-inline-start:0;top:0;}
+.legend{display:flex;gap:18px;margin-top:16px;font-size:12.5px;color:var(--ink-muted);flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.ccard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;}
+.ccard-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;}
+.ccard-h .ct{font-weight:700;font-size:16px;}
+.ccard-h .meta{font-size:12px;color:var(--ink-muted);margin-top:2px;}
+.cbadge{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:100px;white-space:nowrap;}
+.cbadge.on{background:rgba(19,185,178,0.14);color:var(--accent-ink);}
+.cbadge.off{background:rgba(10,10,10,0.06);color:var(--ink-muted);}
+.cstats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 14px;}
+.cstat{}
+.cstat .n{font-size:19px;font-weight:800;color:var(--accent-ink);line-height:1;font-variant-numeric:tabular-nums;}
+.cstat .l{font-size:12px;color:var(--ink-muted);margin-top:3px;}
+.empty{background:#fff;border:1px dashed var(--line);border-radius:20px;padding:48px 24px;text-align:center;}
+.empty h3{font-size:18px;margin-bottom:8px;}
+.empty p{color:var(--ink-muted);font-size:14px;margin-bottom:20px;}
+.btn-primary{display:inline-flex;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:13px 26px;border-radius:100px;}
+.loading{text-align:center;color:var(--ink-muted);padding:60px 0;}
+@media(max-width:560px){
+  .wrap{padding:24px 16px 60px;}
+  .head h1{font-size:23px;}
+  .kpi .val{font-size:23px;}
+  .cstats{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/brand.html" class="logo">
+      <svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round"><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(25 100 100)"/><path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="9" transform="rotate(-25 100 100)"/><path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#fff" stroke="#13B9B2" stroke-width="7"/><circle cx="100" cy="100" r="8" fill="#0a0a0a"/></g></svg>
+      <span>سيمبل</span>
+    </a>
+    <a href="/brand.html" class="btn-back">→ لوحتي</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="head">
+    <h1>تحليلات الشركة</h1>
+    <p id="sub">نتائج حملاتك ومتعاونيك — أرقام حقيقية من حسابك.</p>
+    <div class="live"><i></i> بيانات مباشرة محدّثة</div>
+  </div>
+  <div id="content"><div class="loading">جاري تحميل بياناتك…</div></div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+function parseFollowers(v){
+  if(v==null) return 0;
+  if(typeof v==='number') return v;
+  var s=String(v).trim().replace(/,/g,'');
+  var m=s.match(/^([\d.]+)\s*([kKmM]?)/);
+  if(!m) return parseInt(s)||0;
+  var n=parseFloat(m[1])||0, u=(m[2]||'').toLowerCase();
+  if(u==='k') n*=1e3; if(u==='m') n*=1e6;
+  return Math.round(n);
+}
+function ar(n){ return Number(n||0).toLocaleString('ar-SA'); }
+function arReach(n){
+  n=Number(n||0);
+  if(n>=1e6) return (n/1e6).toLocaleString('ar-SA',{maximumFractionDigits:1})+' مليون';
+  if(n>=1e3) return (n/1e3).toLocaleString('ar-SA',{maximumFractionDigits:1})+' ألف';
+  return ar(n);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+var amount = function(a){ return Number(a.final_price||a.price||0); };
+var isCompleted = function(a){ return a.status==='closed' && a.brand_approved===true; };
+var isInProgress = function(a){ return a.brand_approved===true && ['closed','rejected','suspended'].indexOf(a.status)===-1; };
+
+async function init(){
+  try{ if(typeof tryRestoreSession==='function') await tryRestoreSession(); }catch(e){}
+  var user = (typeof getCurrentUser==='function') ? getCurrentUser() : null;
+  if(!user){ location.href='/login.html'; return; }
+  if(user.role!=='brand'){ location.href='/creator.html'; return; }
+
+  if(user.company_name){ document.getElementById('sub').textContent='نتائج حملات ' + user.company_name + ' — أرقام حقيقية من حسابك.'; }
+
+  var myCampaigns=[];
+  try{ myCampaigns = await dbGetMyCampaigns(user.id) || []; }catch(e){ myCampaigns=[]; }
+
+  var campIds = myCampaigns.map(function(c){return c.id;});
+  var allApps=[];
+  if(campIds.length){
+    try{
+      var res = await supabaseClient.from('applications')
+        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category)')
+        .in('campaign_id', campIds);
+      allApps = res.data || [];
+    }catch(e){ allApps=[]; }
+  }
+  var ratings=[];
+  try{
+    var rr = await supabaseClient.from('creator_ratings').select('stars').eq('brand_id', user.id);
+    ratings = rr.data || [];
+  }catch(e){ ratings=[]; }
+
+  render(myCampaigns, allApps, ratings);
+}
+
+function kpiCard(lbl, val, sub, icon, hl){
+  return '<div class="kpi'+(hl?' hl':'')+'">'
+    + '<div class="lbl">'+(icon||'')+lbl+'</div>'
+    + '<div class="val">'+val+'</div>'
+    + (sub?('<div class="sub">'+sub+'</div>'):'')+'</div>';
+}
+
+function render(camps, apps, ratings){
+  var box=document.getElementById('content');
+
+  if(!camps.length){
+    box.innerHTML='<div class="empty"><h3>ما عندك حملات بعد</h3>'
+      +'<p>أطلق أول حملة، وبيبدأ يظهر هنا أداء كل حملة ومتعاون بأرقام حقيقية.</p>'
+      +'<a href="/brand.html" class="btn-primary">أطلق حملة ←</a></div>';
+    return;
+  }
+
+  var completed = apps.filter(isCompleted);
+  var totalCampaigns = camps.length;
+  var activeCampaigns = camps.filter(function(c){return c.status!=='closed';}).length;
+  var totalApps = apps.length;
+  var completedCount = completed.length;
+  var inProgress = apps.filter(isInProgress).length;
+  var spend = completed.reduce(function(s,a){return s+amount(a);},0);
+  var paid = completed.filter(function(a){return a.payment_status==='confirmed';}).reduce(function(s,a){return s+amount(a);},0);
+  var reach = completed.reduce(function(s,a){return s+parseFollowers(a.users&&a.users.followers);},0);
+  var collaborators = (function(){ var set={}; completed.forEach(function(a){ if(a.creator_id) set[a.creator_id]=1; }); return Object.keys(set).length; })();
+  var avgRating = ratings.length ? (ratings.reduce(function(s,r){return s+Number(r.stars||0);},0)/ratings.length) : null;
+
+  var I = {
+    camp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg>',
+    apps:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v10H9l-4 4v-4H4z"/></svg>',
+    done:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l5 5L20 6"/></svg>',
+    prog:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>',
+    money:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    reach:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.2 6.8.9-5 4.7 1.3 6.8L12 17.8 5.7 21.3 7 14.5l-5-4.7 6.8-.9z"/></svg>'
+  };
+
+  var kpis='<div class="kpis">'
+    + kpiCard('الحملات', ar(totalCampaigns), 'منها '+ar(activeCampaigns)+' نشطة', I.camp)
+    + kpiCard('العروض المستلمة', ar(totalApps), 'من المؤثرين', I.apps)
+    + kpiCard('صفقات مكتملة', ar(completedCount), 'تمّت بنجاح', I.done)
+    + kpiCard('قيد التنفيذ', ar(inProgress), 'صفقات شغّالة', I.prog)
+    + kpiCard('إجمالي الإنفاق', ar(spend)+' <small>ر.س</small>', 'على الصفقات المكتملة', I.money, true)
+    + kpiCard('المدفوع فعليًا', ar(paid)+' <small>ر.س</small>', 'مؤكّد الدفع', I.money)
+    + kpiCard('إجمالي الوصول', arReach(reach), 'متابعون عبر المتعاونين', I.reach)
+    + kpiCard('المتعاونون', ar(collaborators), 'مؤثر تعاملت معهم', I.reach)
+    + kpiCard('متوسط تقييمك', avgRating!=null ? avgRating.toFixed(1)+' <small>★</small>' : '—', avgRating!=null?('من '+ar(ratings.length)+' تقييم'):'لا تقييمات بعد', I.star)
+    + '</div>';
+
+  // per-campaign
+  var rows = camps.map(function(c){
+    var ca = apps.filter(function(a){return a.campaign_id===c.id;});
+    var cDone = ca.filter(isCompleted);
+    return {
+      c:c, total:ca.length, done:cDone.length,
+      prog:ca.filter(isInProgress).length,
+      spend:cDone.reduce(function(s,a){return s+amount(a);},0),
+      reach:cDone.reduce(function(s,a){return s+parseFollowers(a.users&&a.users.followers);},0)
+    };
+  });
+
+  // chart: العروض لكل حملة (مع جزء المكتمل)
+  var maxApps = Math.max(1, Math.max.apply(null, rows.map(function(r){return r.total;})));
+  var chart='<div class="section-t">العروض لكل حملة</div><div class="chart">';
+  rows.forEach(function(r){
+    var w = Math.round(r.total/maxApps*100);
+    var wd = r.total? Math.round(r.done/r.total*w):0;
+    chart += '<div class="bar-row"><div class="bar-top"><span class="nm">'+esc(r.c.title||'حملة')+'</span>'
+      + '<span class="ct">'+ar(r.total)+' عرض · '+ar(r.done)+' مكتمل</span></div>'
+      + '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%"></div>'
+      + '<div class="bar-done" style="width:'+wd+'%"></div></div></div>';
+  });
+  chart += '<div class="legend"><span><i style="background:#cfeae8"></i> العروض المستلمة</span>'
+    + '<span><i style="background:linear-gradient(90deg,#13B9B2,#0c4f4b)"></i> الصفقات المكتملة</span></div></div>';
+
+  // per-campaign cards
+  var cards='<div class="section-t">تفصيل كل حملة</div><div class="cgrid">';
+  rows.forEach(function(r){
+    var on = r.c.status!=='closed';
+    cards += '<div class="ccard"><div class="ccard-h"><div>'
+      + '<div class="ct">'+esc(r.c.title||'حملة')+'</div>'
+      + '<div class="meta">'+esc(r.c.platform||'—')+(r.c.budget?(' · ميزانية '+ar(r.c.budget)+' ر.س'):'')+'</div></div>'
+      + '<span class="cbadge '+(on?'on':'off')+'">'+(on?'نشطة':'مغلقة')+'</span></div>'
+      + '<div class="cstats">'
+      +   '<div class="cstat"><div class="n">'+ar(r.total)+'</div><div class="l">عرض مستلم</div></div>'
+      +   '<div class="cstat"><div class="n">'+ar(r.prog)+'</div><div class="l">قيد التنفيذ</div></div>'
+      +   '<div class="cstat"><div class="n">'+ar(r.done)+'</div><div class="l">صفقة مكتملة</div></div>'
+      +   '<div class="cstat"><div class="n">'+arReach(r.reach)+'</div><div class="l">وصول</div></div>'
+      +   '<div class="cstat" style="grid-column:1/-1"><div class="n">'+ar(r.spend)+' <small style="font-size:12px;color:var(--ink-muted)">ر.س</small></div><div class="l">إنفاق على هذه الحملة</div></div>'
+      + '</div></div>';
+  });
+  cards += '</div>';
+
+  box.innerHTML = kpis + chart + cards;
+}
+
+init();
+</script>
+</body>
+</html>
