@@ -231,10 +231,10 @@ function render(c){
   const platLabel = PLAT[c.platform]||c.platform||'';
   const rank = c.rank;
   let rankBlock='';
-  if(rank<=3){
+  if(rank>=1 && rank<=3){
     rankBlock = '<div class="mk-medal">'+medallion(rank)+'</div>'
       + '<div class="mk-rank-t">'+['المركز الأول','المركز الثاني','المركز الثالث'][rank-1]+' على سيمبل هذا الأسبوع</div>';
-  } else if(rank<=100){
+  } else if(rank>=1 && rank<=100){
     rankBlock = '<div class="mk-rankpill">ضمن أفضل ١٠٠ مؤثر · المركز '+toArabic(rank)+'</div>';
   }
   document.getElementById('mk').innerHTML =
@@ -262,22 +262,33 @@ function render(c){
 
 async function init(){
   const mk = document.getElementById('mk');
+  const key = (qId || (params.get('u')||'')).trim();
+  if(!key){ mk.innerHTML='<div class="nf">رابط غير مكتمل.<br><a href="/creators.html">تصفّح كل المؤثرين ←</a></div>'; return; }
   try{
-    const [dirRes, trustRes] = await Promise.all([
-      supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url'),
-      supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating, avg_content, avg_punctuality, avg_communication, avg_results')
-    ]);
-    if(dirRes.error) throw dirRes.error;
-    const dir = dirRes.data||[];
-    const tmap={}; (trustRes.data||[]).forEach(function(t){ tmap[t.creator_id]=t; });
-    dir.forEach(function(c){ var t=tmap[c.id]||{}; c.deals_count=Number(t.deals_count)||0; c.ratings_count=Number(t.ratings_count)||0; c.avg_rating=Number(t.avg_rating)||0; c.avg_content=Number(t.avg_content)||0; c.avg_punctuality=Number(t.avg_punctuality)||0; c.avg_communication=Number(t.avg_communication)||0; c.avg_results=Number(t.avg_results)||0; c.score=trustScore(c); });
-    dir.sort(function(a,b){ return (b.score-a.score)||(b.ratings_count-a.ratings_count)||((parseInt(b.followers)||0)-(parseInt(a.followers)||0)); });
-    dir.forEach(function(c,i){ c.rank=i+1; });
-    let me=null;
-    if(qId) me = dir.find(function(c){ return String(c.id)===qId; });
-    if(!me && qU) me = dir.find(function(c){ return String(c.handle||'').replace(/^@/,'').toLowerCase()===qU; });
-    if(!me){ mk.innerHTML='<div class="nf">ما لقينا هذا المؤثر.<br><a href="/creators.html">تصفّح كل المؤثرين ←</a></div>'; return; }
-    render(me);
+    const profRes = await supabaseClient.rpc('public_creator', { p_key: key });
+    let prof = (profRes && profRes.data && profRes.data[0]) ? profRes.data[0] : null;
+    if(!prof){ mk.innerHTML='<div class="nf">ما لقينا هذا المؤثر.<br><a href="/creators.html">تصفّح كل المؤثرين ←</a></div>'; return; }
+    prof.deals_count=Number(prof.deals_count)||0; prof.ratings_count=Number(prof.ratings_count)||0; prof.avg_rating=Number(prof.avg_rating)||0;
+    prof.avg_content=Number(prof.avg_content)||0; prof.avg_punctuality=Number(prof.avg_punctuality)||0; prof.avg_communication=Number(prof.avg_communication)||0; prof.avg_results=Number(prof.avg_results)||0;
+    prof.score = trustScore(prof);
+
+    let rank = 0;
+    try{
+      const [dirRes, trustRes] = await Promise.all([
+        supabaseClient.from('creator_directory').select('id, followers'),
+        supabaseClient.from('creator_trust').select('creator_id, ratings_count, avg_rating, deals_count')
+      ]);
+      const dir = (dirRes.data||[]).slice();
+      const tmap={}; (trustRes.data||[]).forEach(function(t){ tmap[t.creator_id]=t; });
+      dir.forEach(function(c){ var t=tmap[c.id]||{}; c.ratings_count=Number(t.ratings_count)||0; c.avg_rating=Number(t.avg_rating)||0; c.deals_count=Number(t.deals_count)||0; c.score=trustScore(c); });
+      if(!dir.some(function(c){ return String(c.id)===String(prof.id); })){
+        dir.push({ id: prof.id, followers: prof.followers, ratings_count: prof.ratings_count, avg_rating: prof.avg_rating, deals_count: prof.deals_count, score: prof.score });
+      }
+      dir.sort(function(a,b){ return (b.score-a.score)||(b.ratings_count-a.ratings_count)||((parseInt(b.followers)||0)-(parseInt(a.followers)||0)); });
+      for(var i=0;i<dir.length;i++){ if(String(dir[i].id)===String(prof.id)){ rank=i+1; break; } }
+    }catch(e){ console.error('rank', e); }
+    prof.rank = rank;
+    render(prof);
   }catch(e){ console.error(e); mk.innerHTML='<div class="nf">صار خطأ في التحميل. حدّث الصفحة وحاول مرة ثانية.</div>'; }
 }
 init();
