@@ -313,6 +313,18 @@ body {
   </div>
 </section>
 
+<style>
+.tp-section{padding:40px 0 10px;background:linear-gradient(180deg,#f7fbfb,#eef6f5);}
+.tp-wrap{max-width:760px;margin:0 auto;}
+#topframe{width:100%;border:0;display:block;background:transparent;min-height:560px;}
+</style>
+<section class="tp-section" id="tp-section">
+  <div class="tp-wrap">
+    <iframe id="topframe" src="/top.html" title="أفضل المؤثرين على سيمبل" scrolling="no" loading="lazy"></iframe>
+  </div>
+</section>
+
+
 
 <script src="supabase-config.js"></script>
 <script>
@@ -442,6 +454,24 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
   } catch (err) {
     console.error('UI update failed:', err);
   }
+})();
+</script>
+
+
+<script>
+(function(){
+  var f=document.getElementById('topframe'); if(!f) return;
+  function fit(){
+    try{
+      var d=f.contentDocument||(f.contentWindow&&f.contentWindow.document); if(!d||!d.body) return;
+      var nav=d.querySelector('nav'); if(nav) nav.style.display='none';
+      d.documentElement.style.background='transparent'; d.body.style.background='transparent';
+      var h=Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
+      if(h>120) f.style.height=(h+24)+'px';
+    }catch(e){}
+  }
+  f.addEventListener('load', function(){ fit(); var n=0; var iv=setInterval(function(){ fit(); if(++n>16) clearInterval(iv); }, 450); });
+  window.addEventListener('resize', fit);
 })();
 </script>
 
