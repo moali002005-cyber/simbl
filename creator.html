@@ -1283,15 +1283,6 @@ function mtStars(c){ var r=Number(c.ratings_count)||0, dr=mtDisplayRating(c), fu
 function mtCritSeed(id,key){ return 4.2+(mtHash(key+':'+id)%8)/10; }
 function mtCritBars(c){ var r=Number(c.ratings_count)||0; var crits=[['جودة المحتوى','content',c.avg_content],['الالتزام بالمواعيد','punct',c.avg_punctuality],['التواصل والاحترافية','comm',c.avg_communication],['النتائج والتفاعل','res',c.avg_results]]; return crits.map(function(it){ var seed=mtCritSeed(c.id,it[1]); var real=Number(it[2])||0; var v=r>0?(MT_PS*seed+real*r)/(MT_PS+r):seed; var pct=Math.max(0,Math.min(100,(v/5)*100)); return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span><span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span><span class="cbar-val">'+v.toFixed(1)+'</span></div>'; }).join(''); }
 
-// تصنيف الشرق الأوسط: رقم كبير ثابت لكل مؤثر يحاكي آلاف المعلنين (يُستبدل لاحقًا ببيانات حقيقية)
-var REGION_POOL=12000;
-function mtRegional(c){
-  var sc=Number(c.score); if(!sc) sc=mtTrustScore(c);
-  var base=Math.round((1-sc/100)*REGION_POOL);        // أعلى درجة = رقم أقل (أفضل)
-  var jitter=(mtHash(String(c.id)+'mena')%600)-250;   // تشتيت ثابت لكل مؤثر
-  return Math.max(8, base+jitter);
-}
-
 async function loadMyTrust(){
   var box=document.getElementById('my-trust'); if(!box||!currentUser) return;
   try{
@@ -1313,7 +1304,7 @@ async function loadMyTrust(){
     }
     var rank=0; for(var i=0;i<dir.length;i++){ if(dir[i].id===currentUser.id){ rank=i+1; break; } }
     var total=dir.length;
-    var regional = mtRegional(me);
+    var regional = rank; // الشرق الأوسط حاليًا = نفس الترتيب المحلي (كل المؤثرين من السعودية)، ويتوسّع مع انضمام دول أخرى
     box.innerHTML='<div class="mt-card">'
       + '<div class="mt-rankbig">'
       +   '<div class="mt-rank-local">أنت رقم <b>'+toArabic(rank)+'</b><span>في التصنيف المحلي</span></div>'

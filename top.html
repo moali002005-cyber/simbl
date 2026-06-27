@@ -383,7 +383,6 @@ async function init(){
 
     // أفضل 500 + ترقيم
     RANKED = creators.slice(0, 500).map((c, i) => { c.rank = i + 1; return c; });
-    RANKED.forEach(c => { c.regional = regionalRank(c); });
 
     applyFilters();
   }catch(err){
@@ -435,13 +434,7 @@ function applyFilters(){
 
 const CROWN_SVG = '<svg viewBox="0 0 100 72"><path d="M8 62 L17 24 L34 46 L50 10 L66 46 L83 24 L92 62 Z" fill="#E8B84B" stroke="#C2901F" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="10" r="6" fill="#F6DC8A"/><circle cx="17" cy="24" r="5" fill="#F6DC8A"/><circle cx="83" cy="24" r="5" fill="#F6DC8A"/><rect x="8" y="60" width="84" height="9" rx="3" fill="#C2901F"/></svg>';
 const STAR_SVG = '<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.2 6.8.9-5 4.7 1.3 6.8L12 17.8 5.7 21.3 7 14.5l-5-4.7 6.8-.9z" fill="currentColor"/></svg>';
-const REGION_POOL = 12000;
-function regionalRank(c){
-  const sc = Number(c.score) || trustScore(c);
-  const base = Math.round((1 - sc/100) * REGION_POOL);
-  const jitter = (hashId(String(c.id)+'mena') % 600) - 250;
-  return Math.max(8, base + jitter);
-}
+
 function setScope(s){
   scope = s;
   document.querySelectorAll('.scope-tab').forEach(t=>t.classList.toggle('active', t.dataset.scope===s));
@@ -455,10 +448,8 @@ function medallion(r){
 function render(list){
   const el = document.getElementById('list');
   const ct = document.getElementById('count-text');
-  const isSa = scope === 'sa';
   let rows = list;
-  if (!isSa) rows = list.slice().sort((a,b)=> a.regional - b.regional);
-  if (ct) ct.textContent = isSa ? 'أفضل ٥٠٠ مؤثر محليًا' : 'ترتيبك بين آلاف المؤثرين في الشرق الأوسط';
+  if (ct) ct.textContent = (scope === 'sa') ? 'أفضل ٥٠٠ مؤثر محليًا' : 'أفضل ٥٠٠ مؤثر في الشرق الأوسط';
 
   if (!rows.length){
     el.innerHTML = '<div class="empty"><div class="ic">○</div><h3>لا يوجد مطابقون</h3><p>جرّب تغيير الفلاتر أو البحث</p></div>';
@@ -468,14 +459,12 @@ function render(list){
   el.innerHTML = rows.map(c=>{
     const r = c.rank;
     let itemCls = 'titem';
-    if (isSa && r <= 3) itemCls += ' podium rank' + r;
-    else if (isSa && r <= 10) itemCls += ' elite';
+    if (r <= 3) itemCls += ' podium rank' + r;
+    else if (r <= 10) itemCls += ' elite';
     const catLabel = CAT[c.category]||c.category||'';
     const platLabel = PLAT[c.platform]||c.platform||'';
-    const avSize = (isSa && r <= 3) ? 56 : 48;
-    const rankEl = (isSa && r <= 3)
-      ? medallion(r)
-      : '<div class="rank'+(isSa?'':' rank-mena')+'">'+(isSa ? toArabic(r) : ('#'+toArabic(c.regional)))+'</div>';
+    const avSize = r <= 3 ? 56 : 48;
+    const rankEl = r <= 3 ? medallion(r) : '<div class="rank">'+toArabic(r)+'</div>';
     return '<div class="'+itemCls+'" id="ti-'+escHtml(c.id)+'">'
       + '<div class="trow" onclick="goProfile(\''+escHtml(c.id)+'\')">'
       + rankEl
