@@ -15,6 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/translations.js"></script>
 <script src="/i18n.js"></script>
 <style>
@@ -2623,6 +2624,38 @@ function renderDealRow(a, idx) {
   `;
 }
 
+// ============ شيت بيانات التوصيل للحملة (إكسل) ============
+// يجمع المعلنين اللي عبّؤوا عنوانهم (مرحلة العنوان فأعلى): الاسم + الجوال + العنوان
+function getDeliveryRows(campaignId) {
+  const apps = campaignApps[campaignId] || [];
+  const rows = [];
+  apps.forEach(a => {
+    const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+    const s1 = sd[1] || sd['1'] || {};
+    if (s1.address || s1.phone) {
+      const creator = a.users || {};
+      rows.push({ name: creator.name || 'معلن', phone: s1.phone || '', address: s1.address || '' });
+    }
+  });
+  return rows;
+}
+
+function downloadDeliveryExcel(campaignId) {
+  const rows = getDeliveryRows(campaignId);
+  if (rows.length === 0) { showToast('ما فيه بيانات توصيل بعد', 'error'); return; }
+  if (typeof XLSX === 'undefined') { showToast('جاري تحميل أداة الإكسل، حاول بعد لحظة', 'error'); return; }
+  const camp = (myCampaigns || []).find(c => c.id === campaignId);
+  const campTitle = (camp && camp.title) ? camp.title : 'حملة';
+  const aoa = [['#', 'اسم المعلن', 'رقم التواصل', 'عنوان التوصيل']];
+  rows.forEach((r, i) => aoa.push([i + 1, r.name, r.phone, r.address]));
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 5 }, { wch: 22 }, { wch: 18 }, { wch: 45 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'التوصيل');
+  const safeName = campTitle.replace(/[\\/:*?"<>|]/g, '_').slice(0, 40);
+  XLSX.writeFile(wb, 'توصيل_' + safeName + '.xlsx');
+}
+
 function renderSingleCampaign(c) {
     const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
@@ -2655,6 +2688,10 @@ function renderSingleCampaign(c) {
               </button>
             </div>
           </div>
+        </div>
+
+        <div style="margin:-2px 0 14px;">
+          <button class="hero-cta" style="padding:10px 18px;font-size:13px;background:#1D9E75;" onclick="downloadDeliveryExcel('${c.id}')">📥 الإكسل الخاص بالتوصيل</button>
         </div>
 
         ${apps.length > 0 ? `
