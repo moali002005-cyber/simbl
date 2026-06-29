@@ -2628,21 +2628,19 @@ function renderDealRow(a, idx) {
 // يجمع المعلنين اللي عبّؤوا عنوانهم (مرحلة العنوان فأعلى): الاسم + الجوال + العنوان
 function getDeliveryRows(campaignId) {
   const apps = campaignApps[campaignId] || [];
-  const rows = [];
-  apps.forEach(a => {
+  // كل المعلنين بنفس ترتيب الجدول؛ اللي ما عبّأ عنوان يطلع صفه فاضي
+  return apps.map(a => {
     const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
     const s1 = sd[1] || sd['1'] || {};
-    if (s1.address || s1.phone) {
-      const creator = a.users || {};
-      rows.push({ name: creator.name || 'معلن', phone: s1.phone || '', address: s1.address || '' });
-    }
+    const creator = a.users || {};
+    return { name: creator.name || 'معلن', phone: s1.phone || '', address: s1.address || '' };
   });
-  return rows;
 }
 
 function downloadDeliveryExcel(campaignId) {
   const rows = getDeliveryRows(campaignId);
-  if (rows.length === 0) { showToast('ما فيه بيانات توصيل بعد', 'error'); return; }
+  const hasAny = rows.some(r => r.address || r.phone);
+  if (!hasAny) { showToast('ما فيه بيانات توصيل بعد', 'error'); return; }
   if (typeof XLSX === 'undefined') { showToast('جاري تحميل أداة الإكسل، حاول بعد لحظة', 'error'); return; }
   const camp = (myCampaigns || []).find(c => c.id === campaignId);
   const campTitle = (camp && camp.title) ? camp.title : 'حملة';
