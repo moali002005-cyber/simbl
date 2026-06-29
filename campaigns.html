@@ -395,6 +395,20 @@ body {
   margin-bottom: 6px; letter-spacing: -0.3px;
 }
 .campaign-row .desc { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+.brief-trigger {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--cream-darker); color: var(--ink-soft);
+  border: 1px solid var(--line);
+  padding: 9px 16px; border-radius: 100px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  cursor: pointer; margin: 6px 0 2px;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.brief-trigger:hover {
+  background: rgba(19,185,178,0.06);
+  border-color: rgba(19,185,178,0.4);
+  color: var(--accent-ink);
+}
 
 .campaign-meta { display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted); flex-wrap: wrap; margin-top: 12px; }
 .campaign-meta strong { color: var(--ink); font-weight: 500; }
@@ -1743,6 +1757,19 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
   </div>
 </div>
 
+<!-- نافذة عرض البريف الإعلاني -->
+<div class="modal-backdrop" id="brief-modal">
+  <div class="modal" style="max-width: 600px">
+    <h3 id="brief-modal-title">البريف الإعلاني</h3>
+    <p class="sub">نص البريف الكامل للحملة — تقدر تنسخه كامل.</p>
+    <div class="brief-content expanded" id="brief-modal-content" style="max-height:55vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeBriefModal()">إغلاق</button>
+      <button type="button" class="btn-primary" id="brief-modal-copy" onclick="copyBriefModal()">📋 نسخ البريف</button>
+    </div>
+  </div>
+</div>
+
 <script src="supabase-config.js"></script>
 <script src="notifications.js"></script>
 <script>
@@ -2364,6 +2391,35 @@ function toggleBrief(id, btn) {
   btn.textContent = isExpanded ? 'إخفاء ↑' : 'قراءة المزيد ↓';
 }
 
+// ============ نافذة عرض البريف الإعلاني ============
+function openBriefModal(campaignId) {
+  const camp = (myCampaigns || []).find(c => c.id === campaignId);
+  if (!camp) return;
+  const titleEl = document.getElementById('brief-modal-title');
+  const contentEl = document.getElementById('brief-modal-content');
+  if (titleEl) titleEl.textContent = camp.title || 'البريف الإعلاني';
+  if (contentEl) contentEl.textContent = camp.description || 'لا يوجد بريف لهذه الحملة.';
+  document.getElementById('brief-modal').classList.add('show');
+}
+function closeBriefModal() {
+  document.getElementById('brief-modal').classList.remove('show');
+}
+function copyBriefModal() {
+  const contentEl = document.getElementById('brief-modal-content');
+  const btn = document.getElementById('brief-modal-copy');
+  if (!contentEl) return;
+  const text = contentEl.textContent || '';
+  const done = () => {
+    if (btn) { const o = btn.textContent; btn.textContent = '✓ تم النسخ'; setTimeout(() => { btn.textContent = o; }, 1500); }
+    showToast('تم نسخ البريف');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
 // ============ Swipe-to-approve handler ============
 let activeSwipe = null;
 
@@ -2752,7 +2808,7 @@ function renderSingleCampaign(c) {
         <div class="top">
           <div>
             <h3>${c.title}</h3>
-            <p class="desc">${c.description}</p>
+            <button class="brief-trigger" onclick="openBriefModal('${c.id}')">📋 عرض البريف الإعلاني</button>
             <div class="campaign-meta">
               <span><strong>الميزانية للمعلن الواحد:</strong> ${c.budget} ر.س</span>
               ${c.publish_timing ? `<span><strong>موعد النشر:</strong> ${publishTimingText(c)}</span>` : ''}
