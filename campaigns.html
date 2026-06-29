@@ -437,6 +437,20 @@ body {
   font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;
 }
 .camp-complete-banner .ccb-desc { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+.app-del-btn {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(201,48,48,0.25);
+  background: #fff;
+  color: #c93030;
+  font-size: 16px; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.app-del-btn:hover { background: #c93030; color: #fff; border-color: #c93030; }
 
 .campaign-meta { display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted); flex-wrap: wrap; margin-top: 12px; }
 .campaign-meta strong { color: var(--ink); font-weight: 500; }
@@ -1769,6 +1783,18 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
   </div>
 </div>
 
+<!-- نافذة تأكيد حذف معلن من الشيت -->
+<div class="modal-backdrop" id="app-delete-modal">
+  <div class="modal" style="max-width: 460px">
+    <h3>حذف المعلن من الشيت</h3>
+    <p class="sub" id="app-delete-sub">متأكد من حذف هذا المعلن من الحملة؟ سيُحذف عرضه ومحادثة التفاوض نهائيًا، ولن يمكن التراجع.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeAppDelete()">إلغاء</button>
+      <button type="button" class="btn-primary btn-danger" id="app-delete-btn" onclick="confirmDeleteApplication()">حذف نهائي</button>
+    </div>
+  </div>
+</div>
+
 <!-- نافذة رفض المعلن مع كتابة السبب -->
 <div class="modal-backdrop" id="reject-modal">
   <div class="modal" style="max-width: 480px">
@@ -2669,6 +2695,56 @@ function closeRejectModal() {
   if (modal) modal.classList.remove('show');
 }
 
+// ============ حذف معلن (عرض) من الشيت ============
+let deletingAppId = null;
+function askDeleteApplication(applicationId) {
+  deletingAppId = applicationId;
+  const { app } = findAppById(applicationId);
+  const name = (app && app.users && app.users.name) ? app.users.name : 'هذا المعلن';
+  const sub = document.getElementById('app-delete-sub');
+  if (sub) sub.innerHTML = `متأكد من حذف "<strong>${escHtml(name)}</strong>" من الحملة؟ سيُحذف عرضه ومحادثة التفاوض نهائيًا، ولن يمكن التراجع.`;
+  const modal = document.getElementById('app-delete-modal');
+  if (modal) modal.classList.add('show');
+}
+function closeAppDelete() {
+  deletingAppId = null;
+  const modal = document.getElementById('app-delete-modal');
+  if (modal) modal.classList.remove('show');
+}
+async function confirmDeleteApplication() {
+  if (!deletingAppId) return;
+  const id = deletingAppId;
+  const btn = document.getElementById('app-delete-btn');
+  const original = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري الحذف...'; }
+  try {
+    // احذف محادثات التفاوض المرتبطة أولًا (أفضل جهد)
+    try { await supabaseClient.from('negotiations').delete().eq('application_id', id); }
+    catch (e) { console.warn('negotiations delete warning:', e); }
+
+    const { data: deleted, error } = await supabaseClient
+      .from('applications')
+      .delete()
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    if (!deleted || deleted.length === 0) {
+      throw new Error('لم يتم الحذف. تحقق من سياسات الحماية (RLS) في Supabase.');
+    }
+
+    closeAppDelete();
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    // إذا كان هو المعروض تفاصيله، اقفل التوسيع
+    if (expandedAppId === id) { expandedAppId = null; expandedCellStage = null; }
+    showToast('تم حذف المعلن من الشيت.');
+    await loadData();
+  } catch (err) {
+    console.error('Delete application error:', err);
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    showToast('حصل خطأ أثناء الحذف: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
 async function confirmReject() {
   if (!rejectingAppId) return;
   const id = rejectingAppId;
@@ -2874,7 +2950,7 @@ function renderDealRow(a, idx) {
   return `
     <tr id="ac-${a.id}">
       <td class="mx-idx">${toArabic(idx + 1)}</td>
-      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);">${nameHtml}</span></div></td>
+      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);flex:1;min-width:0;">${nameHtml}</span><button class="app-del-btn" title="حذف هذا المعلن من الشيت" onclick="event.stopPropagation(); askDeleteApplication('${a.id}')">×</button></div></td>
       ${cells}
     </tr>
     ${detail}
