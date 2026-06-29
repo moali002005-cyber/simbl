@@ -409,6 +409,34 @@ body {
   border-color: rgba(19,185,178,0.4);
   color: var(--accent-ink);
 }
+.tab-done {
+  background: rgba(19,185,178,0.14); color: var(--accent-ink);
+  font-size: 10px; font-weight: 600; padding: 2px 9px; border-radius: 100px;
+  white-space: nowrap;
+}
+.camp-count {
+  display: inline-block; margin-inline-start: 4px;
+  font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 100px;
+  background: var(--cream-darker); color: var(--ink-muted);
+}
+.camp-count.full { background: rgba(19,185,178,0.14); color: var(--accent-ink); }
+.campaign-row.is-complete { border-color: rgba(19,185,178,0.4); }
+.camp-complete-banner {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: rgba(19,185,178,0.06);
+  border: 1px solid rgba(19,185,178,0.3);
+  border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;
+}
+.camp-complete-banner .ccb-ic {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700;
+}
+.camp-complete-banner .ccb-title {
+  font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;
+}
+.camp-complete-banner .ccb-desc { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
 
 .campaign-meta { display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted); flex-wrap: wrap; margin-top: 12px; }
 .campaign-meta strong { color: var(--ink); font-weight: 500; }
@@ -2026,7 +2054,13 @@ async function loadData() {
     }
     campaignApps = {};
     myCampaigns.forEach(c => { campaignApps[c.id] = []; });
-    allApps.forEach(a => { (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a); });
+    allApps.forEach(a => {
+      if (a.status === 'campaign_full') return; // تفاوض متوقف لاكتمال الحملة — لا يظهر في الشيت
+      (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a);
+    });
+
+    // إقفال أي حملة اكتمل عددها المطلوب تلقائيًا قبل العرض
+    await autoCompleteCampaigns();
 
     updateHeroStats();
     renderCampaigns();
@@ -2035,6 +2069,83 @@ async function loadData() {
     console.error(err);
     document.getElementById('campaigns-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--accent)">حصل خطأ في التحميل. حدّث الصفحة.</div>';
   }
+}
+
+// ====== عدّ الصفقات المعتمدة + الإقفال التلقائي عند اكتمال العدد المطلوب ======
+// يُحسب ضمن العدد: الصفقة المقفلة والمعتمدة من الشركة فقط (status='closed' + brand_approved=true)
+function approvedDealCount(campaignId) {
+  const apps = campaignApps[campaignId] || [];
+  return apps.filter(a => a.status === 'closed' && a.brand_approved === true).length;
+}
+function campaignTarget(c) {
+  const n = parseInt(c && c.campaign_size, 10);
+  return (!isNaN(n) && n > 0) ? n : 0;
+}
+function isCampaignComplete(c) {
+  if (!c) return false;
+  if (c.status === 'closed') return true;
+  const target = campaignTarget(c);
+  return target > 0 && approvedDealCount(c.id) >= target;
+}
+async function autoCompleteCampaigns() {
+  const toClose = (myCampaigns || []).filter(c => {
+    if (!c || c.status === 'closed') return false;
+    const t = campaignTarget(c);
+    return t > 0 && approvedDealCount(c.id) >= t;
+  });
+  if (!toClose.length) return;
+  await Promise.all(toClose.map(async c => {
+    try {
+      const { data, error } = await supabaseClient
+        .from('campaigns')
+        .update({ status: 'closed' })
+        .eq('id', c.id)
+        .select();
+      if (!error && data && data.length) {
+        c.status = 'closed'; // حدّث النسخة المحلية فورًا
+        await stopOpenNegotiations(c); // أوقف تفاوض من لم يلحق + أشعرهم
+      }
+    } catch (e) { console.error('auto-close failed:', e); }
+  }));
+}
+
+// إيقاف العروض اللي لسّه قيد التفاوض/المراجعة عند اكتمال الحملة، وإخفاؤها + إشعار أصحابها
+async function stopOpenNegotiations(campaign) {
+  const apps = campaignApps[campaign.id] || [];
+  const open = apps.filter(a => a.status === 'pending' || a.status === 'active');
+  if (!open.length) return;
+  const ids = open.map(a => a.id);
+  try {
+    const { error } = await supabaseClient
+      .from('applications')
+      .update({
+        status: 'campaign_full',
+        rejection_reason: 'اكتمل العدد المطلوب للحملة',
+        rejected_at: new Date().toISOString()
+      })
+      .in('id', ids);
+    if (error) { console.error('stop negotiations failed:', error); return; }
+
+    // أزِلهم من العرض محليًا فورًا
+    campaignApps[campaign.id] = apps.filter(a => a.status !== 'pending' && a.status !== 'active');
+
+    // إشعار كل معلن لم يلحق
+    const title = '🎯 اكتملت الحملة';
+    const body = `${campaign.title || 'الحملة'}: اكتمل العدد المطلوب من المعلنين، ولم يعد فيها مكان حالياً. نشكر اهتمامك ونتمنى نتعامل معك في حملة قادمة 🌿`;
+    const targets = open.map(a => a.creator_id).filter(Boolean);
+    open.forEach(a => {
+      if (a.creator_id) {
+        createNotification(a.creator_id, 'campaign_full', title, body, '/creator.html').catch(console.error);
+      }
+    });
+    if (targets.length) {
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body, url: '/creator.html', target_users: targets })
+      }).catch(console.error);
+    }
+  } catch (e) { console.error('stop negotiations error:', e); }
 }
 
 function updateHeroStats() {
@@ -2313,7 +2424,8 @@ function renderCampaigns() {
       const hasAwaitingApproval = apps.some(a => a.status === 'closed' && !a.brand_approved);
       const hasActiveNegotiation = apps.some(a => a.status === 'pending' || a.status === 'active');
       let dot = '';
-      if (hasAwaitingApproval) dot = '<span class="tab-dot warn"></span>';
+      if (isCampaignComplete(c)) dot = '<span class="tab-done">✓ مكتملة</span>';
+      else if (hasAwaitingApproval) dot = '<span class="tab-dot warn"></span>';
       else if (hasActiveNegotiation) dot = '<span class="tab-dot live"></span>';
       const totalApps = apps.length;
       const isActive = c.id === selectedCampaignId;
@@ -2802,9 +2914,22 @@ function downloadDeliveryExcel(campaignId) {
 function renderSingleCampaign(c) {
     const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
+    const target = campaignTarget(c);
+    const approved = approvedDealCount(c.id);
+    const complete = isCampaignComplete(c);
+
+    const completeBanner = complete ? `
+        <div class="camp-complete-banner">
+          <span class="ccb-ic">✓</span>
+          <div>
+            <div class="ccb-title">الحملة مكتملة — اكتمل العدد المطلوب</div>
+            <div class="ccb-desc">${target ? `وصلت الحملة لعددها المطلوب (${toArabic(approved)} من ${toArabic(target)} معلن معتمد). أُقفلت تلقائيًا وما عاد يقدر أحد يدخلها.` : 'الحملة مقفلة وما عاد يقدر أحد يدخلها.'}</div>
+          </div>
+        </div>` : '';
 
     return `
-      <div class="campaign-row">
+      <div class="campaign-row${complete ? ' is-complete' : ''}">
+        ${completeBanner}
         <div class="top">
           <div>
             <h3>${c.title}</h3>
@@ -2814,7 +2939,7 @@ function renderSingleCampaign(c) {
               ${c.publish_timing ? `<span><strong>موعد النشر:</strong> ${publishTimingText(c)}</span>` : ''}
               ${c.platform ? `<span><strong>المنصة:</strong> ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
               ${c.follower_range ? `<span><strong>المتابعين:</strong> ${followerRangeText(c)}</span>` : ''}
-              ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن</span>` : ''}
+              ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن <span class="camp-count ${complete ? 'full' : ''}">${toArabic(approved)}/${toArabic(target)} معتمد</span></span>` : ''}
               ${c.city ? `<span><strong>المدينة:</strong> ${CITY_LABELS[c.city] || c.city}</span>` : ''}
             </div>
           </div>

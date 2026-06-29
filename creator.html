@@ -1182,6 +1182,7 @@ let allCampaigns = [];
 let myApplications = [];
 let currentFilter = 'all';
 let expandedAppId = null;
+let campaignApprovedCount = {}; // عدد الصفقات المعتمدة لكل حملة (أفضل جهد — قد تحدّه سياسات الحماية)
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
@@ -1433,6 +1434,7 @@ async function loadData() {
       dbGetCampaigns(),
       dbGetMyApplications(currentUser.id)
     ]);
+    await loadCampaignApprovedCounts();
     updateHeroStats();
     renderUnified();
   } catch (err) {
@@ -1441,8 +1443,46 @@ async function loadData() {
   }
 }
 
+// ====== اكتمال الحملة: إخفاء الحملات المكتملة ومنع الدخول ======
+// يُحسب ضمن العدد: الصفقة المقفلة والمعتمدة من الشركة فقط
+async function loadCampaignApprovedCounts() {
+  campaignApprovedCount = {};
+  try {
+    const ids = (allCampaigns || []).map(c => c.id);
+    if (!ids.length) return;
+    // أفضل جهد: قد تحدّ سياسات الحماية (RLS) رؤية عروض الآخرين — وفي هذه الحالة نعتمد على حالة الحملة (status)
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .select('campaign_id')
+      .eq('status', 'closed')
+      .eq('brand_approved', true)
+      .in('campaign_id', ids);
+    if (error) return;
+    (data || []).forEach(a => {
+      campaignApprovedCount[a.campaign_id] = (campaignApprovedCount[a.campaign_id] || 0) + 1;
+    });
+  } catch (e) { /* صامت — نعتمد على status */ }
+}
+
+function campaignTargetSize(c) {
+  const n = parseInt(c && c.campaign_size, 10);
+  return (!isNaN(n) && n > 0) ? n : 0;
+}
+// الحملة مكتملة لو: الشركة أقفلتها (status) أو وصل عدد المعتمدين للحد (لو كان مقروءًا)
+function campaignIsFull(c) {
+  if (!c) return false;
+  if (c.status === 'closed' || c.status === 'completed') return true;
+  const target = campaignTargetSize(c);
+  if (!target) return false;
+  return (campaignApprovedCount[c.id] || 0) >= target;
+}
+// عرض متوقف/منتهٍ لا يظهر للمعلن (مرفوض يدويًا أو متوقف لاكتمال الحملة)
+function isDeadApp(a) {
+  return !a || a.status === 'rejected' || a.status === 'campaign_full';
+}
+
 function updateHeroStats() {
-  const activeApps = myApplications.filter(a => a.status !== 'rejected').length;
+  const activeApps = myApplications.filter(a => !isDeadApp(a)).length;
   const hs = document.getElementById('hero-status'); if (hs) hs.textContent = offersWaitingLabel(activeApps);
   const hc = document.getElementById('hero-app-count'); if (hc) hc.textContent = toArabic(activeApps);
 }
@@ -1511,21 +1551,21 @@ function renderUnified() {
 
   // ===== صفقاتي: كل التطبيقات (غير مرفوضة) — مستقلة عن التصنيف =====
   const allCampIds = new Set(allCampaigns.map(c => c.id));
-  const appliedCampIds = new Set(myApplications.filter(a => a.status !== 'rejected').map(a => a.campaign_id));
+  const appliedCampIds = new Set(myApplications.filter(a => !isDeadApp(a)).map(a => a.campaign_id));
 
   const appliedItems = [];
   allCampaigns.forEach(c => {
-    const myApp = myApplications.find(a => a.status !== 'rejected' && a.campaign_id === c.id);
+    const myApp = myApplications.find(a => !isDeadApp(a) && a.campaign_id === c.id);
     if (myApp) appliedItems.push({ c, myApp });
   });
-  const directOffers = myApplications.filter(a => a.status !== 'rejected' && !allCampIds.has(a.campaign_id) && a.campaigns);
+  const directOffers = myApplications.filter(a => !isDeadApp(a) && !allCampIds.has(a.campaign_id) && a.campaigns);
   directOffers.forEach(a => appliedItems.unshift({ c: a.campaigns, myApp: a }));
 
   // ===== عروض متاحة: حسب التصنيف، وما قدّمت عليها =====
   const filtered = currentFilter === 'all'
     ? allCampaigns
     : allCampaigns.filter(c => c.brand_industry === currentFilter);
-  const openItems = filtered.filter(c => !appliedCampIds.has(c.id)).map(c => ({ c }));
+  const openItems = filtered.filter(c => !appliedCampIds.has(c.id) && !campaignIsFull(c)).map(c => ({ c }));
 
   const myDeals = document.getElementById('my-deals');
 
@@ -1623,7 +1663,7 @@ function renderOfferCard(c, a) {
   const isClosed = a.status === 'closed';
   const isApproved = isClosed && a.brand_approved === true;
   const awaitingApproval = isClosed && !isApproved;
-  const isNegotiating = !isClosed && a.status !== 'rejected';
+  const isNegotiating = !isClosed && !isDeadApp(a);
   const statusLabels = { pending: 'قيد المراجعة', active: 'تفاوض نشط', closed: 'مقفلة', rejected: 'مرفوضة' };
   const statusKey = awaitingApproval ? 'pending_approval' : a.status;
   const statusLabel = awaitingApproval ? '⏳ بانتظار التعميد' : statusLabels[a.status];
@@ -2152,7 +2192,46 @@ async function enterNegotiation(campaignId, btn) {
   const existingApp = myApplications.find(a => a.campaign_id === campaignId);
   if (existingApp) { startNegotiation(existingApp.id); return; }
 
+  // منع الدخول لو الحملة مكتملة (تحقق محلي سريع)
+  if (campaignIsFull(campaign)) {
+    showToast('الحملة مكتملة — اكتمل العدد المطلوب.', 'error');
+    await loadData();
+    return;
+  }
+
   if (btn) { btn.disabled = true; btn.textContent = 'جاري الفتح...'; }
+
+  // تحقق لحظي من حالة الحملة قبل الإنشاء (يقلّل التسلل بين التحميل والضغط)
+  try {
+    const { data: fresh } = await supabaseClient
+      .from('campaigns').select('status, campaign_size').eq('id', campaignId).maybeSingle();
+    if (fresh) {
+      campaign.status = fresh.status; // حدّث الحالة محليًا
+      const target = campaignTargetSize(fresh);
+      let full = (fresh.status === 'closed' || fresh.status === 'completed');
+      if (!full && target) {
+        // أعِد عدّ المعتمدين لحظيًا (أفضل جهد)
+        try {
+          const { count } = await supabaseClient
+            .from('applications')
+            .select('id', { count: 'exact', head: true })
+            .eq('campaign_id', campaignId)
+            .eq('status', 'closed')
+            .eq('brand_approved', true);
+          if (typeof count === 'number') {
+            campaignApprovedCount[campaignId] = count;
+            full = count >= target;
+          }
+        } catch (e) { /* نعتمد على status */ }
+      }
+      if (full) {
+        if (btn) { btn.disabled = false; btn.textContent = '💬 التفاوض مع الوكيل'; }
+        showToast('الحملة مكتملة — اكتمل العدد المطلوب.', 'error');
+        await loadData();
+        return;
+      }
+    }
+  } catch (e) { /* لو تعذّر التحقق نكمل عادي */ }
 
   const applicationData = {
     campaign_id: campaignId,
