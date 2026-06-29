@@ -83,6 +83,14 @@ begin
 
       if approved >= c_size then
         update campaigns set status = 'closed' where id = new.campaign_id;
+
+        -- إيقاف كل العروض اللي لسّه قيد التفاوض/المراجعة (لم تُقفل) لاكتمال العدد
+        update applications
+        set status = 'campaign_full',
+            rejection_reason = coalesce(rejection_reason, 'اكتمل العدد المطلوب للحملة'),
+            rejected_at = coalesce(rejected_at, now())
+        where campaign_id = new.campaign_id
+          and status in ('pending', 'active');
       end if;
     end if;
   end if;
@@ -110,3 +118,29 @@ where c.campaign_size is not null
       and a.status = 'closed'
       and a.brand_approved = true
   ) >= c.campaign_size;
+
+-- 4) (اختياري) إيقاف العروض المعلّقة على الحملات المكتملة أصلاً (تنظيف الوضع الحالي)
+--    هذا اللي يخفي الـ«قيد التفاوض» اللي ما لحقوا من الحملات اللي اكتملت قبل التعديل.
+update applications a
+set status = 'campaign_full',
+    rejection_reason = coalesce(a.rejection_reason, 'اكتمل العدد المطلوب للحملة'),
+    rejected_at = coalesce(a.rejected_at, now())
+from campaigns c
+where a.campaign_id = c.id
+  and a.status in ('pending', 'active')
+  and c.campaign_size is not null
+  and c.campaign_size > 0
+  and (
+    select count(*) from applications a2
+    where a2.campaign_id = c.id
+      and a2.status = 'closed'
+      and a2.brand_approved = true
+  ) >= c.campaign_size;
+
+-- ملاحظة مهمة: نستخدم حالة جديدة للعرض اسمها 'campaign_full'.
+-- لو عمود applications.status فيه قيد CHECK أو نوع enum يحصر القيم المسموحة،
+-- لازم تضيف 'campaign_full' للقيم المسموحة، وإلا ترفض القاعدة التحديث.
+-- للتحقق إن كان فيه قيد:
+--   select conname, pg_get_constraintdef(oid) from pg_constraint
+--   where conrelid = 'applications'::regclass and contype = 'c';
+-- غالبًا العمود نصّي حر بدون قيد، وفي هذي الحالة ما تحتاج تسوي شي.
