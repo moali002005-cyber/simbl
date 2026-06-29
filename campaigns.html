@@ -1727,6 +1727,22 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
   </div>
 </div>
 
+<!-- نافذة رفض المعلن مع كتابة السبب -->
+<div class="modal-backdrop" id="reject-modal">
+  <div class="modal" style="max-width: 480px">
+    <h3>رفض المعلن</h3>
+    <p class="sub">اكتب سبب الرفض بوضوح — راح يوصل للمعلن في إشعار، ويعرف إن العرض انتهى.</p>
+    <div class="field">
+      <label>سبب الرفض</label>
+      <textarea id="reject-reason" rows="4" placeholder="مثال: السعر أعلى من ميزانيتنا، أو المحتوى ما يناسب الحملة، أو..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeRejectModal()">إلغاء</button>
+      <button type="button" class="btn-primary btn-danger" id="reject-confirm-btn" onclick="confirmReject()">رفض وإرسال السبب</button>
+    </div>
+  </div>
+</div>
+
 <script src="supabase-config.js"></script>
 <script src="notifications.js"></script>
 <script>
@@ -2468,6 +2484,66 @@ async function approveDeal(applicationId) {
   }
 }
 
+// ============ رفض المعلن مع كتابة السبب ============
+let rejectingAppId = null;
+
+function openRejectModal(applicationId) {
+  rejectingAppId = applicationId;
+  const ta = document.getElementById('reject-reason');
+  if (ta) ta.value = '';
+  const modal = document.getElementById('reject-modal');
+  if (modal) modal.classList.add('show');
+}
+
+function closeRejectModal() {
+  rejectingAppId = null;
+  const modal = document.getElementById('reject-modal');
+  if (modal) modal.classList.remove('show');
+}
+
+async function confirmReject() {
+  if (!rejectingAppId) return;
+  const id = rejectingAppId;
+  const reason = (document.getElementById('reject-reason')?.value || '').trim();
+  if (!reason) { showToast('اكتب سبب الرفض أولاً', 'error'); return; }
+
+  const btn = document.getElementById('reject-confirm-btn');
+  const original = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري الإرسال...'; }
+
+  const { app, campaign } = findAppById(id);
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .update({ status: 'rejected', rejection_reason: reason, rejected_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+
+    // إشعار المعلن بالرفض + السبب
+    if (app && app.creator_id) {
+      const title = '❌ تم رفض العرض';
+      const body = `${campaign?.title || 'صفقة'}: ${reason}`;
+      createNotification(app.creator_id, 'deal_rejected', title, body, '/creator.html').catch(console.error);
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body, url: '/creator.html', target_users: [app.creator_id] })
+      }).catch(console.error);
+    }
+
+    closeRejectModal();
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    showToast('تم رفض المعلن وإرسال السبب له.');
+    await loadData();
+  } catch (err) {
+    console.error('Reject error:', err);
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    showToast('حصل خطأ في الرفض: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
 // شريط تقدّم مصغّر
 function miniProgress(stage) {
   const total = WORKFLOW_STAGES.length;
@@ -2536,12 +2612,19 @@ function renderStageDataView(a, s) {
 }
 
 function renderCellDetail(a) {
+  const isRejected = a.status === 'rejected';
   const isClosed = a.status === 'closed';
   const isApproved = isClosed && a.brand_approved === true;
   const awaitingApproval = isClosed && !isApproved;
   const stageNow = a.stage || 1;
   const s = expandedCellStage;
 
+  if (isRejected) {
+    return `<div class="stage-action" style="background:rgba(201,48,48,0.05);border-color:rgba(201,48,48,0.3)">
+      <div class="sa-title" style="color:#b32d2d;">✕ تم رفض هذا المعلن</div>
+      <div class="sa-desc"><strong>السبب اللي أُرسل للمعلن:</strong><br>${escHtml(a.rejection_reason || '—')}</div>
+    </div>`;
+  }
   if (awaitingApproval) {
     return `
       <div class="approval-gate">
@@ -2559,7 +2642,10 @@ function renderCellDetail(a) {
           <div class="swipe-thumb">✓</div>
         </div>
       </div>
-      <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 عرض المفاوضة</button>`;
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+        <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 عرض المفاوضة</button>
+        <button class="btn-negotiation" style="background:#fff;color:#c93030;border:1.5px solid rgba(201,48,48,0.4);" onclick="event.stopPropagation(); openRejectModal('${a.id}')">✕ رفض المعلن</button>
+      </div>`;
   }
   if (!isApproved) return '';
 
@@ -2577,17 +2663,20 @@ function renderCellDetail(a) {
 function renderDealRow(a, idx) {
   const creator = a.users || {};
   const initial = (creator.name || 'م')[0];
+  const isRejected = a.status === 'rejected';
   const isClosed = a.status === 'closed';
   const isApproved = isClosed && a.brand_approved === true;
   const awaitingApproval = isClosed && !isApproved;
-  const isNegotiating = !isClosed;
+  const isNegotiating = !isClosed && !isRejected;
   const stageNow = a.stage || 1;
   const nameHtml = (isClosed && duesAccountLink(creator))
     ? `<a class="ac-acct" href="${escHtml(duesAccountLink(creator))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escHtml(creator.name || 'مؤثر')} ↗</a>`
     : escHtml(creator.name || 'مؤثر');
 
   let cells = '';
-  if (isApproved) {
+  if (isRejected) {
+    cells = `<td class="mx-cell click" colspan="9" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:rgba(201,48,48,0.08);color:#b32d2d;font-size:12px;font-weight:600;height:44px;">✕ مرفوض — اضغط لعرض السبب</div></td>`;
+  } else if (isApproved) {
     for (let s = 1; s <= 9; s++) {
       if (s < stageNow) {
         cells += `<td class="mx-cell click" onclick="openCell('${a.id}',${s})"><div class="mx-in mx-done">✓</div></td>`;
