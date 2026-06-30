@@ -195,6 +195,8 @@ function render(camps, apps, ratings){
     star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.2 6.8.9-5 4.7 1.3 6.8L12 17.8 5.7 21.3 7 14.5l-5-4.7 6.8-.9z"/></svg>'
   };
 
+  var anyPublished = apps.some(function(a){ var sd=(a&&typeof a.stage_data==='object'&&a.stage_data)?a.stage_data:{}; var s=sd[7]||sd['7']||{}; return s && (s.publish_link||s.reach||s.likes); });
+
   var kpis='<div class="kpis">'
     + kpiCard('الحملات', ar(totalCampaigns), 'منها '+ar(activeCampaigns)+' نشطة', I.camp)
     + kpiCard('العروض المستلمة', ar(totalApps), 'من المؤثرين', I.apps)
@@ -202,7 +204,7 @@ function render(camps, apps, ratings){
     + kpiCard('قيد التنفيذ', ar(inProgress), 'صفقات شغّالة', I.prog)
     + kpiCard('إجمالي الإنفاق', ar(spend)+' <small>ر.س</small>', 'على الصفقات المكتملة', I.money, true)
     + kpiCard('المدفوع فعليًا', ar(paid)+' <small>ر.س</small>', 'مؤكّد الدفع', I.money)
-    + kpiCard('إجمالي الوصول', arReach(reach), 'متابعون عبر المتعاونين', I.reach)
+    + kpiCard('إجمالي الوصول', anyPublished ? arReach(reach) : '—', anyPublished ? 'متابعون عبر المتعاونين' : 'يجري تحديثها بعد نشر الحملة', I.reach)
     + kpiCard('المتعاونون', ar(collaborators), 'مؤثر تعاملت معهم', I.reach)
     + kpiCard('متوسط تقييمك', avgRating!=null ? avgRating.toFixed(1)+' <small>★</small>' : '—', avgRating!=null?('من '+ar(ratings.length)+' تقييم'):'لا تقييمات بعد', I.star)
     + '</div>';
