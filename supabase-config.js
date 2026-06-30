@@ -98,7 +98,7 @@ async function dbApply(applicationData) {
 async function dbGetMyApplications(creatorId) {
   const { data, error } = await supabaseClient
     .from('applications')
-    .select('*, campaigns(title, users!campaigns_brand_id_fkey(company_name))')
+    .select('*, campaigns(title, description, users!campaigns_brand_id_fkey(company_name))')
     .eq('creator_id', creatorId)
     .order('created_at', { ascending: false });
   if (error) throw error;

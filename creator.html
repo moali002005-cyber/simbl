@@ -1712,8 +1712,7 @@ function renderOfferCard(c, a) {
   const price = (a.final_price && isClosed) ? a.final_price : a.price;
   const priceLabel = (a.final_price && isClosed) ? 'السعر النهائي' : 'عرضك';
   const briefText = getBriefText(a);
-  const showBriefBtn = !!briefText || (isApproved && (a.stage || 1) > 4);
-  const briefBtnHtml = showBriefBtn ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
+  const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
 
   // الشارة على اليمين: تفاوض=زر، بانتظار التعميد=شارة، معمّدة=المطلوب الحالي
   let headRight;
@@ -1997,11 +1996,15 @@ function toggleHistory(id) {
 // ===== بريف الحملة: زر سريع جنب اسم الحملة يفتح البريف وينسخه =====
 function getBriefText(a) {
   if (!a) return '';
+  // البريف الحقيقي = وصف الحملة (يُكتب عند إطلاق الحملة في حقل description)
+  const c = a.campaigns || {};
+  const desc = c.description || c.brief || a.description || '';
+  if (desc && String(desc).trim()) return String(desc);
+  // احتياط: لو وُجد بريف داخل مراحل التطبيق (نسخ قديمة)
   let sd = a.stage_data;
   if (!sd) return '';
   if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch (e) { return ''; } }
   if (typeof sd !== 'object') return '';
-  // نبحث في كل المراحل عن أي حقل بريف (الأكثر أمانًا)
   const keys = Object.keys(sd).sort();
   for (const k of keys) {
     const entry = sd[k];
