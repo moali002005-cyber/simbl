@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>إدارة الأعضاء - سيمبل</title>
+<title>أعضاء الفريق - سيمبل</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -13,12 +13,12 @@
   --ink:#0a0a0a; --ink-soft:#3a3a3a; --ink-muted:#6b6b6b; --ink-faint:#a0a0a0;
   --accent:#13B9B2; --accent-soft:#7fd6d2; --accent-ink:#0c4f4b;
   --gold:#C99A2E; --danger:#c93030;
-  --line:rgba(10,10,10,.08); --line-strong:rgba(10,10,10,.16);
+  --line:rgba(10,10,10,.08); --line-strong:rgba(10,10,10,.18);
   --font:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--cream);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.7;min-height:100vh}
-.container{max-width:1080px;margin:0 auto;padding:0 28px}
+.container{max-width:1180px;margin:0 auto;padding:0 28px}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
 input,select{font-family:inherit}
@@ -33,7 +33,7 @@ input,select{font-family:inherit}
 .nav-link{font-size:13px;font-weight:600;color:var(--ink-soft);padding:7px 14px;border:1px solid var(--line-strong);border-radius:100px}
 .nav-link:hover{color:var(--accent);border-color:var(--accent)}
 
-.head{padding:40px 0 16px}
+.head{padding:38px 0 6px}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent-ink);
   background:#fff;border:1px solid rgba(19,185,178,.3);padding:7px 15px;border-radius:100px;margin-bottom:16px}
 .eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--accent)}
@@ -41,7 +41,7 @@ input,select{font-family:inherit}
 .head p{color:var(--ink-soft);font-size:15px;max-width:560px}
 .head-row{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
 
-.btn{border:0;border-radius:100px;padding:11px 20px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:.18s}
+.btn{border:0;border-radius:100px;padding:10px 18px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:.18s}
 .btn.primary{background:var(--ink);color:#fff}
 .btn.primary:hover{background:var(--accent);transform:translateY(-1px)}
 .btn.ghost{background:#fff;border:1px solid var(--line-strong);color:var(--ink)}
@@ -50,56 +50,84 @@ input,select{font-family:inherit}
 .btn.danger{background:#fff;border:1px solid rgba(201,48,48,.3);color:var(--danger)}
 .btn.danger:hover{background:var(--danger);color:#fff}
 
-/* فلتر العلامات */
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin:26px 0 18px}
-.fpill{background:#fff;border:1px solid var(--line);color:var(--ink-muted);padding:8px 16px;border-radius:100px;
-  font-size:13px;font-weight:600;transition:.15s}
-.fpill:hover{border-color:var(--accent-soft);color:var(--ink)}
-.fpill.on{background:rgba(19,185,178,.08);border-color:rgba(19,185,178,.4);color:var(--accent-ink)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:22px 0 10px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-muted);margin:6px 0 18px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.lead{background:var(--accent)}
+.dot.mgr{background:var(--gold)}
+.dot.emp{background:var(--accent-soft)}
 
-/* جدول الأعضاء */
-.panel{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}
-.row{display:grid;grid-template-columns:1fr 150px 130px auto;gap:14px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line)}
-.row:last-child{border-bottom:0}
-.row:hover{background:#fcfcfb}
-.row.head-row-tbl{background:var(--cream-darker);font-size:11px;color:var(--ink-muted);font-weight:600}
-.who{display:flex;align-items:center;gap:12px;min-width:0}
-.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;
+.chart-scroll{overflow-x:auto;padding:14px 0 30px;-webkit-overflow-scrolling:touch}
+.chart{min-width:max-content;margin:0 auto;display:flex;justify-content:center}
+.chart ul{position:relative;padding-top:24px;display:flex;justify-content:center}
+.chart > ul{padding-top:4px}
+.chart li{list-style:none;position:relative;padding:24px 12px 0;display:flex;flex-direction:column;align-items:center}
+.chart li::before,.chart li::after{content:'';position:absolute;top:0;right:50%;border-top:2px solid var(--line-strong);width:50%;height:24px}
+.chart li::after{right:auto;left:50%;border-left:2px solid var(--line-strong)}
+.chart li:only-child::before,.chart li:only-child::after{display:none}
+.chart li:only-child{padding-top:0}
+.chart li:first-child::before,.chart li:last-child::after{border:0 none}
+.chart li:last-child::before{border-right:2px solid var(--line-strong);border-radius:0 6px 0 0}
+.chart li:first-child::after{border-radius:6px 0 0 0}
+.chart ul ul::before{content:'';position:absolute;top:0;right:50%;border-right:2px solid var(--line-strong);width:0;height:24px}
+.chart li.collapsed > ul{display:none}
+
+.node{background:#fff;border:1px solid var(--line);border-radius:14px;padding:9px 13px;display:inline-flex;align-items:center;gap:10px;
+  cursor:pointer;transition:border-color .18s,transform .18s,box-shadow .2s;white-space:nowrap;position:relative}
+.node:hover{border-color:var(--accent-soft);transform:translateY(-1px);box-shadow:0 6px 18px -10px rgba(10,10,10,.2)}
+.node.lead{border-color:rgba(19,185,178,.4);box-shadow:0 0 0 4px rgba(19,185,178,.06)}
+.node.mgr{border-color:rgba(201,154,46,.4)}
+.node.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(19,185,178,.16)}
+.node .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;
   background:rgba(19,185,178,.12);color:var(--accent-ink);flex-shrink:0}
-.av.solid{background:var(--accent);color:#fff}
-.who .nm{font-weight:600;font-size:14.5px;line-height:1.3;display:flex;align-items:center;gap:7px}
-.who .em{font-size:12px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.you{font-size:10px;font-weight:700;color:var(--gold);background:rgba(201,154,46,.12);padding:1px 8px;border-radius:100px}
+.node.lead .av{background:var(--accent);color:#fff}
+.node.mgr .av{background:rgba(201,154,46,.16);color:#8a6500}
+.node .tx{text-align:right;line-height:1.25}
+.node .nm{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
+.node .rl{font-size:11px;color:var(--ink-muted)}
+.node .you{font-size:9.5px;font-weight:700;color:var(--gold);background:rgba(201,154,46,.12);padding:1px 7px;border-radius:100px}
+.toggle{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-strong);background:#fff;color:var(--ink-muted);
+  display:flex;align-items:center;justify-content:center;font-size:11px;margin-right:2px;transition:.15s;flex-shrink:0}
+.toggle:hover{border-color:var(--accent);color:var(--accent)}
+.node.collapsed-mark .toggle,.pnode.collapsed-mark .toggle{transform:rotate(-90deg)}
+
+.pnode{background:var(--cream-darker);border:1px dashed var(--line-strong);border-radius:100px;padding:6px 15px;font-size:12px;
+  font-weight:700;color:var(--ink-soft);cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap}
+.pnode:hover{border-color:var(--accent-soft);color:var(--accent-ink)}
+.pnode .pc{font-size:10px}
+.pnode.sn .pc{color:#8a6500}
+
+.scrim{position:fixed;inset:0;background:rgba(10,10,10,.4);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:.25s;z-index:80}
+.scrim.show{opacity:1;visibility:visible}
+.panel{position:fixed;top:0;bottom:0;left:0;width:380px;max-width:90vw;background:#fff;z-index:90;
+  transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:0 0 50px -10px rgba(10,10,10,.3)}
+.panel.show{transform:none}
+.panel-head{padding:26px 26px 20px;border-bottom:1px solid var(--line);position:relative}
+.panel-close{position:absolute;top:20px;left:22px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:18px;color:var(--ink-muted)}
+.panel-close:hover{border-color:var(--ink);color:var(--ink)}
+.panel-av{width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:28px;
+  background:var(--accent);color:#fff;margin-bottom:14px}
+.panel-name{font-size:21px;font-weight:600;display:flex;align-items:center;gap:9px}
+.panel-role{font-size:13px;color:var(--ink-muted);margin-top:2px}
+.panel-body{padding:22px 26px;overflow-y:auto;flex:1}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--ink-muted)}
+.kv .v{font-weight:500;text-align:left;max-width:62%}
 .tag{font-size:11px;font-weight:600;padding:4px 11px;border-radius:100px;white-space:nowrap;display:inline-block}
-.r-owner{background:rgba(124,140,255,.14);color:#3b3f9e}
-.r-gm{background:rgba(124,140,255,.1);color:#4a4fb0}
-.r-manager{background:rgba(201,154,46,.14);color:#8a6500}
-.r-employee{background:rgba(19,185,178,.12);color:var(--accent-ink)}
-.brand-tags{display:flex;gap:5px;flex-wrap:wrap}
-.brand-tag{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:100px;background:var(--cream-darker);color:var(--ink-soft)}
-.row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.r-owner{background:rgba(124,140,255,.14);color:#3b3f9e}.r-gm{background:rgba(124,140,255,.1);color:#4a4fb0}
+.r-manager{background:rgba(201,154,46,.14);color:#8a6500}.r-employee{background:rgba(19,185,178,.12);color:var(--accent-ink)}
+.chips{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.chip-s{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;background:var(--cream-darker);color:var(--ink-soft)}
+.panel-foot{padding:18px 26px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
+.btn-block{width:100%;justify-content:center}
+.enter-as{background:var(--accent);color:#fff}
+.enter-as:hover{background:var(--accent-ink);transform:translateY(-1px)}
 
-.menu-wrap{position:relative}
-.menu-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--ink-muted);font-size:18px;
-  display:flex;align-items:center;justify-content:center}
-.menu-btn:hover{border-color:var(--ink);color:var(--ink)}
-.menu{display:none;position:absolute;top:40px;inset-inline-end:0;min-width:180px;background:#fff;border:1px solid var(--line);
-  border-radius:12px;box-shadow:0 12px 30px -10px rgba(10,10,10,.18);padding:6px;z-index:20}
-.menu.show{display:block}
-.menu button{width:100%;text-align:right;background:transparent;border:0;padding:9px 11px;border-radius:8px;font-size:13.5px;
-  font-weight:500;display:flex;align-items:center;gap:9px;color:var(--ink)}
-.menu button:hover{background:var(--cream-darker)}
-.menu button.del{color:var(--danger)}
-.menu button.del:hover{background:rgba(201,48,48,.06)}
-
-.empty{padding:50px 20px;text-align:center;color:var(--ink-muted)}
-.empty h3{color:var(--ink);font-size:16px;margin-bottom:6px}
-
-/* مودال */
-.backdrop{position:fixed;inset:0;background:rgba(10,10,10,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;
-  z-index:100;padding:20px}
+.backdrop{position:fixed;inset:0;background:rgba(10,10,10,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
 .backdrop.show{display:flex}
-.modal{background:#fff;border-radius:22px;padding:30px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;animation:rise .2s ease}
+.modal{background:#fff;border-radius:22px;padding:30px;max-width:540px;width:100%;max-height:92vh;overflow-y:auto;animation:rise .2s ease}
 @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .modal h3{font-size:20px;font-weight:600;margin-bottom:5px}
 .modal .sub{color:var(--ink-muted);font-size:13.5px;margin-bottom:22px}
@@ -109,10 +137,15 @@ input,select{font-family:inherit}
 .field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(19,185,178,.14)}
 .field .hint{font-size:11.5px;color:var(--ink-muted);margin-top:5px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mgr-brand,.matrix{display:none}
+.matrix table{width:100%;border-collapse:collapse;font-size:13px}
+.matrix th,.matrix td{padding:9px 6px;text-align:center;border-bottom:1px solid var(--line)}
+.matrix th:first-child,.matrix td:first-child{text-align:right;font-weight:600}
+.matrix input{width:18px;height:18px;accent-color:var(--accent)}
 .brand-pick{display:flex;gap:8px;flex-wrap:wrap}
 .bp{padding:8px 14px;border:1.5px solid var(--line-strong);border-radius:100px;font-size:13px;font-weight:600;background:#fff;color:var(--ink)}
 .bp.on{border-color:var(--accent);background:rgba(19,185,178,.07);color:var(--accent-ink)}
-.modal-actions{display:flex;gap:11px;margin-top:24px}
+.modal-actions{display:flex;gap:11px;margin-top:22px}
 .modal-actions .btn{flex:1;justify-content:center}
 
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;border:1px solid var(--line);
@@ -121,12 +154,7 @@ input,select{font-family:inherit}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{border-right-color:var(--danger)}
 
-@media (max-width:760px){
-  .row{grid-template-columns:1fr auto;gap:10px}
-  .row .col-role,.row .col-brands{display:none}
-  .row.head-row-tbl{display:none}
-}
-@media (max-width:560px){.container{padding:0 16px}.head h1{font-size:24px}.modal{padding:22px}.row2{grid-template-columns:1fr}}
+@media (max-width:560px){.container{padding:0 16px}.head h1{font-size:24px}.modal{padding:22px}.row2{grid-template-columns:1fr}.panel{width:100%}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
@@ -147,7 +175,7 @@ input,select{font-family:inherit}
       <span class="logo-mark">سيمبل</span>
     </a>
     <div class="nav-links">
-      <a href="/team.html" class="nav-link">الهيكل</a>
+      <a href="/team.html" class="nav-link">قائمة</a>
       <a href="/brand.html" class="nav-link">→ الرئيسية</a>
     </div>
   </div>
@@ -158,65 +186,90 @@ input,select{font-family:inherit}
     <div class="head-row">
       <div>
         <span class="eyebrow"><span class="d"></span> الحساب العام · مجموعة ريف</span>
-        <h1>إدارة الأعضاء</h1>
-        <p>أضف فريقك، حدّد دور كل واحد وعلامته، وادخل من منظور أي عضو لتشوف سيمبل زيّه.</p>
+        <h1>هيكل الفريق</h1>
+        <p>اضغط أي شخص يفتح ملفه — تعدّله، أو تدخل سيمبل من منظوره. والسهم يطوي فرعه.</p>
       </div>
       <button class="btn primary" onclick="openAdd()">+ إضافة عضو</button>
     </div>
+    <div class="toolbar">
+      <button class="btn ghost sm" onclick="expandAll(true)">⊕ افتح الكل</button>
+      <button class="btn ghost sm" onclick="expandAll(false)">⊖ اطوِ الفروع</button>
+    </div>
+    <div class="legend">
+      <span><span class="dot lead"></span> قيادة المجموعة</span>
+      <span><span class="dot mgr"></span> مدير علامة</span>
+      <span><span class="dot emp"></span> موظف</span>
+      <span>♪ تيك توك · S سناب</span>
+    </div>
   </header>
 
-  <div class="filters" id="filters"></div>
-
-  <div class="panel">
-    <div class="row head-row-tbl">
-      <span>العضو</span>
-      <span class="col-role">الدور</span>
-      <span class="col-brands">العلامات</span>
-      <span></span>
-    </div>
-    <div id="rows"></div>
+  <div class="chart-scroll">
+    <div class="chart" id="chart"></div>
   </div>
 </main>
 
-<!-- مودال إضافة/تعديل -->
+<div class="scrim" id="scrim" onclick="closePanel()"></div>
+<aside class="panel" id="panel" aria-label="تفاصيل العضو">
+  <div class="panel-head">
+    <button class="panel-close" onclick="closePanel()" aria-label="إغلاق">×</button>
+    <div class="panel-av" id="p-av">؟</div>
+    <div class="panel-name" id="p-name">—</div>
+    <div class="panel-role" id="p-role">—</div>
+  </div>
+  <div class="panel-body" id="p-body"></div>
+  <div class="panel-foot">
+    <button class="btn enter-as btn-block" id="p-enter">↪ ادخل كـ هذا العضو</button>
+    <div style="display:flex;gap:9px">
+      <button class="btn ghost btn-block" id="p-edit">✎ تعديل</button>
+      <button class="btn danger btn-block" id="p-del">× حذف</button>
+    </div>
+  </div>
+</aside>
+
 <div class="backdrop" id="member-modal">
   <div class="modal">
     <h3 id="m-title">إضافة عضو</h3>
-    <p class="sub">عبّئ بياناته وحدّد دوره وعلاماته. الانتحال يتفعّل بعد ربط الحسابات بالقاعدة.</p>
-    <div class="field"><label>الاسم</label><input id="f-name" placeholder="مثل: عبدالعزيز الحقباني"></div>
+    <p class="sub">عبّئ بياناته وحدّد دوره ومكانه في الهيكل. الانتحال يتفعّل بعد ربط الحسابات بالقاعدة.</p>
+    <div class="field"><label>الاسم</label><input id="f-name" placeholder="عبدالعزيز الحقباني"></div>
     <div class="row2">
       <div class="field"><label>الإيميل</label><input id="f-email" type="email" placeholder="name@reef.sa"></div>
-      <div class="field"><label>كلمة السر المؤقتة</label><input id="f-pass" type="text" placeholder="يغيّرها بعد الدخول"></div>
+      <div class="field"><label>كلمة سر مؤقتة</label><input id="f-pass" type="text" placeholder="يغيّرها بعد الدخول"></div>
     </div>
     <div class="field">
       <label>الدور</label>
-      <select id="f-role">
+      <select id="f-role" onchange="roleChanged()">
         <option value="group_owner">مالك المجموعة</option>
         <option value="gm">مدير عام</option>
         <option value="brand_manager">مدير علامة</option>
         <option value="employee" selected>موظف</option>
       </select>
     </div>
-    <div class="field">
-      <label>العلامات (اختر واحدة أو أكثر)</label>
-      <div class="brand-pick" id="f-brands"></div>
-      <div class="hint">الموظف ممكن يكون في أكثر من علامة (مثل محمد).</div>
+    <div class="field mgr-brand" id="mgr-brand-field">
+      <label>علامته</label>
+      <div class="brand-pick" id="mgr-brands"></div>
+    </div>
+    <div class="field matrix" id="matrix-field">
+      <label>الفرق (أي علامة وأي منصّة يشتغل عليها)</label>
+      <table>
+        <thead><tr><th>العلامة</th><th>تيك توك ♪</th><th>سناب S</th></tr></thead>
+        <tbody id="matrix-body"></tbody>
+      </table>
+      <div class="hint">يقدر يكون في أكثر من علامة (مثل محمد).</div>
     </div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal()">إلغاء</button>
-      <button class="btn primary" id="m-save" onclick="saveMember()">حفظ</button>
+      <button class="btn primary" onclick="saveMember()">حفظ</button>
     </div>
   </div>
 </div>
 
-<!-- مودال تأكيد الحذف -->
 <div class="backdrop" id="del-modal">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="max-width:430px">
     <h3>حذف العضو</h3>
-    <p class="sub" id="del-sub">متأكد من حذف هذا العضو؟</p>
+    <p class="sub" id="del-sub">متأكد؟</p>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeDel()">إلغاء</button>
-      <button class="btn danger" onclick="confirmDel()" style="flex:1;justify-content:center">حذف نهائي</button>
+      <button class="btn danger" style="flex:1;justify-content:center" onclick="confirmDel()">حذف نهائي</button>
     </div>
   </div>
 </div>
@@ -224,156 +277,191 @@ input,select{font-family:inherit}
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   إدارة الأعضاء — نموذج تفاعلي (بيانات مبدئية، نربطها بالقاعدة لاحقًا)
-   كل عملية هنا "محلية" للعرض. لما نوصّلها بـ Supabase:
-   addMember/editMember/deleteMember تصير استعلامات، و«ادخل كـ» Edge Function.
-   ============================================================ */
 const BRANDS = ["ريف","أوسما","بويار"];
-const ROLE_LABEL = { group_owner:"مالك المجموعة", gm:"مدير عام", brand_manager:"مدير علامة", employee:"موظف" };
+const PLATFORMS = [["tiktok","تيك توك","♪","tt"],["snap","سناب","S","sn"]];
+const ROLE_LABEL = { group_owner:"مالك المجموعة", gm:"المدير العام", brand_manager:"مدير علامة", employee:"موظف" };
 const ROLE_CLASS = { group_owner:"r-owner", gm:"r-gm", brand_manager:"r-manager", employee:"r-employee" };
 const ME = "محمد";
 
-// القائمة المبدئية من هيكلكم
-let MEMBERS = [
-  { id:"m1", name:"عبدالعزيز الماجد", email:"aziz@reef.sa",      role:"group_owner",   brands:["ريف","أوسما","بويار"] },
-  { id:"m2", name:"محمد فيصل",        email:"mfaisal@reef.sa",   role:"gm",            brands:["ريف","أوسما","بويار"] },
-  { id:"m3", name:"عبدالعزيز الحقباني",email:"haqbani@reef.sa",   role:"brand_manager",brands:["ريف"] },
-  { id:"m4", name:"لمى غدار",         email:"lama@reef.sa",      role:"brand_manager",brands:["أوسما"] },
-  { id:"m5", name:"منى حاج",          email:"mona@reef.sa",      role:"brand_manager",brands:["بويار"] },
-  { id:"m6", name:"محمد",             email:"mohammed@reef.sa",  role:"employee",     brands:["ريف","أوسما","بويار"] },
-  { id:"m7", name:"شهد العصيمي",      email:"shahad@reef.sa",    role:"employee",     brands:["ريف","بويار"] },
-  { id:"m8", name:"ريما القحطاني",    email:"rima@reef.sa",      role:"employee",     brands:["أوسما"] },
-  { id:"m9", name:"بشار الأسعدي",     email:"bishar@reef.sa",    role:"employee",     brands:["أوسما"] },
-  { id:"m10",name:"روان",            email:"rawan@reef.sa",     role:"employee",     brands:["أوسما"] },
-  { id:"m11",name:"تميم العجلان",     email:"tamim@reef.sa",     role:"employee",     brands:["بويار"] },
+let PEOPLE = [
+  { id:"p1", name:"عبدالعزيز الماجد", email:"aziz@reef.sa",    role:"group_owner" },
+  { id:"p2", name:"محمد فيصل",        email:"mfaisal@reef.sa", role:"gm" },
+  { id:"p3", name:"عبدالعزيز الحقباني",email:"haqbani@reef.sa", role:"brand_manager", brand:"ريف" },
+  { id:"p4", name:"لمى غدار",         email:"lama@reef.sa",    role:"brand_manager", brand:"أوسما" },
+  { id:"p5", name:"منى حاج",          email:"mona@reef.sa",    role:"brand_manager", brand:"بويار" },
+  { id:"p6", name:"محمد",   email:"mohammed@reef.sa", role:"employee", assignments:[
+      {brand:"ريف",platform:"tiktok"},{brand:"أوسما",platform:"tiktok"},{brand:"بويار",platform:"tiktok"}] },
+  { id:"p7", name:"شهد العصيمي", email:"shahad@reef.sa", role:"employee", assignments:[
+      {brand:"ريف",platform:"snap"},{brand:"بويار",platform:"snap"}] },
+  { id:"p8", name:"ريما القحطاني", email:"rima@reef.sa", role:"employee", assignments:[{brand:"أوسما",platform:"tiktok"}] },
+  { id:"p9", name:"بشار الأسعدي", email:"bishar@reef.sa", role:"employee", assignments:[{brand:"أوسما",platform:"snap"}] },
+  { id:"p10",name:"روان", email:"rawan@reef.sa", role:"employee", assignments:[{brand:"أوسما",platform:"snap"}] },
+  { id:"p11",name:"تميم العجلان", email:"tamim@reef.sa", role:"employee", assignments:[{brand:"بويار",platform:"snap"}] },
 ];
 
-let activeFilter = "الكل";
-let editingId = null;
-let pickedBrands = [];
-let deletingId = null;
-
 const $ = s => document.querySelector(s);
-const esc = s => String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc = s => String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ini = n => (String(n||"؟").trim()[0]||"؟");
-const uid = () => "m_"+Math.random().toString(36).slice(2,8);
-function toast(m,err){const t=$("#toast");t.textContent=m;t.className="toast show"+(err?" err":"");clearTimeout(t._);t._=setTimeout(()=>t.className="toast",2400);}
+const uid = () => "p_"+Math.random().toString(36).slice(2,8);
+function toast(m,err){const t=$("#toast");t.textContent=m;t.className="toast show"+(err?" err":"");clearTimeout(t._);t._=setTimeout(()=>t.className="toast",2600);}
 
-/* فلاتر العلامات */
-function renderFilters(){
-  const opts = ["الكل",...BRANDS];
-  $("#filters").innerHTML = opts.map(o=>{
-    const n = o==="الكل" ? MEMBERS.length : MEMBERS.filter(m=>m.brands.includes(o)).length;
-    return `<button class="fpill ${activeFilter===o?"on":""}" onclick="setFilter('${esc(o)}')">${esc(o)} · ${n}</button>`;
+const owner = () => PEOPLE.find(p=>p.role==="group_owner");
+const gm = () => PEOPLE.find(p=>p.role==="gm");
+const managerOf = b => PEOPLE.find(p=>p.role==="brand_manager" && p.brand===b);
+const membersOf = (b,plat) => PEOPLE.filter(p=>p.role==="employee" && (p.assignments||[]).some(a=>a.brand===b && a.platform===plat));
+
+function personNode(p, cls, hasChildren){
+  const you = p.name===ME ? '<span class="you">أنت</span>' : '';
+  const tog = hasChildren ? '<button class="toggle" onclick="toggleNode(event,this)" aria-label="طي">▾</button>' : '';
+  return `<div class="node ${cls}" data-id="${p.id}" onclick="openPanel('${p.id}')">
+      ${tog}
+      <div class="av">${esc(ini(p.name))}</div>
+      <div class="tx"><div class="nm">${esc(p.name)} ${you}</div><div class="rl">${ROLE_LABEL[p.role]}${p.brand?(' · '+esc(p.brand)):''}</div></div>
+    </div>`;
+}
+function buildChart(){
+  const o=owner(), g=gm();
+  let html = '<ul><li>';
+  html += personNode(o,"lead",true);
+  html += '<ul><li>';
+  html += personNode(g,"lead",true);
+  html += '<ul>';
+  BRANDS.forEach(b=>{
+    const mgr=managerOf(b);
+    html += '<li>';
+    html += mgr ? personNode(mgr,"mgr",true)
+                : `<div class="node mgr" style="opacity:.6"><div class="av">${esc(b[0])}</div><div class="tx"><div class="nm">${esc(b)}</div><div class="rl">بدون مدير</div></div></div>`;
+    html += '<ul>';
+    PLATFORMS.forEach(([pk,plabel,pc,pcls])=>{
+      const mem=membersOf(b,pk);
+      html += `<li><div class="pnode ${pcls}"><button class="toggle" onclick="toggleNode(event,this)" aria-label="طي">▾</button><span class="pc">${pc}</span> ${plabel} · ${mem.length}</div>`;
+      if(mem.length){
+        html += '<ul>';
+        mem.forEach(m=>{ html += '<li>'+personNode(m,"",false)+'</li>'; });
+        html += '</ul>';
+      }
+      html += '</li>';
+    });
+    html += '</ul></li>';
+  });
+  html += '</ul></li></ul></li></ul>';
+  $("#chart").innerHTML = html;
+}
+
+function toggleNode(e, el){
+  e.stopPropagation();
+  const host = el.closest(".node,.pnode");
+  const li = el.closest("li");
+  li.classList.toggle("collapsed");
+  if(host) host.classList.toggle("collapsed-mark");
+}
+function expandAll(open){
+  document.querySelectorAll(".chart li").forEach(li=>{
+    if(!li.querySelector(":scope > ul")) return;
+    li.classList.toggle("collapsed", !open);
+    const host=li.querySelector(":scope > .node, :scope > .pnode");
+    if(host) host.classList.toggle("collapsed-mark", !open);
+  });
+}
+
+let panelId=null;
+function openPanel(id){
+  const p=PEOPLE.find(x=>x.id===id); if(!p) return;
+  panelId=id;
+  document.querySelectorAll(".node.sel").forEach(n=>n.classList.remove("sel"));
+  document.querySelectorAll('.node[data-id="'+id+'"]').forEach(n=>n.classList.add("sel"));
+  $("#p-av").textContent=ini(p.name);
+  $("#p-name").innerHTML=esc(p.name)+(p.name===ME?' <span class="you">أنت</span>':'');
+  $("#p-role").textContent=ROLE_LABEL[p.role];
+  let brands=[];
+  if(p.role==="brand_manager") brands=[p.brand];
+  else if(p.role==="employee") brands=[...new Set((p.assignments||[]).map(a=>a.brand))];
+  else brands=[...BRANDS];
+  let rows = `<div class="kv"><span class="k">الدور</span><span class="v"><span class="tag ${ROLE_CLASS[p.role]}">${ROLE_LABEL[p.role]}</span></span></div>`;
+  rows += `<div class="kv"><span class="k">الإيميل</span><span class="v">${esc(p.email||'—')}</span></div>`;
+  rows += `<div class="kv"><span class="k">العلامات</span><span class="v"><div class="chips">${brands.map(b=>`<span class="chip-s">${esc(b)}</span>`).join('')||'—'}</div></span></div>`;
+  if(p.role==="employee"){
+    const asg=(p.assignments||[]).map(a=>{const pl=PLATFORMS.find(x=>x[0]===a.platform);return `${esc(a.brand)} · ${pl?pl[1]:a.platform}`;});
+    rows += `<div class="kv"><span class="k">الفرق</span><span class="v"><div class="chips">${asg.map(x=>`<span class="chip-s">${esc(x)}</span>`).join('')}</div></span></div>`;
+  }
+  $("#p-body").innerHTML=rows;
+  $("#p-enter").onclick=()=>loginAs(id);
+  $("#p-edit").onclick=()=>{closePanel();openEdit(id);};
+  $("#p-del").onclick=()=>{closePanel();askDel(id);};
+  $("#scrim").classList.add("show"); $("#panel").classList.add("show");
+}
+function closePanel(){
+  $("#scrim").classList.remove("show"); $("#panel").classList.remove("show");
+  document.querySelectorAll(".node.sel").forEach(n=>n.classList.remove("sel"));
+  panelId=null;
+}
+
+let editingId=null, pickedMgrBrand=null;
+function roleChanged(){
+  const r=$("#f-role").value;
+  $("#mgr-brand-field").style.display = r==="brand_manager" ? "block":"none";
+  $("#matrix-field").style.display    = r==="employee" ? "block":"none";
+}
+function mgrBrandPicker(){
+  $("#mgr-brands").innerHTML = BRANDS.map(b=>`<button type="button" class="bp ${pickedMgrBrand===b?'on':''}" onclick="pickMgrBrand('${esc(b)}')">${esc(b)}</button>`).join("");
+}
+function pickMgrBrand(b){ pickedMgrBrand=b; mgrBrandPicker(); }
+function buildMatrix(asg){
+  asg=asg||[];
+  $("#matrix-body").innerHTML = BRANDS.map(b=>{
+    const tt=asg.some(a=>a.brand===b&&a.platform==="tiktok")?"checked":"";
+    const sn=asg.some(a=>a.brand===b&&a.platform==="snap")?"checked":"";
+    return `<tr><td>${esc(b)}</td>
+      <td><input type="checkbox" data-b="${esc(b)}" data-p="tiktok" ${tt}></td>
+      <td><input type="checkbox" data-b="${esc(b)}" data-p="snap" ${sn}></td></tr>`;
   }).join("");
 }
-function setFilter(f){ activeFilter=f; render(); }
-
-/* الجدول */
-function render(){
-  renderFilters();
-  const list = activeFilter==="الكل" ? MEMBERS : MEMBERS.filter(m=>m.brands.includes(activeFilter));
-  if(!list.length){
-    $("#rows").innerHTML = `<div class="empty"><h3>ما فيه أعضاء في هذي العلامة</h3><p>اضغط «إضافة عضو» لتبدأ.</p></div>`;
-    return;
-  }
-  $("#rows").innerHTML = list.map(m=>`
-    <div class="row">
-      <div class="who">
-        <div class="av ${m.role==='group_owner'||m.role==='gm'?'solid':''}">${esc(ini(m.name))}</div>
-        <div style="min-width:0">
-          <div class="nm">${esc(m.name)} ${m.name===ME?'<span class="you">أنت</span>':''}</div>
-          <div class="em">${esc(m.email||'—')}</div>
-        </div>
-      </div>
-      <div class="col-role"><span class="tag ${ROLE_CLASS[m.role]}">${ROLE_LABEL[m.role]}</span></div>
-      <div class="col-brands"><div class="brand-tags">${m.brands.map(b=>`<span class="brand-tag">${esc(b)}</span>`).join("")}</div></div>
-      <div class="row-actions">
-        <button class="btn ghost sm" onclick="loginAs('${m.id}')">↪ ادخل كـ</button>
-        <div class="menu-wrap">
-          <button class="menu-btn" onclick="toggleMenu(event,'${m.id}')" aria-label="خيارات">⋮</button>
-          <div class="menu" id="menu-${m.id}">
-            <button onclick="openEdit('${m.id}')">✎ تعديل</button>
-            <button class="del" onclick="askDel('${m.id}')">× حذف</button>
-          </div>
-        </div>
-      </div>
-    </div>`).join("");
-}
-
-/* قوائم الإجراءات */
-function toggleMenu(e,id){
-  e.stopPropagation();
-  const el = $("#menu-"+id);
-  const open = el.classList.contains("show");
-  document.querySelectorAll(".menu.show").forEach(m=>m.classList.remove("show"));
-  if(!open) el.classList.add("show");
-}
-document.addEventListener("click",()=>document.querySelectorAll(".menu.show").forEach(m=>m.classList.remove("show")));
-
-/* إضافة / تعديل */
-function brandPicker(){
-  $("#f-brands").innerHTML = BRANDS.map(b=>`<button type="button" class="bp ${pickedBrands.includes(b)?'on':''}" onclick="pickBrand('${esc(b)}')">${esc(b)}</button>`).join("");
-}
-function pickBrand(b){
-  pickedBrands = pickedBrands.includes(b) ? pickedBrands.filter(x=>x!==b) : [...pickedBrands,b];
-  brandPicker();
-}
 function openAdd(){
-  editingId=null; pickedBrands=[];
+  editingId=null; pickedMgrBrand=null;
   $("#m-title").textContent="إضافة عضو";
-  $("#f-name").value=""; $("#f-email").value=""; $("#f-pass").value=""; $("#f-role").value="employee";
-  brandPicker();
+  $("#f-name").value="";$("#f-email").value="";$("#f-pass").value="";$("#f-role").value="employee";
+  mgrBrandPicker(); buildMatrix([]); roleChanged();
   $("#member-modal").classList.add("show");
 }
 function openEdit(id){
-  const m = MEMBERS.find(x=>x.id===id); if(!m) return;
-  editingId=id; pickedBrands=[...m.brands];
+  const p=PEOPLE.find(x=>x.id===id); if(!p) return;
+  editingId=id; pickedMgrBrand=p.brand||null;
   $("#m-title").textContent="تعديل عضو";
-  $("#f-name").value=m.name; $("#f-email").value=m.email||""; $("#f-pass").value=""; $("#f-role").value=m.role;
-  brandPicker();
+  $("#f-name").value=p.name;$("#f-email").value=p.email||"";$("#f-pass").value="";$("#f-role").value=p.role;
+  mgrBrandPicker(); buildMatrix(p.assignments||[]); roleChanged();
   $("#member-modal").classList.add("show");
 }
 function closeModal(){ $("#member-modal").classList.remove("show"); }
 function saveMember(){
-  const name=$("#f-name").value.trim();
-  const email=$("#f-email").value.trim();
-  const role=$("#f-role").value;
+  const name=$("#f-name").value.trim(), email=$("#f-email").value.trim(), role=$("#f-role").value;
   if(!name){ toast("اكتب الاسم","err"); return; }
-  if(!pickedBrands.length){ toast("اختر علامة واحدة على الأقل","err"); return; }
-  if(editingId){
-    const m=MEMBERS.find(x=>x.id===editingId);
-    Object.assign(m,{name,email,role,brands:[...pickedBrands]});
-    toast("حُفظت التعديلات");
-  }else{
-    MEMBERS.push({id:uid(),name,email,role,brands:[...pickedBrands]});
-    toast("أضفنا العضو");
+  const obj={ name, email, role };
+  if(role==="brand_manager"){ if(!pickedMgrBrand){ toast("اختر علامته","err"); return; } obj.brand=pickedMgrBrand; }
+  if(role==="employee"){
+    const asg=[...document.querySelectorAll('#matrix-body input:checked')].map(c=>({brand:c.dataset.b,platform:c.dataset.p}));
+    if(!asg.length){ toast("اختر فريق واحد على الأقل","err"); return; }
+    obj.assignments=asg;
   }
-  closeModal(); render();
+  if(role==="group_owner" && PEOPLE.some(p=>p.role==="group_owner" && p.id!==editingId)){ toast("فيه مالك واحد فقط","err"); return; }
+  if(role==="gm" && PEOPLE.some(p=>p.role==="gm" && p.id!==editingId)){ toast("فيه مدير عام واحد فقط","err"); return; }
+  if(editingId){ Object.assign(PEOPLE.find(p=>p.id===editingId), {brand:undefined,assignments:undefined}, obj); toast("حُفظت التعديلات"); }
+  else { obj.id=uid(); PEOPLE.push(obj); toast("أضفنا العضو"); }
+  closeModal(); buildChart();
 }
 
-/* حذف */
+let deletingId=null;
 function askDel(id){
-  deletingId=id;
-  const m=MEMBERS.find(x=>x.id===id);
-  $("#del-sub").innerHTML = `متأكد من حذف "<b>${esc(m?.name)}</b>"؟ ينحذف من كل علاماته.`;
+  deletingId=id; const p=PEOPLE.find(x=>x.id===id);
+  $("#del-sub").innerHTML=`متأكد من حذف "<b>${esc(p?.name)}</b>"؟ ينحذف من كل مكانه في الهيكل.`;
   $("#del-modal").classList.add("show");
 }
 function closeDel(){ $("#del-modal").classList.remove("show"); deletingId=null; }
-function confirmDel(){
-  MEMBERS = MEMBERS.filter(m=>m.id!==deletingId);
-  closeDel(); render(); toast("حُذف العضو");
-}
+function confirmDel(){ PEOPLE=PEOPLE.filter(p=>p.id!==deletingId); closeDel(); buildChart(); toast("حُذف العضو"); }
 
-/* ادخل كـ (معاينة الآن — يتفعّل فعليًا بعد ربط القاعدة) */
-function loginAs(id){
-  const m=MEMBERS.find(x=>x.id===id); if(!m) return;
-  toast(`«ادخل كـ ${m.name}» — يتفعّل بعد ربط الحسابات بالقاعدة`);
-}
+function loginAs(id){ const p=PEOPLE.find(x=>x.id===id); if(!p) return; toast("«ادخل كـ "+p.name+"» — يتفعّل بعد ربط الحسابات بالقاعدة"); }
 
-renderFilters();
-render();
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closePanel(); closeModal(); closeDel(); } });
+buildChart();
 </script>
 </body>
 </html>
