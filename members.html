@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>إدارة الأعضاء - سيمبل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#ffffff; --cream-darker:#f5f5f4;
+  --ink:#0a0a0a; --ink-soft:#3a3a3a; --ink-muted:#6b6b6b; --ink-faint:#a0a0a0;
+  --accent:#13B9B2; --accent-soft:#7fd6d2; --accent-ink:#0c4f4b;
+  --gold:#C99A2E; --danger:#c93030;
+  --line:rgba(10,10,10,.08); --line-strong:rgba(10,10,10,.16);
+  --font:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--cream);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.7;min-height:100vh}
+.container{max-width:1080px;margin:0 auto;padding:0 28px}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+
+.nav{background:var(--cream);padding:16px 0;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.nav-inner{display:flex;justify-content:space-between;align-items:center}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-eye{width:38px;height:38px}
+.logo-mark{font-size:16px;font-weight:600;position:relative;padding-left:10px}
+.logo-mark::after{content:'';position:absolute;bottom:0;left:0;width:4px;height:4px;background:var(--accent);border-radius:50%}
+.nav-links{display:flex;align-items:center;gap:10px}
+.nav-link{font-size:13px;font-weight:600;color:var(--ink-soft);padding:7px 14px;border:1px solid var(--line-strong);border-radius:100px}
+.nav-link:hover{color:var(--accent);border-color:var(--accent)}
+
+.head{padding:40px 0 16px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--accent-ink);
+  background:#fff;border:1px solid rgba(19,185,178,.3);padding:7px 15px;border-radius:100px;margin-bottom:16px}
+.eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.head h1{font-size:30px;font-weight:600;letter-spacing:-.5px;margin-bottom:6px}
+.head p{color:var(--ink-soft);font-size:15px;max-width:560px}
+.head-row{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+
+.btn{border:0;border-radius:100px;padding:11px 20px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:.18s}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.primary:hover{background:var(--accent);transform:translateY(-1px)}
+.btn.ghost{background:#fff;border:1px solid var(--line-strong);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:7px 13px;font-size:12.5px}
+.btn.danger{background:#fff;border:1px solid rgba(201,48,48,.3);color:var(--danger)}
+.btn.danger:hover{background:var(--danger);color:#fff}
+
+/* فلتر العلامات */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:26px 0 18px}
+.fpill{background:#fff;border:1px solid var(--line);color:var(--ink-muted);padding:8px 16px;border-radius:100px;
+  font-size:13px;font-weight:600;transition:.15s}
+.fpill:hover{border-color:var(--accent-soft);color:var(--ink)}
+.fpill.on{background:rgba(19,185,178,.08);border-color:rgba(19,185,178,.4);color:var(--accent-ink)}
+
+/* جدول الأعضاء */
+.panel{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.row{display:grid;grid-template-columns:1fr 150px 130px auto;gap:14px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row:hover{background:#fcfcfb}
+.row.head-row-tbl{background:var(--cream-darker);font-size:11px;color:var(--ink-muted);font-weight:600}
+.who{display:flex;align-items:center;gap:12px;min-width:0}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;
+  background:rgba(19,185,178,.12);color:var(--accent-ink);flex-shrink:0}
+.av.solid{background:var(--accent);color:#fff}
+.who .nm{font-weight:600;font-size:14.5px;line-height:1.3;display:flex;align-items:center;gap:7px}
+.who .em{font-size:12px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.you{font-size:10px;font-weight:700;color:var(--gold);background:rgba(201,154,46,.12);padding:1px 8px;border-radius:100px}
+.tag{font-size:11px;font-weight:600;padding:4px 11px;border-radius:100px;white-space:nowrap;display:inline-block}
+.r-owner{background:rgba(124,140,255,.14);color:#3b3f9e}
+.r-gm{background:rgba(124,140,255,.1);color:#4a4fb0}
+.r-manager{background:rgba(201,154,46,.14);color:#8a6500}
+.r-employee{background:rgba(19,185,178,.12);color:var(--accent-ink)}
+.brand-tags{display:flex;gap:5px;flex-wrap:wrap}
+.brand-tag{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:100px;background:var(--cream-darker);color:var(--ink-soft)}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+
+.menu-wrap{position:relative}
+.menu-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--ink-muted);font-size:18px;
+  display:flex;align-items:center;justify-content:center}
+.menu-btn:hover{border-color:var(--ink);color:var(--ink)}
+.menu{display:none;position:absolute;top:40px;inset-inline-end:0;min-width:180px;background:#fff;border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 12px 30px -10px rgba(10,10,10,.18);padding:6px;z-index:20}
+.menu.show{display:block}
+.menu button{width:100%;text-align:right;background:transparent;border:0;padding:9px 11px;border-radius:8px;font-size:13.5px;
+  font-weight:500;display:flex;align-items:center;gap:9px;color:var(--ink)}
+.menu button:hover{background:var(--cream-darker)}
+.menu button.del{color:var(--danger)}
+.menu button.del:hover{background:rgba(201,48,48,.06)}
+
+.empty{padding:50px 20px;text-align:center;color:var(--ink-muted)}
+.empty h3{color:var(--ink);font-size:16px;margin-bottom:6px}
+
+/* مودال */
+.backdrop{position:fixed;inset:0;background:rgba(10,10,10,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;
+  z-index:100;padding:20px}
+.backdrop.show{display:flex}
+.modal{background:#fff;border-radius:22px;padding:30px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;animation:rise .2s ease}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.modal h3{font-size:20px;font-weight:600;margin-bottom:5px}
+.modal .sub{color:var(--ink-muted);font-size:13.5px;margin-bottom:22px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
+.field input,.field select{width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:11px;font-size:14px;background:#fff}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(19,185,178,.14)}
+.field .hint{font-size:11.5px;color:var(--ink-muted);margin-top:5px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.brand-pick{display:flex;gap:8px;flex-wrap:wrap}
+.bp{padding:8px 14px;border:1.5px solid var(--line-strong);border-radius:100px;font-size:13px;font-weight:600;background:#fff;color:var(--ink)}
+.bp.on{border-color:var(--accent);background:rgba(19,185,178,.07);color:var(--accent-ink)}
+.modal-actions{display:flex;gap:11px;margin-top:24px}
+.modal-actions .btn{flex:1;justify-content:center}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-14px);background:#fff;border:1px solid var(--line);
+  border-right:4px solid var(--accent);border-radius:14px;padding:12px 18px;font-size:14px;font-weight:500;z-index:2000;
+  box-shadow:0 14px 36px -12px rgba(10,10,10,.28);opacity:0;transition:.25s}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{border-right-color:var(--danger)}
+
+@media (max-width:760px){
+  .row{grid-template-columns:1fr auto;gap:10px}
+  .row .col-role,.row .col-brands{display:none}
+  .row.head-row-tbl{display:none}
+}
+@media (max-width:560px){.container{padding:0 16px}.head h1{font-size:24px}.modal{padding:22px}.row2{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/brand.html" class="logo">
+      <svg class="logo-eye" viewBox="0 0 200 200" aria-hidden="true">
+        <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(25 100 100)"/>
+          <path d="M30 100 C61.5 78 138.5 78 170 100 C138.5 122 61.5 122 30 100 Z" stroke="#0a0a0a" stroke-width="10" transform="rotate(-25 100 100)"/>
+          <path d="M76 100 Q100 88 124 100 Q100 112 76 100 Z" fill="#fff" stroke="#13B9B2" stroke-width="7"/>
+          <circle cx="100" cy="100" r="8" fill="#0a0a0a"/>
+        </g>
+      </svg>
+      <span class="logo-mark">سيمبل</span>
+    </a>
+    <div class="nav-links">
+      <a href="/team.html" class="nav-link">الهيكل</a>
+      <a href="/brand.html" class="nav-link">→ الرئيسية</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container">
+  <header class="head">
+    <div class="head-row">
+      <div>
+        <span class="eyebrow"><span class="d"></span> الحساب العام · مجموعة ريف</span>
+        <h1>إدارة الأعضاء</h1>
+        <p>أضف فريقك، حدّد دور كل واحد وعلامته، وادخل من منظور أي عضو لتشوف سيمبل زيّه.</p>
+      </div>
+      <button class="btn primary" onclick="openAdd()">+ إضافة عضو</button>
+    </div>
+  </header>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="panel">
+    <div class="row head-row-tbl">
+      <span>العضو</span>
+      <span class="col-role">الدور</span>
+      <span class="col-brands">العلامات</span>
+      <span></span>
+    </div>
+    <div id="rows"></div>
+  </div>
+</main>
+
+<!-- مودال إضافة/تعديل -->
+<div class="backdrop" id="member-modal">
+  <div class="modal">
+    <h3 id="m-title">إضافة عضو</h3>
+    <p class="sub">عبّئ بياناته وحدّد دوره وعلاماته. الانتحال يتفعّل بعد ربط الحسابات بالقاعدة.</p>
+    <div class="field"><label>الاسم</label><input id="f-name" placeholder="مثل: عبدالعزيز الحقباني"></div>
+    <div class="row2">
+      <div class="field"><label>الإيميل</label><input id="f-email" type="email" placeholder="name@reef.sa"></div>
+      <div class="field"><label>كلمة السر المؤقتة</label><input id="f-pass" type="text" placeholder="يغيّرها بعد الدخول"></div>
+    </div>
+    <div class="field">
+      <label>الدور</label>
+      <select id="f-role">
+        <option value="group_owner">مالك المجموعة</option>
+        <option value="gm">مدير عام</option>
+        <option value="brand_manager">مدير علامة</option>
+        <option value="employee" selected>موظف</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>العلامات (اختر واحدة أو أكثر)</label>
+      <div class="brand-pick" id="f-brands"></div>
+      <div class="hint">الموظف ممكن يكون في أكثر من علامة (مثل محمد).</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal()">إلغاء</button>
+      <button class="btn primary" id="m-save" onclick="saveMember()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال تأكيد الحذف -->
+<div class="backdrop" id="del-modal">
+  <div class="modal" style="max-width:440px">
+    <h3>حذف العضو</h3>
+    <p class="sub" id="del-sub">متأكد من حذف هذا العضو؟</p>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeDel()">إلغاء</button>
+      <button class="btn danger" onclick="confirmDel()" style="flex:1;justify-content:center">حذف نهائي</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   إدارة الأعضاء — نموذج تفاعلي (بيانات مبدئية، نربطها بالقاعدة لاحقًا)
+   كل عملية هنا "محلية" للعرض. لما نوصّلها بـ Supabase:
+   addMember/editMember/deleteMember تصير استعلامات، و«ادخل كـ» Edge Function.
+   ============================================================ */
+const BRANDS = ["ريف","أوسما","بويار"];
+const ROLE_LABEL = { group_owner:"مالك المجموعة", gm:"مدير عام", brand_manager:"مدير علامة", employee:"موظف" };
+const ROLE_CLASS = { group_owner:"r-owner", gm:"r-gm", brand_manager:"r-manager", employee:"r-employee" };
+const ME = "محمد";
+
+// القائمة المبدئية من هيكلكم
+let MEMBERS = [
+  { id:"m1", name:"عبدالعزيز الماجد", email:"aziz@reef.sa",      role:"group_owner",   brands:["ريف","أوسما","بويار"] },
+  { id:"m2", name:"محمد فيصل",        email:"mfaisal@reef.sa",   role:"gm",            brands:["ريف","أوسما","بويار"] },
+  { id:"m3", name:"عبدالعزيز الحقباني",email:"haqbani@reef.sa",   role:"brand_manager",brands:["ريف"] },
+  { id:"m4", name:"لمى غدار",         email:"lama@reef.sa",      role:"brand_manager",brands:["أوسما"] },
+  { id:"m5", name:"منى حاج",          email:"mona@reef.sa",      role:"brand_manager",brands:["بويار"] },
+  { id:"m6", name:"محمد",             email:"mohammed@reef.sa",  role:"employee",     brands:["ريف","أوسما","بويار"] },
+  { id:"m7", name:"شهد العصيمي",      email:"shahad@reef.sa",    role:"employee",     brands:["ريف","بويار"] },
+  { id:"m8", name:"ريما القحطاني",    email:"rima@reef.sa",      role:"employee",     brands:["أوسما"] },
+  { id:"m9", name:"بشار الأسعدي",     email:"bishar@reef.sa",    role:"employee",     brands:["أوسما"] },
+  { id:"m10",name:"روان",            email:"rawan@reef.sa",     role:"employee",     brands:["أوسما"] },
+  { id:"m11",name:"تميم العجلان",     email:"tamim@reef.sa",     role:"employee",     brands:["بويار"] },
+];
+
+let activeFilter = "الكل";
+let editingId = null;
+let pickedBrands = [];
+let deletingId = null;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ini = n => (String(n||"؟").trim()[0]||"؟");
+const uid = () => "m_"+Math.random().toString(36).slice(2,8);
+function toast(m,err){const t=$("#toast");t.textContent=m;t.className="toast show"+(err?" err":"");clearTimeout(t._);t._=setTimeout(()=>t.className="toast",2400);}
+
+/* فلاتر العلامات */
+function renderFilters(){
+  const opts = ["الكل",...BRANDS];
+  $("#filters").innerHTML = opts.map(o=>{
+    const n = o==="الكل" ? MEMBERS.length : MEMBERS.filter(m=>m.brands.includes(o)).length;
+    return `<button class="fpill ${activeFilter===o?"on":""}" onclick="setFilter('${esc(o)}')">${esc(o)} · ${n}</button>`;
+  }).join("");
+}
+function setFilter(f){ activeFilter=f; render(); }
+
+/* الجدول */
+function render(){
+  renderFilters();
+  const list = activeFilter==="الكل" ? MEMBERS : MEMBERS.filter(m=>m.brands.includes(activeFilter));
+  if(!list.length){
+    $("#rows").innerHTML = `<div class="empty"><h3>ما فيه أعضاء في هذي العلامة</h3><p>اضغط «إضافة عضو» لتبدأ.</p></div>`;
+    return;
+  }
+  $("#rows").innerHTML = list.map(m=>`
+    <div class="row">
+      <div class="who">
+        <div class="av ${m.role==='group_owner'||m.role==='gm'?'solid':''}">${esc(ini(m.name))}</div>
+        <div style="min-width:0">
+          <div class="nm">${esc(m.name)} ${m.name===ME?'<span class="you">أنت</span>':''}</div>
+          <div class="em">${esc(m.email||'—')}</div>
+        </div>
+      </div>
+      <div class="col-role"><span class="tag ${ROLE_CLASS[m.role]}">${ROLE_LABEL[m.role]}</span></div>
+      <div class="col-brands"><div class="brand-tags">${m.brands.map(b=>`<span class="brand-tag">${esc(b)}</span>`).join("")}</div></div>
+      <div class="row-actions">
+        <button class="btn ghost sm" onclick="loginAs('${m.id}')">↪ ادخل كـ</button>
+        <div class="menu-wrap">
+          <button class="menu-btn" onclick="toggleMenu(event,'${m.id}')" aria-label="خيارات">⋮</button>
+          <div class="menu" id="menu-${m.id}">
+            <button onclick="openEdit('${m.id}')">✎ تعديل</button>
+            <button class="del" onclick="askDel('${m.id}')">× حذف</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+/* قوائم الإجراءات */
+function toggleMenu(e,id){
+  e.stopPropagation();
+  const el = $("#menu-"+id);
+  const open = el.classList.contains("show");
+  document.querySelectorAll(".menu.show").forEach(m=>m.classList.remove("show"));
+  if(!open) el.classList.add("show");
+}
+document.addEventListener("click",()=>document.querySelectorAll(".menu.show").forEach(m=>m.classList.remove("show")));
+
+/* إضافة / تعديل */
+function brandPicker(){
+  $("#f-brands").innerHTML = BRANDS.map(b=>`<button type="button" class="bp ${pickedBrands.includes(b)?'on':''}" onclick="pickBrand('${esc(b)}')">${esc(b)}</button>`).join("");
+}
+function pickBrand(b){
+  pickedBrands = pickedBrands.includes(b) ? pickedBrands.filter(x=>x!==b) : [...pickedBrands,b];
+  brandPicker();
+}
+function openAdd(){
+  editingId=null; pickedBrands=[];
+  $("#m-title").textContent="إضافة عضو";
+  $("#f-name").value=""; $("#f-email").value=""; $("#f-pass").value=""; $("#f-role").value="employee";
+  brandPicker();
+  $("#member-modal").classList.add("show");
+}
+function openEdit(id){
+  const m = MEMBERS.find(x=>x.id===id); if(!m) return;
+  editingId=id; pickedBrands=[...m.brands];
+  $("#m-title").textContent="تعديل عضو";
+  $("#f-name").value=m.name; $("#f-email").value=m.email||""; $("#f-pass").value=""; $("#f-role").value=m.role;
+  brandPicker();
+  $("#member-modal").classList.add("show");
+}
+function closeModal(){ $("#member-modal").classList.remove("show"); }
+function saveMember(){
+  const name=$("#f-name").value.trim();
+  const email=$("#f-email").value.trim();
+  const role=$("#f-role").value;
+  if(!name){ toast("اكتب الاسم","err"); return; }
+  if(!pickedBrands.length){ toast("اختر علامة واحدة على الأقل","err"); return; }
+  if(editingId){
+    const m=MEMBERS.find(x=>x.id===editingId);
+    Object.assign(m,{name,email,role,brands:[...pickedBrands]});
+    toast("حُفظت التعديلات");
+  }else{
+    MEMBERS.push({id:uid(),name,email,role,brands:[...pickedBrands]});
+    toast("أضفنا العضو");
+  }
+  closeModal(); render();
+}
+
+/* حذف */
+function askDel(id){
+  deletingId=id;
+  const m=MEMBERS.find(x=>x.id===id);
+  $("#del-sub").innerHTML = `متأكد من حذف "<b>${esc(m?.name)}</b>"؟ ينحذف من كل علاماته.`;
+  $("#del-modal").classList.add("show");
+}
+function closeDel(){ $("#del-modal").classList.remove("show"); deletingId=null; }
+function confirmDel(){
+  MEMBERS = MEMBERS.filter(m=>m.id!==deletingId);
+  closeDel(); render(); toast("حُذف العضو");
+}
+
+/* ادخل كـ (معاينة الآن — يتفعّل فعليًا بعد ربط القاعدة) */
+function loginAs(id){
+  const m=MEMBERS.find(x=>x.id===id); if(!m) return;
+  toast(`«ادخل كـ ${m.name}» — يتفعّل بعد ربط الحسابات بالقاعدة`);
+}
+
+renderFilters();
+render();
+</script>
+</body>
+</html>
