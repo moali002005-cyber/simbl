@@ -474,6 +474,17 @@ body {
 .dc-badge.wait, .dc-badge.neutral { background:var(--line); color:var(--ink-muted); }
 .dc-badge.done { background:#E1F5EE; color:#0F6E56; font-weight:600; }
 .dc-badge.amber { background:#FBF3E2; color:#854F0B; }
+.dc-badge.success { background:#E1F5EE; color:#0F6E56; font-weight:600; }
+.dc-badge.full { background:var(--line); color:var(--ink-soft); font-weight:600; }
+.dc-note.full { background:var(--cream-darker); color:var(--ink-soft); }
+.ac-card.campaign-full { background:var(--cream-darker); }
+.ac-card.campaign-full .ac-title { color:var(--ink-soft); }
+.full-badge { background:var(--line); color:var(--ink-muted); font-size:12px; font-weight:600; padding:7px 14px; border-radius:100px; white-space:nowrap; }
+.deal-card.completed { background:var(--cream-darker); border-color:var(--line-strong); }
+.deal-card.completed .dc-head { border-bottom-color:var(--line-strong); }
+.deal-card.completed .dc-title { color:var(--ink-soft); }
+.dc-done-banner { display:flex; align-items:center; gap:8px; margin:0 14px 14px; padding:11px 13px; border-radius:11px;
+  background:#E1F5EE; color:#0F6E56; font-size:13px; font-weight:600; }
 .dc-strip { display:flex; gap:4px; padding:12px 14px 4px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .dc-step { flex:1; min-width:32px; text-align:center; }
 .dc-box { height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:13px; }
@@ -1538,14 +1549,19 @@ function renderCreatorDealCard(c, a) {
   const isApproved = isClosed && a.brand_approved === true;
   const awaitingApproval = isClosed && !isApproved;
   const isNegotiating = !isClosed;
+  const campClosed = !!(c && (c.status === 'closed' || c.status === 'completed'));
+  const didntWin = campClosed && !isClosed;
   const stageNow = a.stage || 1;
   const price = (a.final_price || a.price || 0);
   const briefText = getBriefText(a);
   const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
 
   let badge;
-  if (isApproved) {
-    if (stageNow >= 9) badge = `<span class="dc-badge done">مكتملة</span>`;
+  const isCompleted = isApproved && stageNow >= 9;
+  if (didntWin) {
+    badge = `<span class="dc-badge full">اكتمل العدد</span>`;
+  } else if (isApproved) {
+    if (stageNow >= 9) badge = `<span class="dc-badge success">✓ مكتملة بنجاح</span>`;
     else if (isCreatorTurn(stageNow)) badge = `<span class="dc-badge mine">دورك</span>`;
     else badge = `<span class="dc-badge wait">بانتظار الشركة</span>`;
   } else if (awaitingApproval) {
@@ -1555,7 +1571,9 @@ function renderCreatorDealCard(c, a) {
   }
 
   let body = '';
-  if (isApproved) {
+  if (didntWin) {
+    body = `<div class="dc-note full">اكتمل العدد المطلوب لهذي الحملة قبل ما يوصل دورك. تابع الحملات الجديدة وقدّم بسرعة — حظ أوفر 🌟</div>`;
+  } else if (isApproved) {
     let strip = '';
     for (let s = 1; s <= 9; s++) {
       let cls = 'future', ic = '·';
@@ -1567,7 +1585,7 @@ function renderCreatorDealCard(c, a) {
       }
       strip += `<div class="dc-step"><div class="dc-box ${cls}">${ic}</div><div class="dc-lbl${s === stageNow ? ' on' : ''}">${MX_LABELS[s-1]}</div></div>`;
     }
-    body = `<div class="dc-strip">${strip}</div><div class="dc-action">${renderStageAction(a.id, stageNow, 'creator')}</div>`;
+    body = `${isCompleted ? '<div class="dc-done-banner">🎉 تمّت الحملة بنجاح — شكرًا لجهودك!</div>' : ''}<div class="dc-strip">${strip}</div><div class="dc-action">${renderStageAction(a.id, stageNow, 'creator')}</div>`;
   } else if (awaitingApproval) {
     body = `<div class="dc-note amber">⏳ بانتظار الشركة لاعتماد الصفقة وبدء التنفيذ.</div>`;
   } else {
@@ -1576,7 +1594,7 @@ function renderCreatorDealCard(c, a) {
   }
 
   return `
-    <div class="deal-card" id="ac-${a.id}">
+    <div class="deal-card${(isCompleted || didntWin) ? ' completed' : ''}" id="ac-${a.id}">
       <div class="dc-head">
         <span class="dc-av">${escHtml(initial)}</span>
         <div class="dc-main"><div class="dc-title">${escHtml(c.title || 'حملة')}</div><div class="dc-sub">${escHtml(brandName)}${(!isNegotiating) ? ' · ' + price.toLocaleString('ar-SA') + ' ر.س' : ''}</div>${briefBtnHtml}</div>
@@ -1597,18 +1615,24 @@ function renderUnified() {
   const appliedCampIds = new Set(myApplications.filter(a => !isDeadApp(a)).map(a => a.campaign_id));
 
   const appliedItems = [];
-  allCampaigns.forEach(c => {
-    const myApp = myApplications.find(a => !isDeadApp(a) && a.campaign_id === c.id);
-    if (myApp) appliedItems.push({ c, myApp });
+  const seenAppIds = new Set();
+  myApplications.forEach(a => {
+    if (isDeadApp(a)) return;
+    if (seenAppIds.has(a.id)) return;
+    // نجيب بيانات الحملة من القائمة النشطة، وإلا من بيانات الصفقة نفسها (للحملات المكتملة/المقفلة)
+    const c = allCampaigns.find(x => x.id === a.campaign_id) || a.campaigns;
+    if (!c) return;
+    seenAppIds.add(a.id);
+    appliedItems.push({ c, myApp: a });
   });
-  const directOffers = myApplications.filter(a => !isDeadApp(a) && !allCampIds.has(a.campaign_id) && a.campaigns);
-  directOffers.forEach(a => appliedItems.unshift({ c: a.campaigns, myApp: a }));
 
   // ===== عروض متاحة: حسب التصنيف، وما قدّمت عليها =====
   const filtered = currentFilter === 'all'
     ? allCampaigns
     : allCampaigns.filter(c => c.brand_industry === currentFilter);
-  const openItems = filtered.filter(c => !appliedCampIds.has(c.id) && !campaignIsFull(c)).map(c => ({ c }));
+  const openAll = filtered.filter(c => !appliedCampIds.has(c.id));
+  openAll.sort((a, b) => (campaignIsFull(a) ? 1 : 0) - (campaignIsFull(b) ? 1 : 0));
+  const openItems = openAll.map(c => ({ c }));
 
   const myDeals = document.getElementById('my-deals');
 
@@ -1653,8 +1677,12 @@ function renderBrowseCard(c) {
   const brandName = c.brand || 'شركة';
   const brandInitial = brandName[0] || '؟';
   const pledge = paymentPledgeText(c);
+  const full = campaignIsFull(c);
+  const sideHtml = full
+    ? `<span class="full-badge">اكتمل العدد</span>`
+    : `<button class="ac-applybtn" onclick="enterNegotiation('${c.id}', this)">💬 التفاوض مع الوكيل</button>`;
   return `
-    <div class="ac-card no-expand">
+    <div class="ac-card no-expand${full ? ' campaign-full' : ''}">
       <div class="ac-head" style="cursor:default;">
         <div class="ac-avatar">${brandInitial}</div>
         <div class="ac-main">
@@ -1662,15 +1690,16 @@ function renderBrowseCard(c) {
           <div class="ac-brand">${brandName}</div>
         </div>
         <div class="ac-side">
-          <button class="ac-applybtn" onclick="enterNegotiation('${c.id}', this)">💬 التفاوض مع الوكيل</button>
+          ${sideHtml}
         </div>
       </div>
       <div class="ac-metarow">
+        ${full ? '<span class="meta-item">✓ اكتمل العدد المطلوب لهذي الحملة</span>' : `
         ${c.publish_timing ? `<span class="meta-item">⏱ ${publishTimingText(c)}</span>` : ''}
         ${c.platform ? `<span class="meta-item">◇ ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
         ${c.follower_range ? `<span class="meta-item">◯ ${followerRangeText(c)}</span>` : ''}
         ${c.city ? `<span class="meta-item">📍 ${CITY_LABELS[c.city] || c.city}</span>` : ''}
-        ${pledge ? `<span class="pay-pledge">💸 ${pledge}</span>` : ''}
+        ${pledge ? `<span class="pay-pledge">💸 ${pledge}</span>` : ''}`}
       </div>
     </div>
   `;

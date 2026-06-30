@@ -53,8 +53,8 @@ async function dbGetCampaigns() {
   const { data, error } = await supabaseClient
     .from('campaigns')
     .select('*, users!campaigns_brand_id_fkey(company_name)')
-    .eq('status', 'active')
     .eq('is_direct', false)
+    .in('status', ['active', 'closed', 'completed'])
     .eq('is_test', !!getCurrentUser()?.is_test)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -98,7 +98,7 @@ async function dbApply(applicationData) {
 async function dbGetMyApplications(creatorId) {
   const { data, error } = await supabaseClient
     .from('applications')
-    .select('*, campaigns(title, description, users!campaigns_brand_id_fkey(company_name))')
+    .select('*, campaigns(title, description, status, users!campaigns_brand_id_fkey(company_name))')
     .eq('creator_id', creatorId)
     .order('created_at', { ascending: false });
   if (error) throw error;
