@@ -111,6 +111,15 @@ h1 .italic { font-family: var(--font-display); font-style: normal; color: var(--
 .subtitle { font-size: 15px; color: var(--ink-soft); margin-bottom: 32px; }
 
 .field { margin-bottom: 20px; }
+.pw-wrap { position: relative; }
+.pw-wrap input { width: 100%; padding-inline-end: 44px; }
+.pw-eye {
+  position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: 0; cursor: pointer; padding: 4px; display: flex;
+  border-radius: 8px; opacity: .85; transition: opacity .15s;
+}
+.pw-eye:hover { opacity: 1; }
+.pw-eye svg { width: 22px; height: 22px; display: block; }
 label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-soft); margin-bottom: 8px; }
 input {
   width: 100%;
@@ -271,7 +280,20 @@ input::placeholder { color: var(--ink-faint); }
         </div>
         <div class="field">
           <label data-i18n="login_password">كلمة السر</label>
-          <input type="password" id="pw-password" required placeholder="كلمة السر" data-i18n-placeholder="login_password" autocomplete="current-password">
+          <div class="pw-wrap">
+            <input type="password" id="pw-password" required placeholder="كلمة السر" data-i18n-placeholder="login_password" autocomplete="current-password">
+            <button type="button" class="pw-eye" id="pw-eye-btn" onclick="togglePwVisibility()" aria-label="إظهار كلمة السر" title="إظهار كلمة السر">
+              <svg class="pw-eye-open" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M1.8 12S5.5 5.5 12 5.5 22.2 12 22.2 12 18.5 18.5 12 18.5 1.8 12 1.8 12Z" stroke="#13B9B2" stroke-width="1.9" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="3.2" fill="#13B9B2"/>
+              </svg>
+              <svg class="pw-eye-off" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:none">
+                <path d="M1.8 12S5.5 5.5 12 5.5 22.2 12 22.2 12 18.5 18.5 12 18.5 1.8 12 1.8 12Z" stroke="#13B9B2" stroke-width="1.9" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="3.2" fill="#13B9B2"/>
+                <path d="M4 4 L20 20" stroke="#13B9B2" stroke-width="1.9" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <button type="submit" class="btn-submit" id="pw-btn" data-i18n="login_btn">دخول</button>
       </form>
@@ -365,7 +387,22 @@ async function finishLogin(email, authUser) {
   return true;
 }
 
-// ===== طريقة كلمة السر =====
+// إظهار/إخفاء كلمة السر (يكشف فقط ما كتبه المستخدم — آمن)
+function togglePwVisibility() {
+  const inp = document.getElementById('pw-password');
+  const btn = document.getElementById('pw-eye-btn');
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  if (btn) {
+    const open = btn.querySelector('.pw-eye-open');
+    const off = btn.querySelector('.pw-eye-off');
+    if (open) open.style.display = show ? 'none' : 'block';
+    if (off) off.style.display = show ? 'block' : 'none';
+    btn.setAttribute('aria-label', show ? 'إخفاء كلمة السر' : 'إظهار كلمة السر');
+    btn.setAttribute('title', show ? 'إخفاء كلمة السر' : 'إظهار كلمة السر');
+  }
+}
 async function loginWithPassword(event) {
   event.preventDefault();
   hideError();
