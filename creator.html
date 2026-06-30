@@ -979,6 +979,47 @@ body {
   font-weight: 500;
 }
 .brief-toggle:hover { color: var(--accent); }
+
+/* زر البريف السريع تحت اسم الحملة + مودال عرض البريف */
+.brief-pill {
+  margin-top: 7px; display: inline-flex; align-items: center; gap: 5px;
+  background: var(--accent); color: #fff; border: 0; border-radius: 100px;
+  padding: 5px 14px; font-family: var(--font-display); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: filter .15s, transform .15s;
+}
+.brief-pill:hover { filter: brightness(.95); transform: translateY(-1px); }
+.brief-modal {
+  position: fixed; inset: 0; background: rgba(10, 10, 10, .55); backdrop-filter: blur(4px);
+  display: none; align-items: flex-end; justify-content: center; z-index: 3000;
+}
+.brief-modal.show { display: flex; }
+.brief-modal-card {
+  background: #fff; width: 100%; max-width: 560px; max-height: 85vh;
+  border-radius: 20px 20px 0 0; display: flex; flex-direction: column; animation: briefRise .25s ease;
+}
+@keyframes briefRise { from { transform: translateY(20px); opacity: 0 } to { transform: none; opacity: 1 } }
+.brief-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid var(--line);
+}
+.brief-modal-head strong { font-size: 16px; font-weight: 600; color: var(--ink); font-family: var(--font-display); }
+.brief-modal-x {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
+  background: #fff; font-size: 18px; color: var(--ink-muted); cursor: pointer; flex-shrink: 0;
+}
+.brief-modal-x:hover { border-color: var(--ink); color: var(--ink); }
+.brief-modal-body {
+  padding: 18px 20px; overflow-y: auto; flex: 1; white-space: pre-wrap;
+  line-height: 1.9; font-size: 14.5px; color: var(--ink);
+}
+.brief-modal-foot { padding: 14px 20px; border-top: 1px solid var(--line); }
+.brief-modal-copy {
+  width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 7px;
+  background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 13px;
+  font-family: var(--font-display); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.brief-modal-copy:hover { filter: brightness(.96); }
+@media (min-width: 560px) { .brief-modal { align-items: center; } .brief-modal-card { border-radius: 20px; } }
 @media (max-width: 640px) {
   .workflow-strip { padding: 18px 8px 14px; gap: 2px; }
   .ws-circle { width: 28px; height: 28px; font-size: 12px; }
@@ -1670,6 +1711,8 @@ function renderOfferCard(c, a) {
   const isExpanded = expandedAppId === a.id;
   const price = (a.final_price && isClosed) ? a.final_price : a.price;
   const priceLabel = (a.final_price && isClosed) ? 'السعر النهائي' : 'عرضك';
+  const briefText = getBriefText(a);
+  const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 عرض البريف</button>` : '';
 
   // الشارة على اليمين: تفاوض=زر، بانتظار التعميد=شارة، معمّدة=المطلوب الحالي
   let headRight;
@@ -1705,6 +1748,7 @@ function renderOfferCard(c, a) {
         <div class="ac-main">
           <div class="ac-title">${campaignTitle}</div>
           <div class="ac-brand">${brandName}</div>
+          ${briefBtnHtml}
         </div>
         <div class="ac-side">
           ${isNegotiating ? '' : `<div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('ar-SA')} ر.س</div>`}
@@ -1947,6 +1991,42 @@ function renderStageHistory(stageData, currentStage, expanded) {
 function toggleHistory(id) {
   const el = document.getElementById(id);
   if (el) el.classList.toggle('collapsed');
+}
+
+// ===== بريف الحملة: زر سريع جنب اسم الحملة يفتح البريف وينسخه =====
+function getBriefText(a) {
+  if (!a) return '';
+  let sd = a.stage_data;
+  if (!sd) return '';
+  if (typeof sd === 'string') { try { sd = JSON.parse(sd); } catch (e) { return ''; } }
+  if (typeof sd !== 'object') return '';
+  const s4 = sd[4] || sd['4'] || {};
+  const v = s4 && s4.brief;
+  return (v && String(v).trim()) ? String(v) : '';
+}
+function openBriefModal(appId) {
+  const a = (Array.isArray(myApplications) ? myApplications : []).find(x => x.id === appId);
+  if (!a) return;
+  const text = getBriefText(a);
+  if (!text) { kitToast('البريف ما وصل بعد من الشركة'); return; }
+  const c = a.campaigns || {};
+  document.getElementById('briefModalTitle').textContent = c.title || a.title || 'بريف الحملة';
+  document.getElementById('briefModalBody').textContent = text;
+  document.getElementById('briefModal').classList.add('show');
+}
+function closeBriefModal() { document.getElementById('briefModal').classList.remove('show'); }
+function copyBriefModal() {
+  const text = document.getElementById('briefModalBody').textContent || '';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ kitToast('✓ تم نسخ البريف'); }).catch(function(){ fallbackCopyBriefModal(text); });
+  } else { fallbackCopyBriefModal(text); }
+}
+function fallbackCopyBriefModal(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); kitToast('✓ تم نسخ البريف'); } catch (e) { kitToast('انسخ البريف يدويًا'); }
+  document.body.removeChild(ta);
 }
 
 function copyBrief(btn) {
@@ -2608,6 +2688,19 @@ init();
 </script>
 
 <script src="push-subscribe.js"></script>
+<!-- مودال عرض البريف (يفتحه زر «عرض البريف» جنب اسم الحملة) -->
+<div class="brief-modal" id="briefModal" onclick="if(event.target===this)closeBriefModal()">
+  <div class="brief-modal-card">
+    <div class="brief-modal-head">
+      <strong id="briefModalTitle">بريف الحملة</strong>
+      <button class="brief-modal-x" onclick="closeBriefModal()" aria-label="إغلاق">×</button>
+    </div>
+    <div class="brief-modal-body" id="briefModalBody"></div>
+    <div class="brief-modal-foot">
+      <button class="brief-modal-copy" onclick="copyBriefModal()">📋 نسخ البريف</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
