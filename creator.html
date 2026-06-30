@@ -1540,6 +1540,8 @@ function renderCreatorDealCard(c, a) {
   const isNegotiating = !isClosed;
   const stageNow = a.stage || 1;
   const price = (a.final_price || a.price || 0);
+  const briefText = getBriefText(a);
+  const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
 
   let badge;
   if (isApproved) {
@@ -1577,7 +1579,7 @@ function renderCreatorDealCard(c, a) {
     <div class="deal-card" id="ac-${a.id}">
       <div class="dc-head">
         <span class="dc-av">${escHtml(initial)}</span>
-        <div class="dc-main"><div class="dc-title">${escHtml(c.title || 'حملة')}</div><div class="dc-sub">${escHtml(brandName)}${(!isNegotiating) ? ' · ' + price.toLocaleString('ar-SA') + ' ر.س' : ''}</div></div>
+        <div class="dc-main"><div class="dc-title">${escHtml(c.title || 'حملة')}</div><div class="dc-sub">${escHtml(brandName)}${(!isNegotiating) ? ' · ' + price.toLocaleString('ar-SA') + ' ر.س' : ''}</div>${briefBtnHtml}</div>
         ${badge}
       </div>
       ${body}
