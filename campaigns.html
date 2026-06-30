@@ -3454,7 +3454,7 @@ async function submitStageForm(applicationId) {
     // بعد موافقة الشركة على المحتوى (مرحلة ٦)، احذف فيديو المراجعة من التخزين
     if (oldStage === 6) {
       const vpath = (app.stage_data && app.stage_data[5] && app.stage_data[5]._video_path) || null;
-      if (vpath) supabaseClient.rpc('delete_content_file', { p_path: vpath }).catch(function (e) { console.error('video delete failed:', e); });
+      if (vpath) { try { Promise.resolve(supabaseClient.rpc('delete_content_file', { p_path: vpath })).catch(function (e) { console.error('video delete failed:', e); }); } catch (e) { console.error('video delete failed:', e); } }
     }
 
     // إشعار المعلن (الطرف الآخر)
