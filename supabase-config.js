@@ -155,7 +155,8 @@ function clearCurrentUser() {
   } catch (e) {}
 }
 
-// محاولة استعادة الجلسة من cookie لو localStorage راح
+// محاولة استعادة الجلسة من cookie لو localStorage راح — مع إعادة محاولة
+// (إصلاح تذبذب الجلسة: قبل كانت تحاول مرة وحدة وتستسلم بصمت لو فشلت لحظيًا)
 async function tryRestoreSession() {
   // لو الجلسة موجودة في localStorage، خلاص
   if (localStorage.getItem('simbl_current_user')) return true;
@@ -165,19 +166,27 @@ async function tryRestoreSession() {
   if (!cookieMatch) return false;
 
   const userId = cookieMatch[1];
-  try {
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url')
-      .eq('id', userId)
-      .maybeSingle();
 
-    if (data) {
-      saveCurrentUser(data);
-      return true;
+  // نعيد المحاولة حتى ٣ مرات (نتفادى فشل لحظي بالشبكة/التوكن)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data) {
+        saveCurrentUser(data);   // رجّعنا المستخدم لـ localStorage
+        return true;
+      }
+      // ما فيه data وما فيه خطأ → المستخدم غير موجود فعلاً، لا داعي لإعادة المحاولة
+      if (!error) return false;
+    } catch (err) {
+      console.error('Restore attempt ' + (attempt + 1) + ' failed:', err);
     }
-  } catch (err) {
-    console.error('Failed to restore session:', err);
+    // انتظر نص ثانية قبل المحاولة الجاية
+    await new Promise(r => setTimeout(r, 500));
   }
   return false;
 }
