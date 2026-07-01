@@ -2269,6 +2269,7 @@ function renderDues() {
     const holderRaw = bank.account_holder || '';
     const stage7 = sd[7] || sd['7'] || {};
     const pub = stage7.publish_link || '';
+    const promo = stage7.promo_code || '';
     // تاريخ النشر = لحظة إكمال مرحلة النشر (٧)، وإلا تاريخ الإكمال
     const publishIso = stage7._at || a.completed_at || '';
     const acctLink = duesAccountLink(creator);
@@ -2313,6 +2314,10 @@ function renderDues() {
     const videoCell = pub
       ? '<td><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">رابط الفيديو ↗</a></td>'
       : '<td class="dim">—</td>';
+    // 4ب) كود الترويج (الضغط ينسخه تلقائيًا)
+    const promoCell = promo
+      ? '<td class="cell" data-copy="' + escHtml(promo) + '" onclick="duesCopy(this)"><span class="dues-link">انسخ كود الترويج ⎘</span></td>'
+      : '<td class="dim">—</td>';
     // 5) الآيبان (نسخ)
     const ibanCell = ibanRaw
       ? '<td class="cell xl-iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw) + '</td>'
@@ -2329,14 +2334,14 @@ function renderDues() {
     const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
 
     return '<tr><td class="xl-rowh">' + toArabic(i + 1) + '</td>'
-      + nameCell + acctCell + dateCell + videoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
+      + nameCell + acctCell + dateCell + videoCell + promoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
   }).join('');
 
   const sumChips =
     '<span class="dues-chip due">المتبقّي: ' + totalDue.toLocaleString('ar-SA') + ' ر.س</span>' +
     '<span class="dues-chip paid">المدفوع: ' + totalPaid.toLocaleString('ar-SA') + ' ر.س</span>';
 
-  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
+  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
 
   host.innerHTML =
     '<div class="dues-wrap">'
@@ -2345,7 +2350,7 @@ function renderDues() {
     + '<div class="dues-grid-wrap"><table class="xl">'
     + '<thead>'
     + '<tr><th class="xl-corner"></th>' + colLetters + '</tr>'
-    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
+    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">كود الترويج</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
     + '</thead><tbody>' + rows + '</tbody></table></div>'
     + '</div>';
 }
