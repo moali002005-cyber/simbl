@@ -331,11 +331,7 @@ function trustScore(c){
 }
 
 function badgeHtml(c){
-  const completed = Number(c.completed_deals)||0;
-  const active = Number(c.active_deals)||0;
-  if (completed >= 1) return '<span class="vbadge verified">موثّق ✓</span>';
-  if (active >= 1) return '<span class="vbadge verified">مشارك</span>';
-  return '<span class="vbadge promising">واعد</span>';
+  return '';
 }
 function starsHtml(c){
   const ratings = Number(c.ratings_count)||0;
