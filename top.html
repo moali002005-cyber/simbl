@@ -547,47 +547,15 @@ function render(list){
       + '<div class="tside">'
       +   '<div class="tscore"><span class="num">'+Math.round(c.score)+'</span><span class="lbl">درجة الثقة</span></div>'
       +   starsHtml(c)
-      +   '<span class="tchev" onclick="event.stopPropagation();toggleDetail(\''+escHtml(c.id)+'\')">التفاصيل ▾</span>'
       + '</div>'
       + '</div>'
-      + '<div class="tdetail">'+critBars(c)+'</div>'
       + '</div>';
   }).join('');
 
   if (window.simblI18n && document.documentElement.lang==='en') simblI18n.apply();
 }
 
-function critSeed(id, key){ return 4.2 + (hashId(key + ':' + id) % 8) / 10; }
-function critBars(c){
-  const ratings = Number(c.ratings_count)||0;
-  const crits = [
-    ['جودة المحتوى', 'content', c.avg_content],
-    ['الالتزام بالمواعيد', 'punct', c.avg_punctuality],
-    ['التواصل والاحترافية', 'comm', c.avg_communication],
-    ['النتائج والتفاعل', 'res', c.avg_results]
-  ];
-  let head = '';
-  if ((Number(c.completed_deals)||0) > 0 && c.avg_hours != null){
-    head = '<div class="tdetail-note">أكمل '+toArabic(Number(c.completed_deals))+' حملة'
-         + ' — متوسط الإنجاز '+toArabic(Math.round(Number(c.avg_hours)))+' ساعة</div>';
-  }
-  const bars = crits.map(function(it){
-    const seed = critSeed(c.id, it[1]);
-    const real = Number(it[2])||0;
-    const v = ratings>0 ? (PRIOR_STRENGTH*seed + real*ratings)/(PRIOR_STRENGTH+ratings) : seed;
-    const pct = Math.max(0, Math.min(100, (v/5)*100));
-    return '<div class="cbar-row"><span class="cbar-label">'+it[0]+'</span>'
-      + '<span class="cbar-track"><span class="cbar-fill" style="width:'+pct+'%"></span></span>'
-      + '<span class="cbar-val">'+v.toFixed(1)+'</span></div>';
-  }).join('');
-  return head + bars;
-}
-
 function goProfile(id){ window.location.href = 'creators.html?id=' + encodeURIComponent(id); }
-function toggleDetail(id){
-  const el = document.getElementById('ti-'+id);
-  if (el) el.classList.toggle('open');
-}
 
 init();
 </script>
