@@ -1509,6 +1509,7 @@ async function loadData() {
       await loadCampaignApprovedCounts();
       updateHeroStats();
       renderUnified();
+      _lastLoadAt = Date.now();
       return; // نجح — نخرج
     } catch (err) {
       console.error('loadData attempt ' + (attempt + 1) + ' failed:', err);
@@ -2472,10 +2473,26 @@ function logout() {
 
 // لو رجع المستخدم للصفحة من ذاكرة المتصفح (back/forward)، أعد رسم القائمة
 // عشان أي زر عالق على "جاري الفتح..." يرجع طبيعي
-window.addEventListener('pageshow', function(e) {
-  if (e.persisted && allCampaigns.length) {
-    renderUnified();
-  }
+// ===== إعادة جلب البيانات عند رجوع التطبيق للواجهة =====
+// مهم جدًا للـPWA على آيفون: النظام يقتل التطبيق في الخلفية، وعند الرجوع
+// لازم نعيد جلب الحملات والصفقات من القاعدة — مو مجرد إعادة رسم من بيانات قديمة/فاضية.
+let _lastLoadAt = Date.now();
+let _resuming = false;
+async function refreshOnResume() {
+  if (typeof currentUser === 'undefined' || !currentUser) return;
+  if (_resuming) return;                       // نتفادى التداخل
+  const stale = (Date.now() - _lastLoadAt) > 20000;   // مرّت ٢٠ ثانية
+  const empty = !Array.isArray(allCampaigns) || allCampaigns.length === 0;
+  if (!stale && !empty) { renderUnified(); return; }   // بيانات حديثة موجودة → إعادة رسم فقط
+  _resuming = true;
+  try { await loadData(); } finally { _resuming = false; }
+}
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible') refreshOnResume();
+});
+window.addEventListener('pageshow', function (e) {
+  // e.persisted = رجوع من ذاكرة المتصفح، وغيره = فتح عادي — نعالج الحالتين
+  refreshOnResume();
 });
 
 function renderMyAvatar() {
