@@ -1408,7 +1408,23 @@ async function init() {
 
   currentUser = getCurrentUser();
   if (!currentUser) {
-    alert('يرجى تسجيل الدخول أولاً');
+    // ما لقينا مستخدم. لو فيه cookie معناها هو مسجّل بس الاستعادة فشلت مؤقتًا (شبكة) —
+    // نعرض شاشة إعادة اتصال بدل ما نطرده لتسجيل الدخول.
+    const hasCookie = /simbl_user_id=/.test(document.cookie);
+    if (hasCookie) {
+      const main = document.querySelector('main');
+      if (main) {
+        main.innerHTML = '<section class="hero" style="padding-top:80px">'
+          + '<div style="max-width:440px;margin:0 auto;text-align:center">'
+          + '<div style="width:76px;height:76px;border-radius:50%;background:rgba(19,185,178,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:34px">📡</div>'
+          + '<h1 class="hero-title" style="font-size:26px">جاري إعادة الاتصال...</h1>'
+          + '<p class="hero-sub">الشبكة ضعيفة الآن. حسابك محفوظ — اضغط للمحاولة من جديد.</p>'
+          + '<button onclick="init()" style="margin-top:14px;padding:12px 30px;border-radius:100px;border:0;background:var(--accent,#13B9B2);color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">إعادة المحاولة</button>'
+          + '</div></section>';
+      }
+      return;
+    }
+    // لا cookie ولا مستخدم → غير مسجّل فعلاً
     window.location.href = '/signup.html';
     return;
   }
@@ -1480,19 +1496,30 @@ function showPendingScreen(status) {
 }
 
 async function loadData() {
-  try {
-    document.getElementById('unified-list').innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري تحميل الإعلانات...</div></div>';
-    [allCampaigns, myApplications] = await Promise.all([
-      dbGetCampaigns(),
-      dbGetMyApplications(currentUser.id)
-    ]);
-    await loadCampaignApprovedCounts();
-    updateHeroStats();
-    renderUnified();
-  } catch (err) {
-    console.error(err);
-    document.getElementById('unified-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--ink-soft)">حصل خطأ في تحميل البيانات. حدّث الصفحة وحاول مرة أخرى.</div>';
+  const box = document.getElementById('unified-list');
+  box.innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري تحميل الإعلانات...</div></div>';
+  // إعادة محاولة حتى ٣ مرات مع تراجع تدريجي (يعالج اختفاء الحملة عند الفتح البارد على شبكة الجوال)
+  const backoff = [600, 1200, 2000];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      [allCampaigns, myApplications] = await Promise.all([
+        dbGetCampaigns(),
+        dbGetMyApplications(currentUser.id)
+      ]);
+      await loadCampaignApprovedCounts();
+      updateHeroStats();
+      renderUnified();
+      return; // نجح — نخرج
+    } catch (err) {
+      console.error('loadData attempt ' + (attempt + 1) + ' failed:', err);
+      if (attempt < 2) await new Promise(r => setTimeout(r, backoff[attempt]));
+    }
   }
+  // فشل بعد كل المحاولات → زر إعادة محاولة بدل رسالة ميتة (ما نطالبه يسجّل خروج ودخول)
+  box.innerHTML = '<div style="text-align:center; padding:60px 20px; color:var(--ink-soft)">'
+    + 'تعذّر تحميل الإعلانات — قد تكون الشبكة ضعيفة الآن.'
+    + '<br><button onclick="loadData()" style="margin-top:16px; padding:11px 26px; border-radius:100px; border:0; background:var(--accent,#13B9B2); color:#fff; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer">إعادة المحاولة</button>'
+    + '</div>';
 }
 
 // ====== اكتمال الحملة: إخفاء الحملات المكتملة ومنع الدخول ======

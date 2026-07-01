@@ -167,8 +167,9 @@ async function tryRestoreSession() {
 
   const userId = cookieMatch[1];
 
-  // نعيد المحاولة حتى ٣ مرات (نتفادى فشل لحظي بالشبكة/التوكن)
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // نعيد المحاولة حتى ٥ مرات مع تراجع تدريجي (نتفادى فشل الشبكة البطيئة عند الفتح البارد)
+  const backoff = [400, 700, 1100, 1600, 2200];
+  for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const { data, error } = await supabaseClient
         .from('users')
@@ -185,8 +186,8 @@ async function tryRestoreSession() {
     } catch (err) {
       console.error('Restore attempt ' + (attempt + 1) + ' failed:', err);
     }
-    // انتظر نص ثانية قبل المحاولة الجاية
-    await new Promise(r => setTimeout(r, 500));
+    // انتظر قبل المحاولة الجاية (تراجع تدريجي)
+    await new Promise(r => setTimeout(r, backoff[attempt] || 2000));
   }
   return false;
 }
