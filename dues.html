@@ -308,7 +308,7 @@ function duesRowFilled(a, camp, idx, totals) {
     : '<td class="dim">—</td>';
   const dateCell = '<td class="cell" data-copy="' + escHtml(dateCopy) + '" onclick="duesCopy(this)">' + dateDisp + '</td>';
   const videoCell = pub
-    ? '<td><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">رابط الفيديو ↗</a></td>'
+    ? '<td><div style="display:flex;gap:8px;align-items:center;justify-content:center;white-space:nowrap;"><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">فتح ↗</a><span style="color:var(--line,#ddd);">|</span><span class="dues-link" data-copy="' + escHtml(pub) + '" onclick="duesCopy(this)" style="cursor:pointer;">نسخ ⎘</span></div></td>'
     : '<td class="dim">—</td>';
   const promoCell = promo
     ? '<td class="cell" data-copy="' + escHtml(promo) + '" onclick="duesCopy(this)"><span class="dues-link">انسخ كود الترويج ⎘</span></td>'
