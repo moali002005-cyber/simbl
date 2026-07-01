@@ -273,6 +273,7 @@ function duesRowFilled(a, camp, idx, totals) {
   const holderRaw = bank.account_holder || '';
   const stage7 = sd[7] || sd['7'] || {};
   const pub = stage7.publish_link || '';
+  const promo = stage7.promo_code || '';
   const publishIso = stage7._at || a.completed_at || '';
   const acctLink = duesAccountLink(creator);
   const stg = a.stage || 1;
@@ -309,6 +310,9 @@ function duesRowFilled(a, camp, idx, totals) {
   const videoCell = pub
     ? '<td><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">رابط الفيديو ↗</a></td>'
     : '<td class="dim">—</td>';
+  const promoCell = promo
+    ? '<td class="cell" data-copy="' + escHtml(promo) + '" onclick="duesCopy(this)"><span class="dues-link">انسخ كود الترويج ⎘</span></td>'
+    : '<td class="dim">—</td>';
   const ibanCell = ibanRaw
     ? '<td class="cell xl-iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw) + '</td>'
     : '<td class="dim">—</td>';
@@ -319,9 +323,9 @@ function duesRowFilled(a, camp, idx, totals) {
   const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
   const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
 
-  const rowTSV = [nameRaw, acctLink || '—', dateCopy || '—', pub || '—', ibanRaw || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
+  const rowTSV = [nameRaw, acctLink || '—', dateCopy || '—', pub || '—', promo || '—', ibanRaw || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
   return '<tr><td class="xl-rowh xl-rowcopy" data-copy="' + escHtml(rowTSV) + '" onclick="duesCopyRow(this)" title="نسخ الصف كامل">' + toArabic(idx) + '</td>'
-    + nameCell + acctCell + dateCell + videoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
+    + nameCell + acctCell + dateCell + videoCell + promoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
 }
 
 // نسخ الصف كامل (مفصول بـ Tab — جاهز للّصق في إكسل)
@@ -344,7 +348,7 @@ function csvCell(v) {
 }
 function exportDuesCSV() {
   const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const header = ['الحملة', 'تاريخ انطلاق الحملة', 'الاسم', 'رابط الحساب', 'تاريخ النشر', 'رابط الفيديو', 'الآيبان', 'الاسم بالبنك', 'المبلغ', 'حالة الدفع'];
+  const header = ['الحملة', 'تاريخ انطلاق الحملة', 'الاسم', 'رابط الحساب', 'تاريخ النشر', 'رابط الفيديو', 'كود الترويج', 'الآيبان', 'الاسم بالبنك', 'المبلغ', 'حالة الدفع'];
   const lines = [header];
   let count = 0;
   camps.forEach(c => {
@@ -370,7 +374,7 @@ function exportDuesCSV() {
       else if (ps === 'disputed') statusPlain = 'نزاع استلام';
       else statusPlain = 'باقي' + (duesIsOverdue(a, c) ? ' - متأخر' : '');
       lines.push([c.title || 'حملة', launch, creator.name || 'معلن', duesAccountLink(creator) || '', dateCsv,
-        st7.publish_link || '', bank.iban || '', bank.account_holder || '', amountNum, statusPlain]);
+        st7.publish_link || '', st7.promo_code || '', bank.iban || '', bank.account_holder || '', amountNum, statusPlain]);
       count++;
     });
   });
@@ -419,7 +423,7 @@ function renderCampaignBlock(camp, deals) {
     body += deals[i] ? duesRowFilled(deals[i], camp, i + 1, totals) : duesRowEmpty(i + 1);
   }
 
-  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
+  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
   const launch = duesDateText(camp.created_at);
   const sumChips =
     '<span class="dues-chip due">المتبقّي: ' + totals.due.toLocaleString('ar-SA') + ' ر.س</span>' +
@@ -440,7 +444,7 @@ function renderCampaignBlock(camp, deals) {
     + '<div class="dues-grid-wrap"><table class="xl">'
     + '<thead>'
     + '<tr><th class="xl-corner"></th>' + colLetters + '</tr>'
-    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
+    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">كود الترويج</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
     + '</thead><tbody>' + body + '</tbody></table></div>'
     + '</div>';
 }
