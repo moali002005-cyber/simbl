@@ -123,8 +123,15 @@ function arReach(n){
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
 var amount = function(a){ return Number(a.final_price||a.price||0); };
+// صفقة معتمدة (اتفق عليها الطرفان)
 var isCompleted = function(a){ return a.status==='closed' && a.brand_approved===true; };
-var isInProgress = function(a){ return a.brand_approved===true && ['closed','rejected','suspended'].indexOf(a.status)===-1; };
+// المرحلة الحالية للصفقة
+var stageOf = function(a){ return Number(a.stage)||1; };
+// إعلان مكتمل فعلًا = معتمد ووصل المرحلة الأخيرة (9)
+var isFinished = function(a){ return isCompleted(a) && stageOf(a) >= 9; };
+// إعلان يتم تجهيزه = معتمد لكن لسا ما وصل المرحلة الأخيرة
+var isPreparing = function(a){ return isCompleted(a) && stageOf(a) < 9; };
+var isInProgress = isPreparing;
 
 async function init(){
   try{ if(typeof tryRestoreSession==='function') await tryRestoreSession(); }catch(e){}
@@ -177,8 +184,8 @@ function render(camps, apps, ratings){
   var totalCampaigns = camps.length;
   var activeCampaigns = camps.filter(function(c){return c.status!=='closed';}).length;
   var totalApps = apps.length;
-  var completedCount = completed.length;
-  var inProgress = apps.filter(isInProgress).length;
+  var finishedCount = apps.filter(isFinished).length;
+  var preparingCount = apps.filter(isPreparing).length;
   var spend = completed.reduce(function(s,a){return s+amount(a);},0);
   var paid = completed.filter(function(a){return a.payment_status==='confirmed';}).reduce(function(s,a){return s+amount(a);},0);
   var reach = completed.reduce(function(s,a){return s+parseFollowers(a.users&&a.users.followers);},0);
@@ -200,9 +207,9 @@ function render(camps, apps, ratings){
   var kpis='<div class="kpis">'
     + kpiCard('الحملات', ar(totalCampaigns), 'منها '+ar(activeCampaigns)+' نشطة', I.camp)
     + kpiCard('العروض المستلمة', ar(totalApps), 'من المؤثرين', I.apps)
-    + kpiCard('صفقات مكتملة', ar(completedCount), 'تمّت بنجاح', I.done)
-    + kpiCard('قيد التنفيذ', ar(inProgress), 'صفقات شغّالة', I.prog)
-    + kpiCard('إجمالي الإنفاق', ar(spend)+' <small>ر.س</small>', 'على الصفقات المكتملة', I.money, true)
+    + kpiCard('إعلانات مكتملة', ar(finishedCount), 'خلصت كل المراحل', I.done)
+    + kpiCard('إعلانات يتم تجهيزها', ar(preparingCount), 'شغّالة الآن', I.prog)
+    + kpiCard('إجمالي الإنفاق', ar(spend)+' <small>ر.س</small>', 'على الصفقات المعتمدة', I.money, true)
     + kpiCard('المدفوع فعليًا', ar(paid)+' <small>ر.س</small>', 'مؤكّد الدفع', I.money)
     + kpiCard('إجمالي الوصول', pubReach>0 ? arReach(pubReach) : '—', pubReach>0 ? 'مشاهدات منشورات المتعاونين' : 'يجري تحديثها بعد نشر الحملة', I.reach)
     + kpiCard('المتعاونون', ar(collaborators), 'مؤثر تعاملت معهم', I.reach)
@@ -231,12 +238,12 @@ function render(camps, apps, ratings){
   // per-campaign
   var rows = camps.map(function(c){
     var ca = apps.filter(function(a){return a.campaign_id===c.id;});
-    var cDone = ca.filter(isCompleted);
+    var cApproved = ca.filter(isCompleted);
     return {
-      c:c, total:ca.length, done:cDone.length,
-      prog:ca.filter(isInProgress).length,
-      spend:cDone.reduce(function(s,a){return s+amount(a);},0),
-      reach:cDone.reduce(function(s,a){return s+parseFollowers(a.users&&a.users.followers);},0)
+      c:c, total:ca.length, done:ca.filter(isFinished).length,
+      prog:ca.filter(isPreparing).length,
+      spend:cApproved.reduce(function(s,a){return s+amount(a);},0),
+      reach:cApproved.reduce(function(s,a){return s+parseFollowers(a.users&&a.users.followers);},0)
     };
   });
 
@@ -264,8 +271,8 @@ function render(camps, apps, ratings){
       + '<span class="cbadge '+(on?'on':'off')+'">'+(on?'نشطة':'مغلقة')+'</span></div>'
       + '<div class="cstats">'
       +   '<div class="cstat"><div class="n">'+ar(r.total)+'</div><div class="l">عرض مستلم</div></div>'
-      +   '<div class="cstat"><div class="n">'+ar(r.prog)+'</div><div class="l">قيد التنفيذ</div></div>'
-      +   '<div class="cstat"><div class="n">'+ar(r.done)+'</div><div class="l">صفقة مكتملة</div></div>'
+      +   '<div class="cstat"><div class="n">'+ar(r.prog)+'</div><div class="l">يتم تجهيزه</div></div>'
+      +   '<div class="cstat"><div class="n">'+ar(r.done)+'</div><div class="l">مكتمل</div></div>'
       +   '<div class="cstat"><div class="n">'+arReach(r.reach)+'</div><div class="l">وصول</div></div>'
       +   '<div class="cstat" style="grid-column:1/-1"><div class="n">'+ar(r.spend)+' <small style="font-size:12px;color:var(--ink-muted)">ر.س</small></div><div class="l">إنفاق على هذه الحملة</div></div>'
       + '</div></div>';
