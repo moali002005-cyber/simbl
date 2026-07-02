@@ -2224,7 +2224,13 @@ function buildEditProfile(){
   if (document.getElementById('edit-profile')) return;
   var PL = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', youtube:'يوتيوب', x:'إكس' };
   var CL = { general:'عام', lifestyle:'لايف ستايل', beauty:'جمال وعناية', fashion:'موضة', food:'طعام', travel:'سفر', tech:'تقنية', sports:'رياضة', family:'أمومة وأطفال' };
-  var opts = function(map){ var s=''; for(var k in map){ s+='<option value="'+k+'">'+map[k]+'</option>'; } return s; };
+  var FR = { '10000':'من 10 آلاف إلى 20 ألف','20000':'من 20 ألف إلى 50 ألف','50000':'من 50 ألف إلى 100 ألف','100000':'من 100 ألف إلى 200 ألف','200000':'من 200 ألف إلى 300 ألف','300000':'من 300 ألف إلى 500 ألف','500000':'من 500 ألف إلى 700 ألف','700000':'من 700 ألف إلى مليون','1000000':'من مليون إلى مليونين','2000000':'فوق 2 مليون','3000000':'فوق 3 مليون','4000000':'فوق 4 مليون' };
+  var COUNTRIES = [['SA','السعودية'],['AE','الإمارات'],['QA','قطر'],['BH','البحرين'],['KW','الكويت'],['OM','عُمان'],['__sep','──────────'],['AM','أرمينيا'],['AZ','أذربيجان'],['ET','إثيوبيا'],['AZ2',''],['AR','الأرجنتين'],['JO','الأردن'],['ES','إسبانيا'],['AU','أستراليا'],['EE','إستونيا'],['AF','أفغانستان'],['AL','ألبانيا'],['DE','ألمانيا'],['US','أمريكا'],['ID','إندونيسيا'],['AO','أنغولا'],['UY','الأوروغواي'],['UZ','أوزبكستان'],['UG','أوغندا'],['UA','أوكرانيا'],['IE','أيرلندا'],['IS','آيسلندا'],['IT','إيطاليا'],['IR','إيران'],['PT','البرتغال'],['PY','باراغواي'],['PK','باكستان'],['BR','البرازيل'],['GB','بريطانيا'],['BB','باربادوس'],['BN','بروناي'],['BE','بلجيكا'],['BG','بلغاريا'],['BD','بنغلاديش'],['PA','بنما'],['BJ','بنين'],['BT','بوتان'],['BW','بوتسوانا'],['BF','بوركينا فاسو'],['BI','بوروندي'],['BA','البوسنة والهرسك'],['PL','بولندا'],['BO','بوليفيا'],['PE','بيرو'],['BY','بيلاروسيا'],['TH','تايلاند'],['TW','تايوان'],['TM','تركمانستان'],['TR','تركيا'],['TT','ترينيداد وتوباغو'],['TD','تشاد'],['CZ','التشيك'],['CL','تشيلي'],['TZ','تنزانيا'],['TG','توغو'],['TN','تونس'],['TO','تونغا'],['TL','تيمور الشرقية'],['JM','جامايكا'],['ME','الجبل الأسود'],['BS','الباهاما'],['ZA','جنوب أفريقيا'],['SS','جنوب السودان'],['GE','جورجيا'],['DJ','جيبوتي'],['DK','الدنمارك'],['DM','دومينيكا'],['DO','الدومينيكان'],['RW','رواندا'],['RU','روسيا'],['RO','رومانيا'],['ZM','زامبيا'],['ZW','زيمبابوي'],['CI','ساحل العاج'],['WS','ساموا'],['SM','سان مارينو'],['LK','سريلانكا'],['SV','السلفادور'],['SK','سلوفاكيا'],['SI','سلوفينيا'],['SG','سنغافورة'],['SN','السنغال'],['SD','السودان'],['SR','سورينام'],['SY','سوريا'],['SE','السويد'],['CH','سويسرا'],['SL','سيراليون'],['SC','سيشل'],['RS','صربيا'],['SO','الصومال'],['CN','الصين'],['TJ','طاجيكستان'],['IQ','العراق'],['GM','غامبيا'],['GH','غانا'],['GD','غرينادا'],['GT','غواتيمالا'],['GY','غويانا'],['GN','غينيا'],['GQ','غينيا الاستوائية'],['GW','غينيا بيساو'],['VU','فانواتو'],['FR','فرنسا'],['PH','الفلبين'],['PS','فلسطين'],['VE','فنزويلا'],['FI','فنلندا'],['VN','فيتنام'],['FJ','فيجي'],['CY','قبرص'],['KG','قيرغيزستان'],['KZ','كازاخستان'],['CM','الكاميرون'],['HR','كرواتيا'],['KH','كمبوديا'],['CA','كندا'],['CU','كوبا'],['CR','كوستاريكا'],['CO','كولومبيا'],['KM','جزر القمر'],['CG','الكونغو'],['CD','الكونغو الديمقراطية'],['XK','كوسوفو'],['KR','كوريا الجنوبية'],['KP','كوريا الشمالية'],['KE','كينيا'],['LV','لاتفيا'],['LA','لاوس'],['LB','لبنان'],['LU','لوكسمبورغ'],['LY','ليبيا'],['LR','ليبيريا'],['LT','ليتوانيا'],['LI','ليختنشتاين'],['LS','ليسوتو'],['MT','مالطا'],['ML','مالي'],['MY','ماليزيا'],['MW','مالاوي'],['EG','مصر'],['MG','مدغشقر'],['MV','المالديف'],['MK','مقدونيا الشمالية'],['MN','منغوليا'],['MR','موريتانيا'],['MU','موريشيوس'],['MZ','موزمبيق'],['MD','مولدوفا'],['MC','موناكو'],['MA','المغرب'],['MX','المكسيك'],['MM','ميانمار'],['NA','ناميبيا'],['NR','ناورو'],['NP','نيبال'],['NE','النيجر'],['NG','نيجيريا'],['NI','نيكاراغوا'],['NZ','نيوزيلندا'],['NO','النرويج'],['AT','النمسا'],['IN','الهند'],['HN','هندوراس'],['HU','المجر'],['NL','هولندا'],['HT','هايتي'],['JP','اليابان'],['YE','اليمن'],['GR','اليونان'],['MH','جزر مارشال'],['SB','جزر سليمان'],['KI','كيريباتي'],['PG','بابوا غينيا الجديدة'],['HK','هونغ كونغ'],['other','دولة أخرى']];
+  var selOpts = function(map){ var s=''; for(var k in map){ if(map[k]) s+='<option value="'+k+'">'+map[k]+'</option>'; } return s; };
+  var countryOpts = function(){ var s=''; for(var i=0;i<COUNTRIES.length;i++){ var c=COUNTRIES[i]; if(c[0]==='__sep'){ s+='<option value="" disabled>'+c[1]+'</option>'; } else if(c[1]){ s+='<option value="'+c[0]+'">'+c[1]+'</option>'; } } return s; };
+  var CITIES = [['riyadh','الرياض'],['jeddah','جدة'],['makkah','مكة المكرمة'],['madinah','المدينة المنورة'],['dammam','الدمام'],['khobar','الخبر'],['dhahran','الظهران'],['hofuf','الأحساء'],['qatif','القطيف'],['jubail','الجبيل'],['taif','الطائف'],['tabuk','تبوك'],['buraidah','بريدة'],['unaizah','عنيزة'],['hail','حائل'],['abha','أبها'],['khamis','خميس مشيط'],['najran','نجران'],['jazan','جازان'],['yanbu','ينبع'],['sakaka','سكاكا'],['arar','عرعر'],['albaha','الباحة'],['other','مدينة أخرى']];
+  var cityOpts = function(){ var s=''; for(var i=0;i<CITIES.length;i++){ s+='<option value="'+CITIES[i][0]+'">'+CITIES[i][1]+'</option>'; } return s; };
+  var opts = function(map){ var s=''; for(var k in map){ if(map[k]) s+='<option value="'+k+'">'+map[k]+'</option>'; } return s; };
   var fld = 'width:100%;box-sizing:border-box;background:#fff;border:1px solid var(--line-strong);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:14px;color:var(--ink);';
   var lbl = 'font-size:12px;color:var(--ink-muted);margin:0 2px 6px;display:block;';
   var html = ''
@@ -2241,16 +2247,26 @@ function buildEditProfile(){
     +     '</div>'
     +     '<label style="'+lbl+'">الاسم</label><input id="ep-name" type="text" style="'+fld+'margin-bottom:14px;">'
     +     '<label style="'+lbl+'">اسم المستخدم</label><input id="ep-handle" type="text" dir="ltr" style="'+fld+'margin-bottom:14px;text-align:right;">'
-    +     '<label style="'+lbl+'">رابط حسابك</label><input id="ep-website" type="url" dir="ltr" placeholder="https://" style="'+fld+'margin-bottom:14px;text-align:right;">'
+    +     '<label style="'+lbl+'">الدولة</label><select id="ep-country" style="'+fld+'margin-bottom:14px;"><option value="">اختر الدولة</option>'+countryOpts()+'</select>'
+    +     '<label style="'+lbl+'">المدينة</label><select id="ep-city" style="'+fld+'margin-bottom:14px;"><option value="">اختر المدينة</option>'+cityOpts()+'</select>'
+    +     '<label style="'+lbl+'">رابط حسابك</label><input id="ep-website" type="text" inputmode="url" dir="ltr" placeholder="https://" style="'+fld+'margin-bottom:14px;text-align:right;">'
     +     '<label style="'+lbl+'">المنصة</label><select id="ep-platform" style="'+fld+'margin-bottom:14px;">'+opts(PL)+'</select>'
     +     '<label style="'+lbl+'">التصنيف</label><select id="ep-category" style="'+fld+'margin-bottom:14px;">'+opts(CL)+'</select>'
-    +     '<label style="'+lbl+'">النبذة</label><textarea id="ep-bio" rows="3" style="'+fld+'resize:vertical;margin-bottom:24px;"></textarea>'
+    +     '<label style="'+lbl+'">نطاق المتابعين</label><select id="ep-followers" style="'+fld+'margin-bottom:14px;"><option value="">اختر النطاق</option>'+selOpts(FR)+'</select>'
+    +     '<label style="'+lbl+'">السعر المرجعي (ر.س)</label><input id="ep-price" type="text" inputmode="numeric" placeholder="مثال: 800" style="'+fld+'margin-bottom:14px;text-align:right;">'
+    +     '<label style="'+lbl+'">النبذة</label><textarea id="ep-bio" rows="3" maxlength="300" style="'+fld+'resize:vertical;margin-bottom:6px;"></textarea>'
+    +     '<div id="ep-bio-count" style="font-size:11px;color:var(--ink-faint);text-align:left;margin:0 2px 24px;"></div>'
     +   '</div>'
     + '</div>';
   document.body.insertAdjacentHTML('beforeend', html);
   document.getElementById('ep-cancel').addEventListener('click', closeEditProfile);
   document.getElementById('ep-save').addEventListener('click', saveProfile);
   document.getElementById('ep-change-photo').addEventListener('click', function(){ document.getElementById('avatar-input').click(); });
+  var bioEl = document.getElementById('ep-bio'), cntEl = document.getElementById('ep-bio-count');
+  if (bioEl && cntEl) {
+    var upd = function(){ cntEl.textContent = bioEl.value.length + ' / 300'; };
+    bioEl.addEventListener('input', upd); upd();
+  }
 }
 
 function renderEpAvatar(){
@@ -2264,9 +2280,14 @@ function openEditProfile(){
   document.getElementById('ep-name').value = currentUser.name || '';
   document.getElementById('ep-handle').value = currentUser.handle || '';
   document.getElementById('ep-website').value = currentUser.website || '';
+  if (currentUser.country) document.getElementById('ep-country').value = currentUser.country;
+  if (currentUser.city) document.getElementById('ep-city').value = currentUser.city;
   if (currentUser.platform) document.getElementById('ep-platform').value = currentUser.platform;
   if (currentUser.category) document.getElementById('ep-category').value = currentUser.category;
+  if (currentUser.followers) document.getElementById('ep-followers').value = String(currentUser.followers);
+  document.getElementById('ep-price').value = currentUser.price ? String(currentUser.price) : '';
   document.getElementById('ep-bio').value = currentUser.bio || '';
+  var _c = document.getElementById('ep-bio-count'); if (_c) _c.textContent = (currentUser.bio||'').length + ' / 300';
   renderEpAvatar();
   document.getElementById('edit-profile').style.display = 'block';
   window.scrollTo(0, 0);
@@ -2277,14 +2298,24 @@ function closeEditProfile(){ var m=document.getElementById('edit-profile'); if(m
 async function saveProfile(){
   var btn = document.getElementById('ep-save'); var orig = btn.textContent;
   btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+  var priceVal = parseInt(String(document.getElementById('ep-price').value).replace(/[^\d]/g,''), 10);
+  var follVal = parseInt(document.getElementById('ep-followers').value, 10);
   var payload = {
     p_name: document.getElementById('ep-name').value.trim(),
     p_handle: document.getElementById('ep-handle').value.trim().replace(/^@+/, ''),
     p_website: document.getElementById('ep-website').value.trim(),
     p_platform: document.getElementById('ep-platform').value,
     p_category: document.getElementById('ep-category').value,
-    p_bio: document.getElementById('ep-bio').value.trim()
+    p_bio: document.getElementById('ep-bio').value.trim(),
+    p_country: document.getElementById('ep-country').value || null,
+    p_city: document.getElementById('ep-city').value || null,
+    p_price: isNaN(priceVal) ? null : priceVal,
+    p_followers: isNaN(follVal) ? null : follVal
   };
+  // تصحيح الرابط: لو بدون https نضيفها
+  if (payload.p_website && !/^https?:\/\//i.test(payload.p_website)) {
+    payload.p_website = 'https://' + payload.p_website.replace(/^\/+/, '');
+  }
   try {
     var res = await supabaseClient.rpc('update_my_profile', payload);
     if (res.error) throw res.error;
@@ -2294,6 +2325,10 @@ async function saveProfile(){
     currentUser.platform = payload.p_platform;
     currentUser.category = payload.p_category;
     currentUser.bio = payload.p_bio;
+    if (payload.p_country) currentUser.country = payload.p_country;
+    if (payload.p_city) currentUser.city = payload.p_city;
+    if (payload.p_price != null) currentUser.price = payload.p_price;
+    if (payload.p_followers != null) currentUser.followers = payload.p_followers;
     saveCurrentUser(currentUser);
     updateHeroStats();
     renderMyAvatar();
