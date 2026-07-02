@@ -110,7 +110,22 @@ async function dbApply(applicationData) {
     .insert([applicationData])
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    // القيد الفريد (23505): المعلن طبّق على هذه الحملة من قبل →
+    // نرجّع التطبيق الموجود بدل رمي خطأ، فينتقل لمفاوضته الحالية بسلاسة.
+    if (error.code === '23505' && applicationData && applicationData.creator_id && applicationData.campaign_id) {
+      const { data: existing, error: findErr } = await supabaseClient
+        .from('applications')
+        .select('*')
+        .eq('creator_id', applicationData.creator_id)
+        .eq('campaign_id', applicationData.campaign_id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!findErr && existing) return existing;
+    }
+    throw error;
+  }
   return data;
 }
 
