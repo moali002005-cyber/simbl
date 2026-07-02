@@ -239,6 +239,16 @@ function duesAccountLink(creator) {
   return '';
 }
 
+// تحويل رقم الجوال السعودي إلى رابط واتساب دولي (05xxxxxxxx → 9665xxxxxxxx)
+function duesWaLink(raw) {
+  let d = String(raw || '').replace(/[^\d+]/g, '');
+  if (d.startsWith('+')) d = d.slice(1);
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('05')) d = '966' + d.slice(1);      // 05xxxxxxxx → 9665xxxxxxxx
+  else if (d.startsWith('5') && d.length === 9) d = '966' + d; // 5xxxxxxxx → 9665xxxxxxxx
+  return 'https://wa.me/' + d;
+}
+
 function duesCopy(el) {
   const txt = el.getAttribute('data-copy') || el.textContent || '';
   const done = () => {
@@ -265,6 +275,7 @@ function duesRowFilled(a, camp, idx, totals) {
   const creator = a.users || {};
   const nameRaw = creator.name || 'معلن';
   const name = escHtml(nameRaw);
+  const phoneRaw = (creator.whatsapp || creator.phone || '').trim();
   const amountNum = Number(a.final_price || a.price || 0);
   const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
   const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
@@ -303,6 +314,9 @@ function duesRowFilled(a, camp, idx, totals) {
   }
 
   const nameCell = '<td class="cell" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
+  const phoneCell = phoneRaw
+    ? '<td><div style="display:flex;gap:8px;align-items:center;justify-content:center;white-space:nowrap;"><a class="dues-link" href="' + escHtml(duesWaLink(phoneRaw)) + '" target="_blank" rel="noopener">واتساب ↗</a><span style="color:var(--line,#ddd);">|</span><span class="dues-link" data-copy="' + escHtml(phoneRaw) + '" onclick="duesCopy(this)" style="cursor:pointer;">' + escHtml(phoneRaw) + '</span></div></td>'
+    : '<td class="dim">—</td>';
   const acctCell = acctLink
     ? '<td><a class="dues-link" href="' + escHtml(acctLink) + '" target="_blank" rel="noopener">رابط الحساب ↗</a></td>'
     : '<td class="dim">—</td>';
@@ -323,9 +337,9 @@ function duesRowFilled(a, camp, idx, totals) {
   const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
   const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
 
-  const rowTSV = [nameRaw, acctLink || '—', dateCopy || '—', pub || '—', promo || '—', ibanRaw || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
+  const rowTSV = [nameRaw, phoneRaw || '—', acctLink || '—', dateCopy || '—', pub || '—', promo || '—', ibanRaw || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
   return '<tr><td class="xl-rowh xl-rowcopy" data-copy="' + escHtml(rowTSV) + '" onclick="duesCopyRow(this)" title="نسخ الصف كامل">' + toArabic(idx) + '</td>'
-    + nameCell + acctCell + dateCell + videoCell + promoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
+    + nameCell + phoneCell + acctCell + dateCell + videoCell + promoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
 }
 
 // نسخ الصف كامل (مفصول بـ Tab — جاهز للّصق في إكسل)
@@ -348,7 +362,7 @@ function csvCell(v) {
 }
 function exportDuesCSV() {
   const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const header = ['الحملة', 'تاريخ انطلاق الحملة', 'الاسم', 'رابط الحساب', 'تاريخ النشر', 'رابط الفيديو', 'كود الترويج', 'الآيبان', 'الاسم بالبنك', 'المبلغ', 'حالة الدفع'];
+  const header = ['الحملة', 'تاريخ انطلاق الحملة', 'الاسم', 'الجوال', 'رابط الحساب', 'تاريخ النشر', 'رابط الفيديو', 'كود الترويج', 'الآيبان', 'الاسم بالبنك', 'المبلغ', 'حالة الدفع'];
   const lines = [header];
   let count = 0;
   camps.forEach(c => {
@@ -373,7 +387,7 @@ function exportDuesCSV() {
       else if (ps === 'marked_paid') statusPlain = 'حوّلت - بانتظار التأكيد';
       else if (ps === 'disputed') statusPlain = 'نزاع استلام';
       else statusPlain = 'باقي' + (duesIsOverdue(a, c) ? ' - متأخر' : '');
-      lines.push([c.title || 'حملة', launch, creator.name || 'معلن', duesAccountLink(creator) || '', dateCsv,
+      lines.push([c.title || 'حملة', launch, creator.name || 'معلن', (creator.whatsapp || creator.phone || ''), duesAccountLink(creator) || '', dateCsv,
         st7.publish_link || '', st7.promo_code || '', bank.iban || '', bank.account_holder || '', amountNum, statusPlain]);
       count++;
     });
@@ -444,7 +458,7 @@ function renderCampaignBlock(camp, deals) {
     + '<div class="dues-grid-wrap"><table class="xl">'
     + '<thead>'
     + '<tr><th class="xl-corner"></th>' + colLetters + '</tr>'
-    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">كود الترويج</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
+    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">الجوال</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">كود الترويج</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
     + '</thead><tbody>' + body + '</tbody></table></div>'
     + '</div>';
 }
@@ -515,7 +529,7 @@ async function loadData() {
     if (campIds.length) {
       const { data, error } = await supabaseClient
         .from('applications')
-        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website)')
+        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website, whatsapp, phone)')
         .in('campaign_id', campIds)
         .order('created_at', { ascending: false });
       if (error) throw error;
