@@ -16,6 +16,17 @@ window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON
   }
 });
 
+// ===== مطابقة الموقع (دولة/مدينة) بين الحملة والمعلن — مصدر موحّد للإشعار والخلاصة =====
+// القاعدة: لا دولة على الحملة → الجميع · دولة بلا مدينة أو «all» → كل معلني الدولة ·
+// دولة + مدينة محددة → نفس المدينة + معلني الدولة اللي مدينتهم غير مسجّلة (NULL).
+function simblLocationMatch(creator, campaign) {
+  if (!campaign || !campaign.country) return true;                     // ما حُددت دولة → توصل للجميع
+  if (!creator || creator.country !== campaign.country) return false;  // لازم نفس الدولة
+  if (!campaign.city || campaign.city === 'all') return true;          // كل مدن الدولة
+  if (!creator.city) return true;                                      // معلن بدون مدينة → ضمن دولته
+  return creator.city === campaign.city;                              // تطابق المدينة
+}
+
 // ============ تجديد جلسة الدخول استباقيًا ============
 // يتفادى رفض العمليات (حذف/تعديل/إضافة) بسبب انتهاء التوكن مؤقتًا قبل تجديده.
 // يشتغل عند العودة لتبويب الصفحة + كل ٤ دقائق + فحص أوّلي. إضافة فقط — ما تغيّر أي سلوك موجود.
@@ -43,7 +54,7 @@ async function dbSignup(userData) {
   const { data, error } = await supabaseClient
     .from('users')
     .insert([userData])
-    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url')
+    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url, country, city')
     .single();
   if (error) throw error;
   return data;
@@ -58,7 +69,15 @@ async function dbGetCampaigns() {
     .eq('is_test', !!getCurrentUser()?.is_test)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data.map(c => ({
+
+  // فلترة الموقع: المعلن يشوف فقط الحملات اللي تستهدف دولته/مدينته.
+  // fail-open: لو موقع المعلن غير معروف (كائن قديم) نعرض كل الحملات كما كان.
+  const __me = getCurrentUser();
+  let __rows = data || [];
+  if (__me && __me.role === 'creator' && __me.country && typeof simblLocationMatch === 'function') {
+    __rows = __rows.filter(c => simblLocationMatch(__me, c));
+  }
+  return __rows.map(c => ({
     ...c,
     brand: c.users?.company_name || 'شركة',
     tags: c.tags || []
@@ -173,7 +192,7 @@ async function tryRestoreSession() {
     try {
       const { data, error } = await supabaseClient
         .from('users')
-        .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url')
+        .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url, country, city')
         .eq('id', userId)
         .maybeSingle();
 

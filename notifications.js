@@ -498,11 +498,11 @@ function simblFollowersMatch(followers, followerRange) {
 
 // إشعار المؤثرين المطابقين فقط (فلتر ١: المنصة مطابقة · فلتر ٢: المتابعون ضمن النطاق)
 async function notifyMatchedCreators(campaign, brandName) {
-  if (!window.supabaseClient || !campaign) return;
+  if (!window.supabaseClient || !campaign) return [];
   try {
     let q = supabaseClient
       .from('users')
-      .select('id, followers, platform')
+      .select('id, followers, platform, country, city')
       .eq('role', 'creator')
       .eq('is_test', !!(getCurrentUser()?.is_test));
 
@@ -510,11 +510,15 @@ async function notifyMatchedCreators(campaign, brandName) {
     if (campaign.platform) q = q.eq('platform', campaign.platform);
 
     const { data: creators } = await q;
-    if (!creators || creators.length === 0) return;
+    if (!creators || creators.length === 0) return [];
 
     // فلتر ٢ — نطاق المتابعين (يتم في الكود لأن النطاق مخزّن كنص)
-    const matched = creators.filter(c => simblFollowersMatch(c.followers, campaign.follower_range));
-    if (matched.length === 0) return;
+    // فلتر ٣ — الموقع (دولة/مدينة) عبر المصدر الموحّد simblLocationMatch
+    const locMatch = (typeof simblLocationMatch === 'function') ? simblLocationMatch : () => true;
+    const matched = creators.filter(c =>
+      simblFollowersMatch(c.followers, campaign.follower_range) && locMatch(c, campaign)
+    );
+    if (matched.length === 0) return [];
 
     const notifications = matched.map(c => ({
       user_id: c.id,
@@ -525,8 +529,10 @@ async function notifyMatchedCreators(campaign, brandName) {
     }));
 
     await supabaseClient.from('notifications').insert(notifications);
+    return matched.map(c => c.id);
   } catch (err) {
     console.error('Failed to notify matched creators:', err);
+    return [];
   }
 }
 

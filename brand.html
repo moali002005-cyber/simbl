@@ -1681,14 +1681,24 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
       </div>
 
       <div class="field">
-        <label>مدينة المعلن</label>
-        <select name="city" required>
-          <option value="">اختر المدينة</option>
-          <option value="riyadh">الرياض</option>
-          <option value="jeddah">جدة</option>
-          <option value="dammam">الدمام</option>
-          <option value="all">كل المناطق</option>
+        <label>دولة المعلن المستهدف</label>
+        <select name="country" id="campaign-form-country" onchange="simblPopulateCities()">
+          <option value="">كل الدول (بدون تحديد)</option>
+          <option value="SA">السعودية</option>
+          <option value="AE">الإمارات</option>
+          <option value="QA">قطر</option>
+          <option value="KW">الكويت</option>
+          <option value="BH">البحرين</option>
         </select>
+        <div class="hint">لو ما حددت دولة، توصل الحملة لكل المعلنين</div>
+      </div>
+
+      <div class="field">
+        <label>مدينة المعلن المستهدف</label>
+        <select name="city" id="campaign-form-city" disabled>
+          <option value="">اختر الدولة أولاً</option>
+        </select>
+        <div class="hint">اختر «كل المناطق» لتشمل كل مدن الدولة المختارة</div>
       </div>
 
       <div class="field" style="grid-column: span 2;">
@@ -1840,7 +1850,44 @@ const FOLLOWER_RANGE_LABELS = {
   '3000000': 'فوق ٣ مليون',
   '4000000': 'فوق ٤ مليون'
 };
-const CITY_LABELS = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', all: 'كل المناطق' };
+const COUNTRY_LABELS = { SA: 'السعودية', AE: 'الإمارات', QA: 'قطر', KW: 'الكويت', BH: 'البحرين' };
+const CITY_LABELS = {
+  all: 'كل المناطق',
+  riyadh: 'الرياض', jeddah: 'جدة', makkah: 'مكة المكرمة', madinah: 'المدينة المنورة',
+  dammam: 'الدمام', khobar: 'الخبر', dhahran: 'الظهران', ahsa: 'الأحساء', taif: 'الطائف',
+  buraidah: 'بريدة', tabuk: 'تبوك', hail: 'حائل', abha: 'أبها', khamis: 'خميس مشيط',
+  jazan: 'جازان', najran: 'نجران', yanbu: 'ينبع', jubail: 'الجبيل',
+  dubai: 'دبي', abudhabi: 'أبوظبي', sharjah: 'الشارقة', ajman: 'عجمان',
+  rak: 'رأس الخيمة', fujairah: 'الفجيرة', uaq: 'أم القيوين', alain: 'العين',
+  doha: 'الدوحة', rayyan: 'الريان', wakrah: 'الوكرة', khor: 'الخور',
+  kuwait_city: 'مدينة الكويت', hawalli: 'حولي', ahmadi: 'الأحمدي', farwaniya: 'الفروانية', jahra: 'الجهراء',
+  manama: 'المنامة', muharraq: 'المحرق', riffa: 'الرفاع', hamad: 'مدينة حمد'
+};
+// مدن كل دولة تُعبّأ حسب اختيار الشركة
+const SIMBL_COUNTRY_CITIES = {
+  SA: [['all','كل المناطق'],['riyadh','الرياض'],['jeddah','جدة'],['makkah','مكة المكرمة'],['madinah','المدينة المنورة'],['dammam','الدمام'],['khobar','الخبر'],['dhahran','الظهران'],['ahsa','الأحساء'],['taif','الطائف'],['buraidah','بريدة'],['tabuk','تبوك'],['hail','حائل'],['abha','أبها'],['khamis','خميس مشيط'],['jazan','جازان'],['najran','نجران'],['yanbu','ينبع'],['jubail','الجبيل']],
+  AE: [['all','كل الإمارات'],['dubai','دبي'],['abudhabi','أبوظبي'],['sharjah','الشارقة'],['ajman','عجمان'],['rak','رأس الخيمة'],['fujairah','الفجيرة'],['uaq','أم القيوين'],['alain','العين']],
+  QA: [['all','كل قطر'],['doha','الدوحة'],['rayyan','الريان'],['wakrah','الوكرة'],['khor','الخور']],
+  KW: [['all','كل الكويت'],['kuwait_city','مدينة الكويت'],['hawalli','حولي'],['ahmadi','الأحمدي'],['farwaniya','الفروانية'],['jahra','الجهراء']],
+  BH: [['all','كل البحرين'],['manama','المنامة'],['muharraq','المحرق'],['riffa','الرفاع'],['hamad','مدينة حمد']]
+};
+// تعبئة قائمة المدن حسب الدولة المختارة (selected: لضبط القيمة وقت التعديل)
+function simblPopulateCities(selected) {
+  const countrySel = document.querySelector('#campaign-form-country');
+  const citySel = document.querySelector('#campaign-form-city');
+  if (!countrySel || !citySel) return;
+  const cc = countrySel.value;
+  if (!cc) {
+    citySel.innerHTML = '<option value="">اختر الدولة أولاً</option>';
+    citySel.disabled = true;
+    return;
+  }
+  citySel.disabled = false;
+  const list = SIMBL_COUNTRY_CITIES[cc] || [];
+  citySel.innerHTML = ['<option value="">اختر المدينة</option>']
+    .concat(list.map(([v, lbl]) => '<option value="' + v + '">' + lbl + '</option>')).join('');
+  if (selected != null) citySel.value = selected;
+}
 function publishTimingText(c) {
   if (!c) return '-';
   if (c.publish_timing === 'custom' && c.publish_date) {
@@ -2524,6 +2571,7 @@ function renderSingleCampaign(c) {
               ${c.platform ? `<span><strong>المنصة:</strong> ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
               ${c.follower_range ? `<span><strong>المتابعين:</strong> ${followerRangeText(c)}</span>` : ''}
               ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن</span>` : ''}
+              ${c.country ? `<span><strong>الدولة:</strong> ${COUNTRY_LABELS[c.country] || c.country}</span>` : ''}
               ${c.city ? `<span><strong>المدينة:</strong> ${CITY_LABELS[c.city] || c.city}</span>` : ''}
             </div>
           </div>
@@ -3147,7 +3195,8 @@ function setModalMode(mode, campaign) {
       c.classList.toggle('active', selectedRanges.includes(c.dataset.value));
     });
     form.querySelector('#follower-range-input').value = selectedRanges.join(',');
-    form.querySelector('[name="city"]').value = campaign.city || '';
+    form.querySelector('[name="country"]').value = campaign.country || '';
+    simblPopulateCities(campaign.city || '');
     form.querySelector('[name="payment_min_days"]').value = campaign.payment_min_days || 7;
     form.querySelector('[name="payment_max_days"]').value = campaign.payment_max_days || 30;
     // الإقرار بالدفع: الحملة موجودة أصلاً ومتعهّدة، نعتبره موافقًا عليه
@@ -3174,6 +3223,7 @@ function setModalMode(mode, campaign) {
     form.querySelectorAll('#range-grid .platform-chip').forEach(c => c.classList.remove('active'));
     form.querySelector('#follower-range-input').value = '';
     togglePublishDate();
+    simblPopulateCities();
   }
 }
 
@@ -3305,6 +3355,14 @@ async function submitCampaign(event) {
     return;
   }
 
+  // تحقق الموقع: لو حُددت دولة، لازم مدينة (أو «كل المناطق»)
+  const selCountry = fd.get('country') || '';
+  const selCity = fd.get('city') || '';
+  if (selCountry && !selCity) {
+    showToast('اختر مدينة المعلن أو «كل المناطق».', 'error');
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.textContent = editingCampaignId ? 'جاري الحفظ...' : 'جاري النشر...';
 
@@ -3318,7 +3376,8 @@ async function submitCampaign(event) {
     platform: platform,
     follower_range: fd.get('follower_range') || null,
     campaign_size: parseInt(fd.get('campaign_size')) || null,
-    city: fd.get('city') || null,
+    country: selCountry || null,
+    city: selCountry ? (selCity || null) : null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
     payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
     tags: [industry]
@@ -3352,16 +3411,16 @@ async function submitCampaign(event) {
     submitBtn.disabled = false;
     submitBtn.textContent = original;
 
-    notifyMatchedCreators(campaign, currentUser.company_name || 'الشركة').catch(err => console.error(err));
+    // المطابقة تُنشئ إشعارات الجرس وترجّع معرّفات المعلنين المطابقين (منصة + متابعين + دولة/مدينة)
+    let matchedIds = [];
+    try {
+      matchedIds = await notifyMatchedCreators(campaign, currentUser.company_name || 'الشركة') || [];
+    } catch (err) {
+      console.error(err);
+    }
 
     try {
-      const { data: creators } = await supabaseClient
-        .from('users')
-        .select('id')
-        .eq('role', 'creator')
-        .eq('is_test', !!currentUser.is_test);
-
-      if (creators && creators.length > 0) {
+      if (matchedIds.length > 0) {
         fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
           method: 'POST',
           headers: {
@@ -3372,7 +3431,7 @@ async function submitCampaign(event) {
             title: '🎯 إعلان جديد!',
             body: (currentUser.company_name || 'شركة') + ': ' + campaign.title,
             url: '/creator.html',
-            target_users: creators.map(c => c.id)
+            target_users: matchedIds
           })
         }).then(r => r.json()).then(r => console.log('Push sent:', r));
       }
