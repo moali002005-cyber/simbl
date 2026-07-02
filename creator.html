@@ -1471,6 +1471,8 @@ async function init() {
   document.getElementById('user-initial').textContent = firstName[0];
   document.getElementById('welcome-name').textContent = firstName;
   renderMyAvatar();
+  // حدّث الصورة من قاعدة البيانات (تعكس أي صورة أضافها الأدمن بعد آخر تسجيل دخول)
+  refreshMyAvatarFromDB();
 
   // ====== بوابة الموافقة: المعلن لازم يكون مفعّلاً قبل استخدام المنصة ======
   // أي حالة غير 'pending'/'rejected' (بما فيها القديمة بدون قيمة) تُعتبر مفعّلة،
@@ -2525,6 +2527,27 @@ window.addEventListener('pageshow', function (e) {
   // e.persisted = رجوع من ذاكرة المتصفح، وغيره = فتح عادي — نعالج الحالتين
   refreshOnResume();
 });
+
+async function refreshMyAvatarFromDB() {
+  if (typeof currentUser === 'undefined' || !currentUser || !currentUser.id) return;
+  try {
+    // نفس مصدر صفحة النخبة (creator_directory) المضمون احتواؤه على الصور المحدّثة
+    var res = await supabaseClient
+      .from('creator_directory')
+      .select('avatar_url, name')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+    var row = res && res.data;
+    if (!row) return;
+    var changed = false;
+    if (row.avatar_url && row.avatar_url !== currentUser.avatar_url) { currentUser.avatar_url = row.avatar_url; changed = true; }
+    if (row.name && row.name !== currentUser.name) { currentUser.name = row.name; changed = true; }
+    if (changed) {
+      if (typeof saveCurrentUser === 'function') saveCurrentUser(currentUser); // ثبّتها محليًا
+      renderMyAvatar();
+    }
+  } catch (e) { /* تجاهل — نبقى على النسخة المحلية */ }
+}
 
 function renderMyAvatar() {
   if (typeof currentUser === 'undefined' || !currentUser) return;
