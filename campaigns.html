@@ -1819,18 +1819,18 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
   </div>
 </div>
 
-<!-- نافذة رفض المعلن مع كتابة السبب -->
+<!-- نافذة استبدال المعلن مع كتابة السبب -->
 <div class="modal-backdrop" id="reject-modal">
   <div class="modal" style="max-width: 480px">
-    <h3>رفض المعلن</h3>
-    <p class="sub">اكتب سبب الرفض بوضوح — راح يوصل للمعلن في إشعار، ويعرف إن العرض انتهى.</p>
+    <h3>استبدال المعلن</h3>
+    <p class="sub">اكتب سبب الاستبدال (مثل: تأخّر في الرد، أو المحتوى غير مناسب للحملة). راح يوصل للمعلن بنبرة مهنية، ويترقّى تلقائيًا التالي من قائمة الانتظار مكانه.</p>
     <div class="field">
-      <label>سبب الرفض</label>
-      <textarea id="reject-reason" rows="4" placeholder="مثال: السعر أعلى من ميزانيتنا، أو المحتوى ما يناسب الحملة، أو..."></textarea>
+      <label>سبب الاستبدال</label>
+      <textarea id="reject-reason" rows="4" placeholder="مثال: تأخّر في التفاوض، أو الحساب غير مناسب للحملة، أو..."></textarea>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeRejectModal()">إلغاء</button>
-      <button type="button" class="btn-primary btn-danger" id="reject-confirm-btn" onclick="confirmReject()">رفض وإرسال السبب</button>
+      <button type="button" class="btn-primary btn-danger" id="reject-confirm-btn" onclick="confirmReject()">استبدال وإرسال السبب</button>
     </div>
   </div>
 </div>
@@ -2744,7 +2744,7 @@ async function approveDeal(applicationId) {
   }
 }
 
-// ============ رفض المعلن مع كتابة السبب ============
+// ============ استبدال المعلن مع كتابة السبب (يترقّى التالي تلقائيًا) ============
 let rejectingAppId = null;
 
 function openRejectModal(applicationId) {
@@ -2811,7 +2811,7 @@ async function confirmDeleteApplication() {
   }
 }
 
-// ترقية أقدم معلن من قائمة الانتظار عند فتح مكان (رفض) — مع إشعار فوري (الاحتمال ب)
+// ترقية أقدم معلن من قائمة الانتظار عند فتح مكان (استبدال/خروج) — مع إشعار فوري
 async function promoteNextWaitlisted(campaignId, campaignTitle) {
   if (!campaignId) return;
   try {
@@ -2847,7 +2847,7 @@ async function confirmReject() {
   if (!rejectingAppId) return;
   const id = rejectingAppId;
   const reason = (document.getElementById('reject-reason')?.value || '').trim();
-  if (!reason) { showToast('اكتب سبب الرفض أولاً', 'error'); return; }
+  if (!reason) { showToast('اكتب سبب الاستبدال أولاً', 'error'); return; }
 
   const btn = document.getElementById('reject-confirm-btn');
   const original = btn ? btn.textContent : '';
@@ -2863,10 +2863,10 @@ async function confirmReject() {
     if (error) throw error;
     if (!data || data.length === 0) throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
 
-    // إشعار المعلن بالرفض + السبب
+    // إشعار المعلن بإغلاق التفاوض + السبب (نبرة مهنية لطيفة)
     if (app && app.creator_id) {
-      const title = '❌ تم رفض العرض';
-      const body = `${campaign?.title || 'صفقة'}: ${reason}`;
+      const title = 'تم إغلاق التفاوض على هذي الحملة';
+      const body = `${campaign?.title || 'حملة'}: ${reason}. نشكر وقتك واهتمامك، ونتطلّع نتعامل معك في حملة قادمة 🌿`;
       createNotification(app.creator_id, 'deal_rejected', title, body, '/creator.html').catch(console.error);
       fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
         method: 'POST',
@@ -2877,13 +2877,13 @@ async function confirmReject() {
 
     closeRejectModal();
     if (btn) { btn.disabled = false; btn.textContent = original; }
-    showToast('تم رفض المعلن وإرسال السبب له.');
+    showToast('تم استبدال المعلن، وترقية التالي من قائمة الانتظار.');
     await promoteNextWaitlisted(campaign && campaign.id, campaign && campaign.title); // ترقية أقدم منتظر فورًا
     await loadData();
   } catch (err) {
     console.error('Reject error:', err);
     if (btn) { btn.disabled = false; btn.textContent = original; }
-    showToast('حصل خطأ في الرفض: ' + (err.message || 'حاول مرة أخرى'), 'error');
+    showToast('حصل خطأ في الاستبدال: ' + (err.message || 'حاول مرة أخرى'), 'error');
   }
 }
 
@@ -2964,7 +2964,7 @@ function renderCellDetail(a) {
 
   if (isRejected) {
     return `<div class="stage-action" style="background:rgba(201,48,48,0.05);border-color:rgba(201,48,48,0.3)">
-      <div class="sa-title" style="color:#b32d2d;">✕ تم رفض هذا المعلن</div>
+      <div class="sa-title" style="color:#b32d2d;">↔ تم استبدال هذا المعلن</div>
       <div class="sa-desc"><strong>السبب اللي أُرسل للمعلن:</strong><br>${escHtml(a.rejection_reason || '—')}</div>
     </div>`;
   }
@@ -2987,7 +2987,7 @@ function renderCellDetail(a) {
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
         <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 عرض المفاوضة</button>
-        <button class="btn-negotiation" style="background:#fff;color:#c93030;border:1.5px solid rgba(201,48,48,0.4);" onclick="event.stopPropagation(); openRejectModal('${a.id}')">✕ رفض المعلن</button>
+        <button class="btn-negotiation" style="background:#fff;color:#c93030;border:1.5px solid rgba(201,48,48,0.4);" onclick="event.stopPropagation(); openRejectModal('${a.id}')">↔ استبدال المعلن</button>
       </div>`;
   }
   if (!isApproved) return '';
@@ -3018,7 +3018,7 @@ function renderDealRow(a, idx) {
 
   let cells = '';
   if (isRejected) {
-    cells = `<td class="mx-cell click" colspan="9" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:rgba(201,48,48,0.08);color:#b32d2d;font-size:12px;font-weight:600;height:44px;">✕ مرفوض — اضغط لعرض السبب</div></td>`;
+    cells = `<td class="mx-cell click" colspan="9" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:rgba(201,48,48,0.08);color:#b32d2d;font-size:12px;font-weight:600;height:44px;">↔ تم الاستبدال — اضغط لعرض السبب</div></td>`;
   } else if (isApproved) {
     for (let s = 1; s <= 9; s++) {
       if (s < stageNow) {
