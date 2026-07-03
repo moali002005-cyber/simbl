@@ -102,6 +102,23 @@ async function supabaseCountClosedDeals(campaignId) {
   }
 }
 
+// جلب طلبات الحملة الحيّة (غير المرفوضة وغير المكتملة) مرتّبة بالأقدم — لتحديد الدفعة وقائمة الانتظار
+async function supabaseGetCampaignApps(campaignId) {
+  if (!campaignId) return [];
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/applications?campaign_id=eq.${campaignId}&status=not.in.(rejected,campaign_full)&select=id,status,created_at&order=created_at.asc`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) { console.error('Campaign apps fetch error:', await res.text()); return []; }
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch (err) {
+    console.error('Get campaign apps failed:', err);
+    return [];
+  }
+}
+
 // جلب العرض الحقيقي من قاعدة البيانات (للتحقق من وجوده وحالته — حماية من الطلبات الوهمية)
 async function supabaseGetApplication(appId) {
   if (!appId) return null;
@@ -254,26 +271,42 @@ export default async function handler(req, res) {
     }
   }
 
-  // ============ إيقاف التفاوض لو اكتمل عدد المعلنين ============
+  // ============ نظام الدفعة + قائمة الانتظار ============
+  // الوكيل يفاوض أول (campaignSize) حسب أولوية التقديم (الأقدم أولاً).
+  // من تعدّى العدد → قائمة انتظار (waitlisted): يُبلّغ ويُوقف، ويترقّى تلقائيًا لو انفتح مكان.
   if (campaignSize) {
-    const closedCount = await supabaseCountClosedDeals(campaignId);
-    if (closedCount >= campaignSize) {
-      const fullMsg = 'نعتذر منك، هذي الحملة اكتمل العدد المطلوب من المعلنين وما عاد فيه مكان حالياً. نشكر اهتمامك ونتمنى نتعامل معك في حملة قادمة.';
-      try {
-        await supabaseInsert('negotiations', {
-          application_id: application.id,
-          from_role: 'agent',
-          message: fullMsg
-        });
-      } catch (err) {
-        console.error('Failed to save campaign-full message:', err);
+    // المقفلون يحجزون أماكنهم دائمًا (أيًّا كانوا). المتبقّي = الهدف − عدد المقفلين.
+    // نملأ المتبقّي من أقدم غير المقفلين (قيد التفاوض/الانتظار)، والباقي قائمة انتظار.
+    const liveApps = await supabaseGetCampaignApps(campaignId); // غير مرفوض/مكتمل، الأقدم أولاً
+    const closedCount = liveApps.filter(a => a.status === 'closed').length;
+    const remainingSlots = campaignSize - closedCount;
+    const candidates = liveApps.filter(a => a.status !== 'closed'); // pending/active/waitlisted بالأقدم
+    const myPos = candidates.findIndex(a => a.id === application.id) + 1; // 1-based (0 = غير موجود)
+    const inBatch = remainingSlots > 0 && myPos > 0 && myPos <= remainingSlots;
+
+    if (!inBatch) {
+      // خارج الدفعة → قائمة الانتظار
+      if (realApp.status !== 'waitlisted') {
+        try { await supabaseUpdate('applications', application.id, { status: 'waitlisted' }); }
+        catch (e) { console.error('waitlist mark failed:', e); }
+      }
+      const waitMsg = 'شكراً لاهتمامك بالحملة! العدد المطلوب اكتمل حالياً، وأنت في قائمة الانتظار حسب أولوية تقديمك. إذا انفتح مكان بننبّهك فورًا ونبدأ التفاوض معك 🌿';
+      if (!history || history.length === 0) {
+        try { await supabaseInsert('negotiations', { application_id: application.id, from_role: 'agent', message: waitMsg }); }
+        catch (err) { console.error('Failed to save waitlist message:', err); }
       }
       return res.status(200).json({
-        reply: fullMsg,
+        reply: waitMsg,
         dealClosed: false,
         dealDetails: null,
-        campaignFull: true
+        waitlisted: true
       });
+    }
+
+    // داخل الدفعة: لو كان في الانتظار وانفتح له مكان، رقّه ليُفاوَض
+    if (realApp.status === 'waitlisted') {
+      try { await supabaseUpdate('applications', application.id, { status: 'pending' }); }
+      catch (e) { console.error('promote failed:', e); }
     }
   }
 
