@@ -2199,7 +2199,7 @@ async function autoCompleteCampaigns() {
 // إيقاف العروض اللي لسّه قيد التفاوض/المراجعة عند اكتمال الحملة، وإخفاؤها + إشعار أصحابها
 async function stopOpenNegotiations(campaign) {
   const apps = campaignApps[campaign.id] || [];
-  const open = apps.filter(a => a.status === 'pending' || a.status === 'active');
+  const open = apps.filter(a => a.status === 'pending' || a.status === 'active' || a.status === 'waitlisted');
   if (!open.length) return;
   const ids = open.map(a => a.id);
   try {
@@ -2214,7 +2214,7 @@ async function stopOpenNegotiations(campaign) {
     if (error) { console.error('stop negotiations failed:', error); return; }
 
     // أزِلهم من العرض محليًا فورًا
-    campaignApps[campaign.id] = apps.filter(a => a.status !== 'pending' && a.status !== 'active');
+    campaignApps[campaign.id] = apps.filter(a => a.status !== 'pending' && a.status !== 'active' && a.status !== 'waitlisted');
 
     // إشعار كل معلن لم يلحق
     const title = '🎯 اكتملت الحملة';
@@ -2811,6 +2811,38 @@ async function confirmDeleteApplication() {
   }
 }
 
+// ترقية أقدم معلن من قائمة الانتظار عند فتح مكان (رفض) — مع إشعار فوري (الاحتمال ب)
+async function promoteNextWaitlisted(campaignId, campaignTitle) {
+  if (!campaignId) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('applications')
+      .select('id, creator_id')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'waitlisted')
+      .order('created_at', { ascending: true })
+      .limit(1);
+    if (error || !data || !data.length) return; // ما فيه أحد في الانتظار
+    const next = data[0];
+    const { error: upErr } = await supabaseClient
+      .from('applications')
+      .update({ status: 'pending' })
+      .eq('id', next.id);
+    if (upErr) { console.error('promote update failed:', upErr); return; }
+    // إشعار المعلن المرقّى فورًا
+    if (next.creator_id) {
+      const title = '🎉 جاك دورك! تم اختيارك';
+      const body = `${campaignTitle || 'حملة'}: انفتح لك مكان في الحملة — ابدأ التفاوض مع الوكيل الحين.`;
+      createNotification(next.creator_id, 'waitlist_promoted', title, body, '/creator.html').catch(console.error);
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body, url: '/creator.html', target_users: [next.creator_id] })
+      }).catch(console.error);
+    }
+  } catch (e) { console.error('promoteNextWaitlisted error:', e); }
+}
+
 async function confirmReject() {
   if (!rejectingAppId) return;
   const id = rejectingAppId;
@@ -2846,6 +2878,7 @@ async function confirmReject() {
     closeRejectModal();
     if (btn) { btn.disabled = false; btn.textContent = original; }
     showToast('تم رفض المعلن وإرسال السبب له.');
+    await promoteNextWaitlisted(campaign && campaign.id, campaign && campaign.title); // ترقية أقدم منتظر فورًا
     await loadData();
   } catch (err) {
     console.error('Reject error:', err);
@@ -3004,6 +3037,8 @@ function renderDealRow(a, idx) {
     }
   } else if (awaitingApproval) {
     cells = `<td class="mx-cell click" colspan="9" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:#FAEEDA;color:#854F0B;font-size:12px;font-weight:600;height:44px;">⏳ بانتظار تعميدك — اضغط للاعتماد</div></td>`;
+  } else if (a.status === 'waitlisted') {
+    cells = `<td class="mx-cell" colspan="9"><div class="mx-in" style="background:#F0F4F8;color:#5B6B7A;font-size:12px;font-weight:600;height:44px;">🕓 في قائمة الانتظار — يبدأ التفاوض تلقائيًا لو انفتح مكان</div></td>`;
   } else {
     cells = `<td colspan="9" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')"><div class="mx-in" style="font-size:12px;color:var(--ink-muted);height:44px;">💬 قيد التفاوض — اضغط لعرض المفاوضة</div></td>`;
   }
@@ -3056,6 +3091,7 @@ function downloadDeliveryExcel(campaignId) {
 function renderSingleCampaign(c) {
     const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
+    const waitlistApps = apps.filter(a => a.status === 'waitlisted');
     const target = campaignTarget(c);
     const approved = approvedDealCount(c.id);
     const complete = isCampaignComplete(c);
@@ -3082,6 +3118,7 @@ function renderSingleCampaign(c) {
               ${c.platform ? `<span><strong>المنصة:</strong> ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
               ${c.follower_range ? `<span><strong>المتابعين:</strong> ${followerRangeText(c)}</span>` : ''}
               ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن <span class="camp-count ${complete ? 'full' : ''}">${toArabic(approved)}/${toArabic(target)} معتمد</span></span>` : ''}
+              ${waitlistApps.length > 0 ? `<span><strong>قائمة الانتظار:</strong> ${toArabic(waitlistApps.length)} معلن</span>` : ''}
               ${c.country ? `<span><strong>الدولة:</strong> ${COUNTRY_LABELS[c.country] || c.country}</span>` : ''}
               ${c.city ? `<span><strong>المدينة:</strong> ${CITY_LABELS[c.city] || c.city}</span>` : ''}
             </div>
@@ -3111,6 +3148,7 @@ function renderSingleCampaign(c) {
               تم استلام <strong>${apps.length}</strong> ${apps.length === 1 ? 'عرض' : 'عروض'}
               ${apps.filter(a => a.status === 'closed').length > 0 ? `· <strong>${apps.filter(a => a.status === 'closed').length}</strong> صفقة مقفلة` : ''}
               ${pendingApps.length > 0 ? `· <strong style="color:var(--ink-muted)">${pendingApps.length}</strong> قيد المراجعة` : ''}
+              ${waitlistApps.length > 0 ? `· <strong style="color:#5B6B7A">${waitlistApps.length}</strong> في قائمة الانتظار` : ''}
             </div>
           </div>
           <div class="mx-wrap"><table class="mx-table" id="apps-${c.id}">
