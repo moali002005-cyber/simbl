@@ -2707,13 +2707,47 @@ function applyCrop(){
   }, 'image/jpeg', 0.9);
 }
 
-async function uploadContentVideo(file, appId) {
+async function uploadContentVideo(file, appId, onProgress) {
   const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp4';
   const path = `${appId}_${Date.now()}.${ext}`;
-  const up = await supabaseClient.storage.from('content').upload(path, file, { upsert: true, contentType: file.type || 'video/mp4' });
-  if (up.error) throw up.error;
-  const pub = supabaseClient.storage.from('content').getPublicUrl(path);
-  return { url: pub.data.publicUrl, path };
+  const contentType = file.type || 'video/mp4';
+
+  // نحاول أولاً الرفع عبر رابط موقّع + XHR — يعطي نسبة تقدّم حقيقية.
+  // لو فشل إنشاء الرابط الموقّع (نسخة/صلاحية)، نرجع للرفع العادي (بلا نسبة) كي لا ينكسر شي.
+  try {
+    const signed = await supabaseClient.storage.from('content').createSignedUploadUrl(path);
+    if (signed.error || !signed.data || !signed.data.signedUrl) throw (signed.error || new Error('no signed url'));
+
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', signed.data.signedUrl, true);
+      xhr.setRequestHeader('Content-Type', contentType);
+      xhr.setRequestHeader('x-upsert', 'true');
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && typeof onProgress === 'function') {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error('فشل الرفع (رمز ' + xhr.status + ')'));
+      };
+      xhr.onerror = () => reject(new Error('انقطع الاتصال أثناء الرفع'));
+      xhr.ontimeout = () => reject(new Error('انتهت مهلة الرفع'));
+      xhr.send(file);
+    });
+
+    const pub = supabaseClient.storage.from('content').getPublicUrl(path);
+    return { url: pub.data.publicUrl, path };
+  } catch (signedErr) {
+    console.warn('Signed upload failed, falling back to standard upload:', signedErr);
+    // fallback: الرفع العادي (بلا نسبة تقدّم دقيقة)
+    if (typeof onProgress === 'function') onProgress(null); // نخبر الواجهة إن النسبة غير متاحة
+    const up = await supabaseClient.storage.from('content').upload(path, file, { upsert: true, contentType });
+    if (up.error) throw up.error;
+    const pub = supabaseClient.storage.from('content').getPublicUrl(path);
+    return { url: pub.data.publicUrl, path };
+  }
 }
 
 async function handleVideoUpload(input, appId) {
@@ -2729,9 +2763,27 @@ async function handleVideoUpload(input, appId) {
   const btn = document.getElementById('vid-btn-' + appId);
   const submitB = document.querySelector('#stage-form-' + appId + ' button[type="submit"]');
   btn.disabled = true; btn.textContent = 'جاري الرفع... ⏳';
-  if (wrap) wrap.innerHTML = '<div style="font-size:12px;color:var(--ink-muted)">جاري رفع الفيديو، لا تغلق الصفحة...</div>';
+  // شريط تقدّم حقيقي
+  const renderProgress = (pct) => {
+    if (!wrap) return;
+    if (pct === null) {
+      // النسبة غير متاحة (fallback) — نعرض حالة عامة بدل رقم
+      wrap.innerHTML = '<div style="font-size:12px;color:var(--ink-muted)">جاري رفع الفيديو، لا تغلق الصفحة...</div>';
+      return;
+    }
+    wrap.innerHTML =
+      '<div style="font-size:12px;color:var(--ink-muted);margin-bottom:6px;">جاري رفع الفيديو ' + pct + '%… لا تغلق الصفحة</div>' +
+      '<div style="height:8px;background:#EEE;border-radius:6px;overflow:hidden;">' +
+        '<div style="height:100%;width:' + pct + '%;background:var(--accent,#0F6E56);transition:width .2s;"></div>' +
+      '</div>';
+  };
+  renderProgress(0);
+  if (btn) btn.textContent = 'جاري الرفع 0%…';
   try {
-    const { url, path } = await uploadContentVideo(file, appId);
+    const { url, path } = await uploadContentVideo(file, appId, (pct) => {
+      renderProgress(pct);
+      if (btn && pct !== null) btn.textContent = 'جاري الرفع ' + pct + '%…';
+    });
     document.getElementById('sf-' + appId + '-content_link').value = url;
     document.getElementById('sf-' + appId + '-_video_path').value = path;
     if (wrap) wrap.innerHTML = `<video src="${url}" controls playsinline style="width:100%;border-radius:10px;max-height:260px;background:#000;"></video><div style="font-size:12px;color:#0F6E56;margin-top:6px;">✓ تم رفع الفيديو بنجاح</div>`;
