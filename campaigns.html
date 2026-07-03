@@ -1835,6 +1835,18 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
   </div>
 </div>
 
+<!-- نافذة قائمة الانتظار -->
+<div class="modal-backdrop" id="waitlist-modal">
+  <div class="modal" style="max-width: 640px">
+    <h3 id="waitlist-modal-title">قائمة الانتظار</h3>
+    <p class="sub">المعلنون في قائمة الانتظار حسب أولوية التقديم (الأقدم أولاً). يبدأ التفاوض معهم تلقائيًا لو انفتح مكان أو استبدلت أحدًا.</p>
+    <div id="waitlist-modal-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeWaitlistModal()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <!-- نافذة عرض البريف الإعلاني -->
 <div class="modal-backdrop" id="brief-modal">
   <div class="modal" style="max-width: 600px">
@@ -2761,6 +2773,43 @@ function closeRejectModal() {
   if (modal) modal.classList.remove('show');
 }
 
+// ====== نافذة قائمة الانتظار المنفصلة ======
+function openWaitlistModal(campaignId) {
+  const camp = (myCampaigns || []).find(c => c.id === campaignId);
+  const list = (campaignApps[campaignId] || [])
+    .filter(a => a.status === 'waitlisted')
+    .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)); // الأقدم أولاً
+  const titleEl = document.getElementById('waitlist-modal-title');
+  if (titleEl) titleEl.textContent = 'قائمة الانتظار — ' + (camp ? camp.title : '');
+  const body = document.getElementById('waitlist-modal-body');
+  if (body) {
+    if (!list.length) {
+      body.innerHTML = '<div style="text-align:center;color:var(--ink-muted);padding:24px;">ما فيه أحد في قائمة الانتظار حاليًا.</div>';
+    } else {
+      body.innerHTML = '<div class="mx-wrap"><table class="mx-table"><thead><tr>'
+        + '<th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">المعلن</th><th>تاريخ التقديم</th><th>الحالة</th>'
+        + '</tr></thead><tbody>'
+        + list.map(function(a, i) {
+            const cr = a.users || {};
+            const nm = escHtml(cr.name || 'مؤثر');
+            const d = a.created_at ? new Date(a.created_at).toLocaleDateString('ar-SA') : '—';
+            return '<tr><td class="mx-idx">' + toArabic(i + 1) + '</td>'
+              + '<td class="mx-name"><span style="font-weight:600;color:var(--ink);">' + nm + '</span></td>'
+              + '<td style="text-align:center;font-size:12px;color:var(--ink-muted);">' + d + '</td>'
+              + '<td style="text-align:center;"><span style="background:#F0F4F8;color:#5B6B7A;font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px;">🕓 في الانتظار</span></td></tr>';
+          }).join('')
+        + '</tbody></table></div>';
+    }
+  }
+  const modal = document.getElementById('waitlist-modal');
+  if (modal) modal.classList.add('show');
+}
+
+function closeWaitlistModal() {
+  const modal = document.getElementById('waitlist-modal');
+  if (modal) modal.classList.remove('show');
+}
+
 // ============ حذف معلن (عرض) من الشيت ============
 let deletingAppId = null;
 function askDeleteApplication(applicationId) {
@@ -3092,6 +3141,7 @@ function renderSingleCampaign(c) {
     const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
     const waitlistApps = apps.filter(a => a.status === 'waitlisted');
+    const sheetApps = apps.filter(a => a.status !== 'waitlisted');
     const target = campaignTarget(c);
     const approved = approvedDealCount(c.id);
     const complete = isCampaignComplete(c);
@@ -3138,8 +3188,9 @@ function renderSingleCampaign(c) {
           </div>
         </div>
 
-        <div style="margin:-2px 0 14px;">
+        <div style="margin:-2px 0 14px;display:flex;gap:10px;flex-wrap:wrap;">
           <button class="hero-cta" style="padding:10px 18px;font-size:13px;background:#1D9E75;" onclick="downloadDeliveryExcel('${c.id}')">📥 الإكسل الخاص بالتوصيل</button>
+          ${waitlistApps.length > 0 ? `<button class="hero-cta" style="padding:10px 18px;font-size:13px;background:#5B6B7A;" onclick="openWaitlistModal('${c.id}')">🕓 قائمة الانتظار (${toArabic(waitlistApps.length)})</button>` : ''}
         </div>
 
         ${apps.length > 0 ? `
@@ -3156,7 +3207,7 @@ function renderSingleCampaign(c) {
               <th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">المعلن</th>
               ${MX_LABELS.map((lbl, i) => `<th>${toArabic(i + 1)}·${lbl}</th>`).join('')}
             </tr></thead>
-            <tbody>${apps.map((a, idx) => renderDealRow(a, idx)).join('')}</tbody>
+            <tbody>${sheetApps.map((a, idx) => renderDealRow(a, idx)).join('')}</tbody>
           </table></div>
         ` : `
           <div class="applications-summary">
