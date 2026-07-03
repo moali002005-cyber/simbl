@@ -2391,6 +2391,25 @@ async function enterNegotiation(campaignId, btn) {
   const existingApp = myApplications.find(a => a.campaign_id === campaignId);
   if (existingApp) { startNegotiation(existingApp.id); return; }
 
+  // منع الاحتكار: ما يقدّم على حملتين لنفس الشركة بنفس الوقت
+  // (صفقة نشطة = أي حالة عدا rejected/campaign_full، على حملة أخرى لنفس brand_id)
+  if (campaign.brand_id) {
+    try {
+      const { data: sameBrand } = await supabaseClient
+        .from('applications')
+        .select('id, campaigns!inner(brand_id)')
+        .eq('creator_id', currentUser.id)
+        .neq('campaign_id', campaignId)
+        .not('status', 'in', '(rejected,campaign_full)')
+        .eq('campaigns.brand_id', campaign.brand_id)
+        .limit(1);
+      if (sameBrand && sameBrand.length > 0) {
+        showToast('ما تقدر تقدّم على حملتين لنفس الشركة بنفس الوقت. خلّص صفقتك الحالية معهم أول 🌿', 'error');
+        return;
+      }
+    } catch (e) { /* لو تعذّر التحقق نكمل — القيود الأخرى تبقى تحمي */ }
+  }
+
   // منع الدخول لو الحملة مكتملة (تحقق محلي سريع)
   if (campaignIsFull(campaign)) {
     showToast('الحملة مكتملة — اكتمل العدد المطلوب.', 'error');
