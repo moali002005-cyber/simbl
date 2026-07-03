@@ -1748,6 +1748,55 @@ function renderUnified() {
 
   if (myDeals) myDeals.innerHTML = matrixHtml;
   list.innerHTML = openHtml;
+  // بعد رسم النماذج: استرجع أي مسودّات محفوظة + فعّل الحفظ التلقائي
+  try { restoreStageDrafts(); } catch (e) { console.warn('restoreStageDrafts:', e); }
+}
+
+// ============ حفظ مؤقّت لحقول المرحلة (يمنع ضياعها لو المتصفح أعاد تحميل الصفحة) ============
+// المشكلة: على الجوال (خصوصًا iOS)، لو المعلن طلع من المنصة (ينسخ كود/رابط) ورجع،
+// المتصفح أحيانًا يعيد بناء الصفحة، فيضيع اللي كتبه. الحل: نحفظ كل حقل تلقائيًا في
+// localStorage عند الكتابة، ونرجّعه عند إعادة رسم النموذج. يُمسح بعد التأكيد الناجح.
+function draftKey(appId) { return 'simbl_stage_draft_' + appId; }
+
+function saveStageDraft(appId) {
+  try {
+    const form = document.getElementById('stage-form-' + appId);
+    if (!form) return;
+    const draft = {};
+    form.querySelectorAll('input, textarea').forEach(el => {
+      // نتجاهل الحقول المخفية الخاصة بالفيديو (تُدار تلقائيًا)
+      if (el.type === 'hidden') return;
+      if (el.name) draft[el.name] = el.value;
+    });
+    localStorage.setItem(draftKey(appId), JSON.stringify(draft));
+  } catch (e) { /* localStorage غير متاح — نتجاهل بهدوء */ }
+}
+
+function restoreStageDrafts() {
+  document.querySelectorAll('form[id^="stage-form-"]').forEach(form => {
+    const appId = form.id.replace('stage-form-', '');
+    let draft = null;
+    try {
+      const raw = localStorage.getItem(draftKey(appId));
+      if (raw) draft = JSON.parse(raw);
+    } catch (e) { draft = null; }
+    form.querySelectorAll('input, textarea').forEach(el => {
+      if (el.type === 'hidden') return;
+      // استرجاع القيمة المحفوظة (لو موجودة والحقل فاضٍ حاليًا)
+      if (draft && el.name && draft[el.name] && !el.value) {
+        el.value = draft[el.name];
+      }
+      // فعّل الحفظ التلقائي عند كل تعديل (مرّة واحدة لكل حقل)
+      if (!el.dataset.draftBound) {
+        el.dataset.draftBound = '1';
+        el.addEventListener('input', () => saveStageDraft(appId));
+      }
+    });
+  });
+}
+
+function clearStageDraft(appId) {
+  try { localStorage.removeItem(draftKey(appId)); } catch (e) { /* تجاهل */ }
 }
 
 // بطاقة إعلان متاح للتقديم (ما قدّمت عليه بعد)
@@ -2361,6 +2410,8 @@ async function submitStageForm(applicationId) {
     }
 
     await loadData();
+    // نجح الإرسال والحفظ في القاعدة → امسح المسودّة المؤقتة لهذي الصفقة
+    clearStageDraft(applicationId);
   } catch (err) {
     console.error('Failed to submit stage:', err);
     submitBtn.disabled = false;
