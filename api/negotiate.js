@@ -171,6 +171,43 @@ function extractFinalPrice(text) {
   return null;
 }
 
+// ============ شبكة أمان الإقفال ============
+// كشف موافقة صريحة من المعلن (عشان نقفل تلقائيًا لو الوكيل نسي وسم [DEAL_CLOSED]).
+// متحفّظة عمدًا: ترفض أي رسالة فيها استفسار أو استمرار تفاوض أو نفي — عشان ما نقفل بالغلط.
+function creatorAcceptedExplicit(text) {
+  if (!text) return false;
+  const t = toAsciiDigits(String(text)).trim();
+  // استفسار أو استمرار تفاوض → مو موافقة نهائية، خلّي الوكيل يكمل
+  if (/[؟?]/.test(t)) return false;
+  if (/(بس|لكن|زيد|زد|ممكن|لو |إذا|اذا|كم|أكثر|اكثر|نقص|خصم|غير|ثاني|احسب|فكر)/.test(t)) return false;
+  // نفي صريح للموافقة → مو موافقة
+  if (/(^|[\s،.])(ما|مو|مب|ماني|مهوب|مش|لا)\s+[أاإ]?(موافق|وافق|قبل|أقبل|اقبل)/.test(t)) return false;
+  // إشارات موافقة صريحة
+  return /(موافقة|موافق|أوافق|اوافق|نوافق|قبلت|أقبل|اقبل|اتفقنا|ماشي|أوكي|اوكي|اوكيه|اوك|زين|تمام|(?:^|\s)تم(?:\s|$)|ok|okay|yes|ايوه|أيوه|(?:^|\s)نعم(?:\s|$))/i.test(t);
+}
+
+// آخر سعر عرضه *الوكيل* خلال المحادثة (نقرأ رسائل الوكيل فقط، مو أرقام المعلن).
+// نستخدمه كسعر الإقفال في شبكة الأمان — دائمًا ضمن حماية السقف لاحقًا.
+function lastAgentOfferedPrice(historyArr, currentAgentReply) {
+  const agentTexts = [];
+  if (Array.isArray(historyArr)) {
+    for (const m of historyArr) {
+      if (m && m.from === 'agent' && m.text) agentTexts.push(m.text);
+    }
+  }
+  if (currentAgentReply) agentTexts.push(currentAgentReply);
+  let last = null;
+  for (const txt of agentTexts) {
+    const t = toAsciiDigits(txt).replace(/[,،٬]/g, '');
+    const matches = t.match(/(\d{2,6})\s*(?:ر\.?\s*س|ريال)/g) || [];
+    if (matches.length) {
+      const nums = matches.map(x => parseInt(x.match(/\d+/)[0], 10)).filter(n => n > 0);
+      if (nums.length) last = nums[nums.length - 1];
+    }
+  }
+  return last;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -290,11 +327,11 @@ export default async function handler(req, res) {
         try { await supabaseUpdate('applications', application.id, { status: 'waitlisted' }); }
         catch (e) { console.error('waitlist mark failed:', e); }
       }
+      // مهم: لا نحفظ رسالة الانتظار في جدول negotiations — نرجّعها كرد لحظي فقط.
+      // السبب: campaign.html يفتح التفاوض تلقائيًا *فقط لو السجل فاضٍ*. لو خزّنّا رسالة
+      // الانتظار، يبقى السجل غير فاضٍ، فلما يترقّى المعلن لاحقًا لا يُفتح له تفاوض جديد
+      // (يعلق على رسالة الانتظار القديمة). بإبقاء السجل فاضيًا، ينفتح التفاوض صح بعد الترقية.
       const waitMsg = 'شكراً لاهتمامك بالحملة! العدد المطلوب اكتمل حالياً، وأنت في قائمة الانتظار حسب أولوية تقديمك. إذا انفتح مكان بننبّهك فورًا ونبدأ التفاوض معك 🌿';
-      if (!history || history.length === 0) {
-        try { await supabaseInsert('negotiations', { application_id: application.id, from_role: 'agent', message: waitMsg }); }
-        catch (err) { console.error('Failed to save waitlist message:', err); }
-      }
       return res.status(200).json({
         reply: waitMsg,
         dealClosed: false,
@@ -457,11 +494,27 @@ ${voiceInstructions}
       agentReply = agentReply.replace(pattern, replacement);
     });
 
-    const dealClosed = agentReply.includes('[DEAL_CLOSED]');
+    let dealClosed = agentReply.includes('[DEAL_CLOSED]');
     const cleanReply = agentReply.replace(/\[DEAL_CLOSED\][\s\S]*/, '').trim();
-    const dealDetails = dealClosed
+    let dealDetails = dealClosed
       ? agentReply.split('[DEAL_CLOSED]')[1]?.trim() || ''
       : null;
+
+    // ============ شبكة أمان الإقفال ============
+    // لو المعلن وافق صراحةً والوكيل *نسي* وسم [DEAL_CLOSED]، نقفل تلقائيًا
+    // بآخر سعر عرضه الوكيل. تمر بعدها بحماية السقف وحجم الحملة زي الإقفال العادي.
+    let closedBySafetyNet = false;
+    if (!dealClosed && creatorMessage && creatorAcceptedExplicit(creatorMessage)) {
+      const offered = lastAgentOfferedPrice(history, cleanReply || agentReply);
+      if (offered && (!finalCap || offered <= finalCap)) {
+        dealClosed = true;
+        closedBySafetyNet = true;
+        dealDetails = `السعر النهائي: ${offered} ر.س مقابل المحتوى المتفق عليه (إقفال تلقائي بعد تأكيد موافقة المعلن).`;
+        console.warn(`Safety-net close for app ${application.id} at ${offered} (agent missed [DEAL_CLOSED]).`);
+      } else {
+        console.warn(`Safety-net: creator accepted but no valid agent price found (offered=${offered}, cap=${finalCap}). App ${application.id}. No auto-close.`);
+      }
+    }
 
     // حماية إضافية: لو السعر النهائي تجاوز السقف، ألغِ الإقفال
     let safeDealClosed = dealClosed;
@@ -495,11 +548,24 @@ ${voiceInstructions}
       }
     });
 
+    // ============ الرسالة النهائية المعروضة للمعلن ============
+    let replyToSend = cleanReply || agentReply;
+
+    // عند الإقفال: أضف تأكيد المبلغ + إعلام «بانتظار تعميد الشركة» بشكل حتمي
+    // (لا يعتمد على الموديل). هذا يسدّ الفجوة اللي خلّت المعلن ما يعرف الخطوة التالية.
+    if (safeDealClosed && safeDealDetails) {
+      const closedPrice = extractFinalPrice(safeDealDetails) || application.price;
+      const approvalNote = `تم الاتفاق على ${closedPrice} ريال 🎉 صفقتك الآن بانتظار تعميد الشركة، وبنخبرك أول ما تُعتمد ونكمل باقي الخطوات معك 🌿`;
+      // لو أقفلنا عبر شبكة الأمان، رد الوكيل ممكن يكون خارج الموضوع → نستبدله بتأكيد واضح.
+      // غير كذا (الوكيل أقفل صح) → نضيف الإعلام تحت رسالته.
+      replyToSend = closedBySafetyNet ? approvalNote : `${replyToSend}\n\n${approvalNote}`;
+    }
+
     try {
       await supabaseInsert('negotiations', {
         application_id: application.id,
         from_role: 'agent',
-        message: cleanReply || agentReply
+        message: replyToSend
       });
     } catch (err) {
       console.error('Failed to save agent message:', err);
@@ -520,7 +586,7 @@ ${voiceInstructions}
     }
 
     return res.status(200).json({
-      reply: cleanReply || agentReply,
+      reply: replyToSend,
       dealClosed: safeDealClosed,
       dealDetails: safeDealDetails
     });
