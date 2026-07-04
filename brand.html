@@ -1556,7 +1556,7 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
       <button class="hero-cta" onclick="goToCampaigns()">صفقات أقفلها الوكيل</button>
       <button class="hero-cta" onclick="window.location.href='/dues.html'">📋 متابعة الحملات والمستحقات</button>
       <button class="hero-cta" onclick="window.location.href='/analytics.html'">📊 تحليلات حملاتي</button>
-      <button class="hero-cta" onclick="showToast('🚧 يتم تطوير مساحة للعمل المشترك على المنصة، وسيتم إشعاركم وقت جاهزيتها.', 'success', 5000)" style="background:#fff;color:var(--ink);border:1.5px solid rgba(10,10,10,0.18);">👥 أعضاء الفريق</button>
+      <button class="hero-cta" onclick="openTeamMembers()" style="background:#fff;color:var(--ink);border:1.5px solid rgba(10,10,10,0.18);">👥 أعضاء الفريق</button>
     </div>
     <style>@media (max-width:640px){#creators-teaser{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:12px!important;}#creators-teaser #teaser-avatars{justify-content:center!important;}}</style>
     <div id="creators-teaser" onclick="window.location.href='/top.html'" style="max-width:640px;margin:22px auto 0;cursor:pointer;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 20px;display:flex;align-items:center;gap:14px;text-align:right;transition:border-color .2s,transform .2s;" onmouseover="this.style.borderColor='rgba(19,185,178,0.45)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--line)';this.style.transform='none'">
@@ -1772,6 +1772,28 @@ function showToast(message, type = 'success', duration = 3500) {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 320);
   }, duration);
+}
+
+// ============ بوّابة «أعضاء الفريق» (وصول مبكّر لحساب الأدمن) ============
+// حساب أيجنت سيمبل فقط يدخل خريطة الفريق؛ باقي الشركات تشوف رسالة قيد التطوير.
+const TEAM_ADMIN_EMAILS = ['hello@agentsimpleai.com'];
+async function openTeamMembers() {
+  try {
+    const u = (typeof currentUser !== 'undefined' && currentUser)
+      ? currentUser
+      : (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+    let email = (u && u.email) ? u.email : null;
+    if (!email && u && u.id && typeof supabaseClient !== 'undefined') {
+      const { data } = await supabaseClient
+        .from('users').select('email').eq('id', u.id).maybeSingle();
+      email = data && data.email ? data.email : null;
+    }
+    if (email && TEAM_ADMIN_EMAILS.includes(email.toLowerCase())) {
+      window.location.href = 'team.html';
+      return;
+    }
+  } catch (e) {}
+  showToast('🚧 يتم تطوير مساحة للعمل المشترك على المنصة، وسيتم إشعاركم وقت جاهزيتها.', 'success', 5000);
 }
 
 // ============ Launch radar overlay (بعد نشر الحملة) ============

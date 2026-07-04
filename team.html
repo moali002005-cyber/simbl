@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>سيمبل · أعضاء الفريق</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page:#f6faf9; --canvas:#ffffff; --ink:#0f1a17; --muted:#6f867f; --line:#e7edeb;
+    --teal:#12b5a3; --tint:#e3f6f1; --tint2:#c9ecE4; --deep:#0a5f56; --idle:#b3c2bd; --black:#0f1512;
+    font-family:"Tajawal",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);background:var(--canvas)}
+  .app{height:100vh;display:flex;flex-direction:column}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;
+    background:#fff;border-bottom:1px solid var(--line);z-index:20}
+  .logo{display:flex;align-items:center;gap:10px;font-family:"Cairo";font-weight:800;font-size:18px}
+  .logo .badge{width:34px;height:34px;background:#fff;border:1px solid var(--line);border-radius:9px;
+    display:inline-flex;align-items:center;justify-content:center}
+  .logo small{font-family:"Tajawal";font-weight:500;color:var(--muted);font-size:12.5px}
+  .live{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--deep);background:var(--tint);padding:7px 13px;border-radius:999px}
+  .live i{width:8px;height:8px;border-radius:50%;background:var(--teal);animation:pl 1.9s infinite}
+  @keyframes pl{0%{box-shadow:0 0 0 0 rgba(18,181,163,.4)}70%{box-shadow:0 0 0 8px rgba(18,181,163,0)}100%{box-shadow:0 0 0 0 rgba(18,181,163,0)}}
+
+  .viewas{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px 14px 2px}
+  .viewas .lab{align-self:center;color:var(--muted);font-size:12.5px}
+  .vw{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:999px;
+    font-size:12.5px;font-weight:600;transition:.18s;display:flex;flex-direction:column;align-items:center;min-width:82px}
+  .vw span{font-size:10px;color:var(--muted);font-weight:400}
+  .vw:hover{border-color:var(--teal)}
+  .vw.on{background:var(--black);color:#fff;border-color:transparent}
+  .vw.on span{color:#9fd8ce}
+  .caption{text-align:center;color:var(--muted);font-size:12.5px;padding:6px 20px 0}
+  .caption b{color:var(--ink);font-family:"Cairo";font-weight:700}
+
+  .stage{flex:1;position:relative;overflow:hidden}
+  .links{position:absolute;inset:0;pointer-events:none}
+  .node{position:absolute;transform:translate(-50%,-50%);cursor:pointer;transition:opacity .3s}
+  .circle{border-radius:50%;background:#fff;border:1.5px solid var(--teal);position:relative;transition:.16s;margin:0 auto}
+  .node.mgr .circle{background:var(--tint2);border:none}
+  .node.owner .circle{border:9px solid var(--teal);background:#fff}
+  .node:hover .circle{transform:scale(1.08)}
+  .node .dot{position:absolute;bottom:0;left:0;width:12px;height:12px;border-radius:50%;border:2px solid #fff}
+  .badge2{position:absolute;top:-3px;right:-3px;width:15px;height:15px;border-radius:50%;background:#fff;
+    border:1.5px solid var(--teal);color:var(--deep);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:"Cairo"}
+  .label{position:absolute;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap;margin-top:8px}
+  .label .nm{font-family:"Cairo";font-weight:700;font-size:12.5px;color:var(--ink);line-height:1.25}
+  .node.owner .label .nm{font-size:14px}
+  .label .rl{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .tip{position:absolute;left:50%;transform:translate(-50%,6px);width:180px;background:#fff;border:1px solid var(--line);
+    border-radius:12px;padding:9px 11px;box-shadow:0 12px 30px rgba(15,26,23,.12);opacity:0;pointer-events:none;transition:.15s;z-index:6}
+  .node:hover .tip{opacity:1}
+  .tip .a{font-size:11.5px;color:var(--ink);line-height:1.5}
+  .tip .s{font-size:10.5px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px;justify-content:center}
+  .tip .s i{width:7px;height:7px;border-radius:50%}
+
+  .legend{position:absolute;bottom:14px;inset-inline-end:16px;display:flex;gap:13px;background:rgba(255,255,255,.85);
+    border:1px solid var(--line);border-radius:12px;padding:9px 13px}
+  .legend div{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .legend i{width:9px;height:9px;border-radius:50%}
+  .hint{position:absolute;bottom:16px;inset-inline-start:16px;font-size:12px;color:var(--muted)}
+
+  .scrim{position:fixed;inset:0;background:rgba(15,26,23,.22);opacity:0;pointer-events:none;transition:.25s;z-index:40}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .persp{position:fixed;inset-block:0;inset-inline-start:0;width:min(400px,92vw);z-index:50;background:#fff;
+    border-inline-end:1px solid var(--line);transform:translateX(-105%);transition:.34s cubic-bezier(.2,.7,.2,1);
+    display:flex;flex-direction:column;box-shadow:14px 0 46px rgba(15,26,23,.12)}
+  .persp.on{transform:none}
+  .p-head{padding:22px 22px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px}
+  .p-av{width:46px;height:46px;border-radius:13px;background:var(--tint);color:var(--deep);display:flex;align-items:center;justify-content:center;font-family:"Cairo";font-weight:800;font-size:16px;flex:none}
+  .p-head .nm{font-family:"Cairo";font-weight:800;font-size:18px}
+  .p-head .rl{color:var(--muted);font-size:12.5px}
+  .p-head .close{margin-inline-start:auto;border:1px solid var(--line);background:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;color:var(--muted)}
+  .p-note{padding:13px 22px;background:var(--tint);color:var(--deep);font-size:12.5px}
+  .p-body{padding:18px 22px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+  .p-body h5{margin:0 0 10px;font-family:"Cairo";font-size:12.5px;color:var(--muted);font-weight:700}
+  .camp{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:9px}
+  .camp .cn{font-family:"Cairo";font-weight:700;font-size:14px;margin-bottom:9px;display:flex;justify-content:space-between}
+  .camp .cn small{color:var(--muted);font-weight:500;font-size:10px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{background:var(--page);border-radius:10px;padding:8px;text-align:center}
+  .stat b{font-family:"Cairo";font-size:17px;display:block} .stat span{font-size:10px;color:var(--muted)}
+  .neg-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .neg-row:last-child{border:none}
+  .neg-row .st{width:8px;height:8px;border-radius:50%;flex:none}
+  .neg-row .who{font-weight:700;font-size:13px} .neg-row .cc{color:var(--muted);font-size:11px}
+  .neg-row .stt{margin-inline-start:auto;font-size:11px;font-weight:700}
+  .p-foot{padding:16px 22px;border-top:1px solid var(--line)}
+  .p-foot button{width:100%;background:var(--black);color:#fff;border:none;border-radius:13px;padding:13px;font-family:"Tajawal";font-weight:700;font-size:13.5px;cursor:pointer}
+  @media(max-width:560px){.hint{display:none}.viewas .lab{display:none}.legend{inset-inline:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <span class="badge"><svg viewBox="0 0 100 60" width="26" height="26" aria-label="سيمبل">
+        <g fill="none" stroke="#0c0f0e" stroke-width="7" stroke-linecap="round"><path d="M7,30 Q35,11 63,30 Q35,49 7,30 Z"/><path d="M37,30 Q65,11 93,30 Q65,49 37,30 Z"/></g>
+        <path d="M34,30 Q50,22 66,30 Q50,38 34,30 Z" fill="#17b0a5"/><circle cx="50" cy="30" r="4.3" fill="#0c0f0e"/></svg></span>
+      سيمبل <small>· خريطة الفريق</small>
+    </div>
+    <div class="live"><i></i> <span id="liveCount">—</span> نشِط الآن</div>
+  </header>
+  <div class="viewas" id="viewas"><span class="lab">شاهِد باسم:</span></div>
+  <div class="caption" id="caption"></div>
+  <div class="stage" id="stage">
+    <svg class="links" id="links"></svg>
+    <div class="legend">
+      <div><i style="background:var(--teal)"></i>يعمل الآن</div>
+      <div><i style="background:var(--idle)"></i>خامل</div>
+    </div>
+    <div class="hint">اضغط أي شخص لتفتح منظوره · جرّب «شاهِد باسم»</div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="persp" id="persp">
+  <div class="p-head"><div class="p-av" id="pAv"></div>
+    <div><div class="nm" id="pName"></div><div class="rl" id="pRole"></div></div>
+    <button class="close" id="pClose">×</button></div>
+  <div class="p-note" id="pNote"></div>
+  <div class="p-body" id="pBody"></div>
+  <div class="p-foot"><button id="pOpen"></button></div>
+</aside>
+
+<script>
+const PLAT={snap:'سناب شات',tiktok:'تيك توك',both:'سناب + تيك توك',gen:'أداء عام',mgmt:'إدارة'};
+const ST={online:'نشِط',negotiating:'يفاوض',reviewing:'يراجع',idle:'خامل'};
+const stCol=s=>s==='idle'?'#b3c2bd':'#12b5a3';
+const BRANDS={
+  reef:{name:'ريف',campaigns:[{n:'عطر الصحراء',approved:12,neg:4,wait:8},{n:'مسك ٢٤',approved:9,neg:3,wait:5}]},
+  osma:{name:'اوسما',campaigns:[{n:'أمبر تتش',approved:14,neg:6,wait:91},{n:'روج و نوار',approved:13,neg:5,wait:65},{n:'تندر بلوم',approved:9,neg:4,wait:57}]},
+  buyar:{name:'بويار',campaigns:[{n:'بويار سبرنغ',approved:7,neg:3,wait:22},{n:'لمسة بويار',approved:5,neg:2,wait:14}]},
+};
+const P={
+  owner:{name:'عبدالعزيز الماجد',role:'الأونر',mgr:null,brand:null,plat:'mgmt',status:'online',mgmt:true,act:'يراقب أداء العلامات الثلاث والفريق كامل'},
+  gm:{name:'نبيه',role:'المدير العام',mgr:'owner',brand:null,plat:'mgmt',status:'online',mgmt:true,act:'يراجع تقارير الحملات النشطة'},
+  reef:{name:'عبدالعزيز الحقباني',role:'مدير علامة ريف',mgr:'gm',brand:'reef',plat:'mgmt',status:'online',mgmt:true,act:'يعتمد صفقات حملة عطر الصحراء'},
+  osma:{name:'لمى غدار',role:'مديرة علامة اوسما',mgr:'gm',brand:'osma',plat:'mgmt',status:'reviewing',mgmt:true,act:'تتابع قائمة انتظار روج و نوار'},
+  buyar:{name:'منى حاج',role:'مديرة علامة بويار',mgr:'gm',brand:'buyar',plat:'mgmt',status:'online',mgmt:true,act:'تجهّز إطلاق حملة لمسة بويار'},
+  shahad:{name:'شهد العصيمي',role:'أخصائية سناب · ريف+بويار',mgr:'reef',brand:'reef',shared:['buyar'],plat:'snap',status:'online',act:'تدير سناب لريف وبويار (شاشة مدموجة)',
+    negs:[{c:'عطر الصحراء · ريف',w:'@rana.g',s:'negotiating'},{c:'بويار سبرنغ · بويار',w:'@sultan_k',s:'online'}]},
+  tamim:{name:'تميم العجلان',role:'سناب وتيك توك · ريف',mgr:'reef',brand:'reef',plat:'both',status:'negotiating',act:'يفاوض معلن — حملة مسك ٢٤',
+    negs:[{c:'مسك ٢٤ · ريف',w:'@noura_v',s:'negotiating'},{c:'عطر الصحراء · ريف',w:'@fahad',s:'reviewing'}]},
+  mohammed:{name:'محمد العلي',role:'تيك توك · ريف+بويار',mgr:'reef',brand:'reef',shared:['buyar'],plat:'tiktok',status:'online',act:'يحسّن تيك توك لريف وبويار (شاشة مدموجة)',
+    negs:[{c:'مسك ٢٤ · ريف',w:'@dana.t',s:'online'},{c:'لمسة بويار · بويار',w:'@majed',s:'negotiating'}]},
+  bashar:{name:'بشار الأسعدي',role:'سناب وتيك توك · اوسما',mgr:'osma',brand:'osma',plat:'both',status:'negotiating',act:'يفاوض مؤثري تيك توك — أمبر تتش',
+    negs:[{c:'أمبر تتش · اوسما',w:'@lulu.k',s:'negotiating'},{c:'تندر بلوم · اوسما',w:'@sara_m',s:'online'}]},
+  rawan:{name:'روان',role:'سناب وتيك توك · اوسما',mgr:'osma',brand:'osma',plat:'both',status:'reviewing',act:'تراجع فيديوهات سناب — روج و نوار',
+    negs:[{c:'روج و نوار · اوسما',w:'@reem.a',s:'reviewing'}]},
+  reema:{name:'ريما القحطاني',role:'متابعة أداء · اوسما',mgr:'osma',brand:'osma',plat:'gen',status:'online',act:'تتابع أداء حملات اوسما',negs:[]},
+};
+const IDS=Object.keys(P);
+IDS.forEach(id=>P[id].sees=new Set());
+IDS.forEach(id=>{let m=P[id].mgr;while(m){P[m].sees.add(id);m=P[m].mgr;}});
+IDS.forEach(id=>(P[id].shared||[]).forEach(b=>{P[b].sees.add(id);let u=P[b].mgr;while(u){P[u].sees.add(id);u=P[u].mgr;}}));
+const initials=n=>n.trim().split(' ').slice(0,2).map(w=>w[0]).join('');
+
+/* مواقع نسبية للشجرة (rx, ry) */
+const POS={
+  owner:[.50,.10], gm:[.50,.32],
+  osma:[.22,.56], reef:[.60,.56], buyar:[.84,.56],
+  bashar:[.10,.84], rawan:[.22,.84], reema:[.34,.84],
+  shahad:[.48,.84], tamim:[.60,.84], mohammed:[.72,.84],
+};
+const SIZE={owner:56, mgmt:40, spec:26};
+const SOLID=[['owner','gm'],['gm','reef'],['gm','osma'],['gm','buyar'],
+  ['reef','shahad'],['reef','tamim'],['reef','mohammed'],
+  ['osma','bashar'],['osma','rawan'],['osma','reema']];
+const SHARED=[['buyar','shahad'],['buyar','mohammed']];
+
+const stage=document.getElementById('stage'), linksSvg=document.getElementById('links');
+const nodes={};
+IDS.forEach(id=>{ const p=P[id]; const el=document.createElement('div');
+  el.className='node'+(id==='owner'?' owner':p.mgmt?' mgr':'');
+  const sz = id==='owner'?SIZE.owner:p.mgmt?SIZE.mgmt:SIZE.spec;
+  const b2 = (p.shared||[]).length? `<span class="badge2">٢</span>`:'';
+  el.innerHTML=`<div class="circle" style="width:${sz}px;height:${sz}px">
+      <span class="dot" style="background:${stCol(p.status)}"></span>${b2}</div>
+    <div class="label" style="top:${sz/2+6}px"><div class="nm">${p.name}</div><div class="rl">${p.role}</div>
+      <div class="tip" style="top:${sz/2+42}px"><div class="a">${p.act}</div>
+        <div class="s"><i style="background:${stCol(p.status)}"></i>${ST[p.status]}</div></div></div>`;
+  el.onclick=()=>openPersp(id); stage.appendChild(el);
+  nodes[id]={el, sz}; });
+
+const lineEls={}; 
+function mkLine(a,b,dash,key){ const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('stroke',dash?'#9fd8ce':'#c3ddd6'); l.setAttribute('stroke-width',dash?'1.4':'1.4');
+  if(dash) l.setAttribute('stroke-dasharray','5 5'); linksSvg.appendChild(l); lineEls[key]={a,b,l,dash}; }
+SOLID.forEach(([a,b])=>mkLine(a,b,false,a+'-'+b));
+SHARED.forEach(([a,b])=>mkLine(a,b,true,a+'-'+b));
+
+let W=0,H=0,padX=90,padY=40;
+function place(){ const r=stage.getBoundingClientRect(); W=r.width;H=r.height;
+  linksSvg.setAttribute('width',W);linksSvg.setAttribute('height',H);linksSvg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  IDS.forEach(id=>{ const [rx,ry]=POS[id]; const x=padX+rx*(W-2*padX), y=padY+ry*(H-2*padY);
+    nodes[id].x=x; nodes[id].y=y; nodes[id].el.style.left=x+'px'; nodes[id].el.style.top=y+'px'; });
+  drawLines(); }
+function drawLines(){ Object.values(lineEls).forEach(o=>{ const A=nodes[o.a],B=nodes[o.b];
+  o.l.setAttribute('x1',A.x);o.l.setAttribute('y1',A.y);o.l.setAttribute('x2',B.x);o.l.setAttribute('y2',B.y); }); }
+addEventListener('resize',place);
+
+/* شاهِد باسم / التظليل */
+let scope='owner';
+const VIEWERS=[{id:'owner',l:'الأونر',s:'الماجد'},{id:'gm',l:'المدير العام',s:'نبيه'},
+  {id:'reef',l:'ريف',s:'الحقباني'},{id:'osma',l:'اوسما',s:'لمى'},{id:'buyar',l:'بويار',s:'منى'},
+  {id:'shahad',l:'مشترَك',s:'شهد'},{id:'mohammed',l:'مشترَك',s:'محمد'}];
+const vwBar=document.getElementById('viewas');
+VIEWERS.forEach((v,i)=>{const b=document.createElement('div');b.className='vw'+(i===0?' on':'');b.dataset.id=v.id;
+  b.innerHTML=`${v.l}<span>${v.s}</span>`;b.onclick=()=>setScope(v.id);vwBar.appendChild(b);});
+function setScope(id){ scope=id;
+  document.querySelectorAll('.vw').forEach(x=>x.classList.toggle('on',x.dataset.id===id));
+  const vis=new Set([id,...P[id].sees]); const p=P[id]; const sh=(p.shared||[]).length>0;
+  if(sh){ vis.add(p.mgr); (p.shared||[]).forEach(b=>vis.add(b)); }
+  IDS.forEach(x=>{ nodes[x].el.style.opacity=vis.has(x)?1:.18; });
+  Object.values(lineEls).forEach(o=>{ const on=vis.has(o.a)&&vis.has(o.b);
+    o.l.setAttribute('opacity', on? (o.dash? ((id==='buyar'||id==='owner'||id==='gm')?.9:.25) : 1) : .06); });
+  const n=P[id].sees.size;
+  cap(id==='owner'?`الأونر <b>${p.name}</b> فوق، وكل الفريق تحته. اضغط أي شخص لتفتح منظوره.`
+    : sh? `مسار <b>${p.name}</b> المشترَك — يخدم علامتَي ريف وبويار.`
+    : `مسار <b>${p.name}</b> — ${n? n+' تحت إشرافه':'يرى مهامه فقط'}، والباقي يخفت.`,'خريطة الفريق');
+}
+function cap(t,ttl){document.getElementById('caption').innerHTML=`<b>${ttl}</b> — ${t}`;}
+
+/* لوح المنظور */
+const scrim=document.getElementById('scrim'),persp=document.getElementById('persp');
+function openPersp(id){ const p=P[id];
+  document.getElementById('pAv').textContent=initials(p.name);
+  document.getElementById('pName').textContent=p.name; document.getElementById('pRole').textContent=p.role;
+  document.getElementById('pNote').textContent=`هذا بالضبط اللي يشوفه ${p.name} لو دخل سيمبل الآن.`;
+  const body=document.getElementById('pBody'); body.innerHTML='';
+  if(id==='owner'||id==='gm') body.innerHTML=`<div><h5>كل العلامات — نظرة شاملة</h5>${blocks(['reef','osma','buyar'])}</div>`;
+  else if(p.mgmt) body.innerHTML=`<div><h5>حملات علامة ${BRANDS[p.brand].name}</h5>${blocks([p.brand])}</div>`;
+  else{ const sh=(p.shared||[]).length>0; const bl=sh?[p.brand,...p.shared]:[p.brand];
+    const sc=sh?`شاشة مدموجة — ${PLAT[p.plat]} في ${bl.map(b=>BRANDS[b].name).join(' و ')}`:`${PLAT[p.plat]} — علامة ${BRANDS[p.brand].name}`;
+    const ng=p.negs.length?p.negs.map(n=>`<div class="neg-row"><span class="st" style="background:${stCol(n.s)}"></span>
+      <div><div class="who">${n.w}</div><div class="cc">${n.c}</div></div><span class="stt" style="color:${stCol(n.s)}">${ST[n.s]}</span></div>`).join('')
+      :`<div class="cc" style="color:var(--muted)">لا مفاوضات نشطة الآن</div>`;
+    body.innerHTML=`<div><h5>نطاق العمل</h5><div class="camp"><div class="cn">${sc}</div></div></div><div><h5>مفاوضاته الجارية</h5>${ng}</div>`; }
+  const canScope=P[id].sees.size>0||id==='owner';
+  const btn=document.getElementById('pOpen'); btn.textContent=canScope?`اعرض مسار ${p.name} ←`:'يرى مهامه الخاصة فقط';
+  btn.style.opacity=canScope?1:.5; btn.style.cursor=canScope?'pointer':'default';
+  btn.onclick=()=>{ if(canScope){ if(VIEWERS.find(v=>v.id===id))setScope(id); closePersp(); } };
+  scrim.classList.add('on'); persp.classList.add('on');
+}
+function blocks(keys){return keys.map(k=>BRANDS[k].campaigns.map(c=>`
+  <div class="camp"><div class="cn">${c.n}<small>${BRANDS[k].name}</small></div>
+   <div class="stats"><div class="stat"><b>${c.approved}</b><span>معتمد</span></div>
+   <div class="stat"><b style="color:var(--teal)">${c.neg}</b><span>قيد تفاوض</span></div>
+   <div class="stat"><b style="color:var(--muted)">${c.wait}</b><span>انتظار</span></div></div></div>`).join('')).join('');}
+function closePersp(){scrim.classList.remove('on');persp.classList.remove('on');}
+document.getElementById('pClose').onclick=closePersp; scrim.onclick=closePersp;
+
+document.getElementById('liveCount').textContent=IDS.filter(x=>P[x].status!=='idle').length;
+place(); setScope('owner');
+</script>
+</body>
+</html>
