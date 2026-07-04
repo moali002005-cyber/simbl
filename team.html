@@ -68,7 +68,7 @@
   .scrim{position:fixed;inset:0;background:rgba(15,26,23,.22);opacity:0;pointer-events:none;transition:.25s;z-index:40}
   .scrim.on{opacity:1;pointer-events:auto}
   .persp{position:fixed;inset-block:0;inset-inline-start:0;width:min(400px,92vw);z-index:50;background:#fff;
-    border-inline-end:1px solid var(--line);transform:translateX(-105%);transition:.34s cubic-bezier(.2,.7,.2,1);
+    border-inline-end:1px solid var(--line);transform:translateX(105%);transition:.34s cubic-bezier(.2,.7,.2,1);
     display:flex;flex-direction:column;box-shadow:14px 0 46px rgba(15,26,23,.12)}
   .persp.on{transform:none}
   .p-head{padding:22px 22px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:13px}
@@ -139,21 +139,22 @@ const BRANDS={
 };
 const P={
   owner:{name:'عبدالعزيز الماجد',role:'الأونر',mgr:null,brand:null,plat:'mgmt',status:'online',mgmt:true,act:'يراقب أداء العلامات الثلاث والفريق كامل'},
-  gm:{name:'نبيه',role:'المدير العام',mgr:'owner',brand:null,plat:'mgmt',status:'online',mgmt:true,act:'يراجع تقارير الحملات النشطة'},
+  gm:{name:'محمد فيصل',role:'المدير العام',mgr:'owner',brand:null,plat:'mgmt',status:'online',mgmt:true,act:'يراجع تقارير الحملات النشطة'},
   reef:{name:'عبدالعزيز الحقباني',role:'مدير علامة ريف',mgr:'gm',brand:'reef',plat:'mgmt',status:'online',mgmt:true,act:'يعتمد صفقات حملة عطر الصحراء'},
   osma:{name:'لمى غدار',role:'مديرة علامة اوسما',mgr:'gm',brand:'osma',plat:'mgmt',status:'reviewing',mgmt:true,act:'تتابع قائمة انتظار روج و نوار'},
   buyar:{name:'منى حاج',role:'مديرة علامة بويار',mgr:'gm',brand:'buyar',plat:'mgmt',status:'online',mgmt:true,act:'تجهّز إطلاق حملة لمسة بويار'},
+  shaymaa:{name:'شيماء',role:'مديرة قسم الديجتال',mgr:'gm',brand:null,plat:'mgmt',status:'online',mgmt:true,act:'تتابع أداء القسم الرقمي عبر العلامات'},
   shahad:{name:'شهد العصيمي',role:'أخصائية سناب · ريف+بويار',mgr:'reef',brand:'reef',shared:['buyar'],plat:'snap',status:'online',act:'تدير سناب لريف وبويار (شاشة مدموجة)',
     negs:[{c:'عطر الصحراء · ريف',w:'@rana.g',s:'negotiating'},{c:'بويار سبرنغ · بويار',w:'@sultan_k',s:'online'}]},
   tamim:{name:'تميم العجلان',role:'سناب وتيك توك · ريف',mgr:'reef',brand:'reef',plat:'both',status:'negotiating',act:'يفاوض معلن — حملة مسك ٢٤',
     negs:[{c:'مسك ٢٤ · ريف',w:'@noura_v',s:'negotiating'},{c:'عطر الصحراء · ريف',w:'@fahad',s:'reviewing'}]},
-  mohammed:{name:'محمد العلي',role:'تيك توك · ريف+بويار',mgr:'reef',brand:'reef',shared:['buyar'],plat:'tiktok',status:'online',act:'يحسّن تيك توك لريف وبويار (شاشة مدموجة)',
+  mohammed:{name:'محمد العلي',role:'أخصائي تيك توك · الديجتال',mgr:'shaymaa',brand:null,plat:'tiktok',status:'online',act:'يحسّن أداء تيك توك عبر العلامات',
     negs:[{c:'مسك ٢٤ · ريف',w:'@dana.t',s:'online'},{c:'لمسة بويار · بويار',w:'@majed',s:'negotiating'}]},
   bashar:{name:'بشار الأسعدي',role:'سناب وتيك توك · اوسما',mgr:'osma',brand:'osma',plat:'both',status:'negotiating',act:'يفاوض مؤثري تيك توك — أمبر تتش',
     negs:[{c:'أمبر تتش · اوسما',w:'@lulu.k',s:'negotiating'},{c:'تندر بلوم · اوسما',w:'@sara_m',s:'online'}]},
   rawan:{name:'روان',role:'سناب وتيك توك · اوسما',mgr:'osma',brand:'osma',plat:'both',status:'reviewing',act:'تراجع فيديوهات سناب — روج و نوار',
     negs:[{c:'روج و نوار · اوسما',w:'@reem.a',s:'reviewing'}]},
-  reema:{name:'ريما القحطاني',role:'متابعة أداء · اوسما',mgr:'osma',brand:'osma',plat:'gen',status:'online',act:'تتابع أداء حملات اوسما',negs:[]},
+  reema:{name:'ريما القحطاني',role:'متابعة أداء · الديجتال',mgr:'shaymaa',brand:null,plat:'gen',status:'online',act:'تتابع أداء الحملات عبر العلامات',negs:[]},
 };
 const IDS=Object.keys(P);
 IDS.forEach(id=>P[id].sees=new Set());
@@ -163,16 +164,16 @@ const initials=n=>n.trim().split(' ').slice(0,2).map(w=>w[0]).join('');
 
 /* مواقع نسبية للشجرة (rx, ry) */
 const POS={
-  owner:[.50,.10], gm:[.50,.32],
-  osma:[.22,.56], reef:[.60,.56], buyar:[.84,.56],
-  bashar:[.10,.84], rawan:[.22,.84], reema:[.34,.84],
-  shahad:[.48,.84], tamim:[.60,.84], mohammed:[.72,.84],
+  owner:[.46,.10], gm:[.46,.31],
+  osma:[.14,.56], reef:[.40,.56], buyar:[.58,.56], shaymaa:[.78,.56],
+  bashar:[.08,.84], rawan:[.20,.84], shahad:[.34,.84], tamim:[.46,.84], mohammed:[.72,.84], reema:[.84,.84],
 };
 const SIZE={owner:56, mgmt:40, spec:26};
-const SOLID=[['owner','gm'],['gm','reef'],['gm','osma'],['gm','buyar'],
-  ['reef','shahad'],['reef','tamim'],['reef','mohammed'],
-  ['osma','bashar'],['osma','rawan'],['osma','reema']];
-const SHARED=[['buyar','shahad'],['buyar','mohammed']];
+const SOLID=[['owner','gm'],['gm','reef'],['gm','osma'],['gm','buyar'],['gm','shaymaa'],
+  ['reef','shahad'],['reef','tamim'],
+  ['osma','bashar'],['osma','rawan'],
+  ['shaymaa','mohammed'],['shaymaa','reema']];
+const SHARED=[['buyar','shahad']];
 
 const stage=document.getElementById('stage'), linksSvg=document.getElementById('links');
 const nodes={};
@@ -195,10 +196,13 @@ function mkLine(a,b,dash,key){ const l=document.createElementNS('http://www.w3.o
 SOLID.forEach(([a,b])=>mkLine(a,b,false,a+'-'+b));
 SHARED.forEach(([a,b])=>mkLine(a,b,true,a+'-'+b));
 
-let W=0,H=0,padX=90,padY=40;
+let W=0,H=0;
 function place(){ const r=stage.getBoundingClientRect(); W=r.width;H=r.height;
   linksSvg.setAttribute('width',W);linksSvg.setAttribute('height',H);linksSvg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  IDS.forEach(id=>{ const [rx,ry]=POS[id]; const x=padX+rx*(W-2*padX), y=padY+ry*(H-2*padY);
+  const cw=Math.min(W-56, 1000);            // عرض الشجرة الأقصى (تبقى متمركزة)
+  const ch=Math.min(H-90, 620);             // ارتفاع الشجرة الأقصى
+  const ox=(W-cw)/2, oy=Math.max(24,(H-ch)/2 - 8);
+  IDS.forEach(id=>{ const [rx,ry]=POS[id]; const x=ox+rx*cw, y=oy+ry*ch;
     nodes[id].x=x; nodes[id].y=y; nodes[id].el.style.left=x+'px'; nodes[id].el.style.top=y+'px'; });
   drawLines(); }
 function drawLines(){ Object.values(lineEls).forEach(o=>{ const A=nodes[o.a],B=nodes[o.b];
@@ -207,9 +211,9 @@ addEventListener('resize',place);
 
 /* شاهِد باسم / التظليل */
 let scope='owner';
-const VIEWERS=[{id:'owner',l:'الأونر',s:'الماجد'},{id:'gm',l:'المدير العام',s:'نبيه'},
+const VIEWERS=[{id:'owner',l:'الأونر',s:'الماجد'},{id:'gm',l:'المدير العام',s:'محمد فيصل'},
   {id:'reef',l:'ريف',s:'الحقباني'},{id:'osma',l:'اوسما',s:'لمى'},{id:'buyar',l:'بويار',s:'منى'},
-  {id:'shahad',l:'مشترَك',s:'شهد'},{id:'mohammed',l:'مشترَك',s:'محمد'}];
+  {id:'shaymaa',l:'الديجتال',s:'شيماء'},{id:'shahad',l:'مشترَك',s:'شهد'}];
 const vwBar=document.getElementById('viewas');
 VIEWERS.forEach((v,i)=>{const b=document.createElement('div');b.className='vw'+(i===0?' on':'');b.dataset.id=v.id;
   b.innerHTML=`${v.l}<span>${v.s}</span>`;b.onclick=()=>setScope(v.id);vwBar.appendChild(b);});
@@ -235,13 +239,16 @@ function openPersp(id){ const p=P[id];
   document.getElementById('pNote').textContent=`هذا بالضبط اللي يشوفه ${p.name} لو دخل سيمبل الآن.`;
   const body=document.getElementById('pBody'); body.innerHTML='';
   if(id==='owner'||id==='gm') body.innerHTML=`<div><h5>كل العلامات — نظرة شاملة</h5>${blocks(['reef','osma','buyar'])}</div>`;
-  else if(p.mgmt) body.innerHTML=`<div><h5>حملات علامة ${BRANDS[p.brand].name}</h5>${blocks([p.brand])}</div>`;
-  else{ const sh=(p.shared||[]).length>0; const bl=sh?[p.brand,...p.shared]:[p.brand];
-    const sc=sh?`شاشة مدموجة — ${PLAT[p.plat]} في ${bl.map(b=>BRANDS[b].name).join(' و ')}`:`${PLAT[p.plat]} — علامة ${BRANDS[p.brand].name}`;
+  else if(p.mgmt){ body.innerHTML = p.brand
+      ? `<div><h5>حملات علامة ${BRANDS[p.brand].name}</h5>${blocks([p.brand])}</div>`
+      : deptView(id); }
+  else{ const sh=(p.shared||[]).length>0; const bl=sh?[p.brand,...p.shared]:(p.brand?[p.brand]:[]);
+    const sc=sh?`شاشة مدموجة — ${PLAT[p.plat]} في ${bl.map(b=>BRANDS[b].name).join(' و ')}`
+             :(p.brand?`${PLAT[p.plat]} — علامة ${BRANDS[p.brand].name}`:`${PLAT[p.plat]} — قسم الديجتال (عبر العلامات)`);
     const ng=p.negs.length?p.negs.map(n=>`<div class="neg-row"><span class="st" style="background:${stCol(n.s)}"></span>
       <div><div class="who">${n.w}</div><div class="cc">${n.c}</div></div><span class="stt" style="color:${stCol(n.s)}">${ST[n.s]}</span></div>`).join('')
       :`<div class="cc" style="color:var(--muted)">لا مفاوضات نشطة الآن</div>`;
-    body.innerHTML=`<div><h5>نطاق العمل</h5><div class="camp"><div class="cn">${sc}</div></div></div><div><h5>مفاوضاته الجارية</h5>${ng}</div>`; }
+    body.innerHTML=`<div><h5>نطاق العمل</h5><div class="camp"><div class="cn">${sc}</div></div></div><div><h5>مهامه الجارية</h5>${ng}</div>`; }
   const canScope=P[id].sees.size>0||id==='owner';
   const btn=document.getElementById('pOpen'); btn.textContent=canScope?`اعرض مسار ${p.name} ←`:'يرى مهامه الخاصة فقط';
   btn.style.opacity=canScope?1:.5; btn.style.cursor=canScope?'pointer':'default';
@@ -253,6 +260,11 @@ function blocks(keys){return keys.map(k=>BRANDS[k].campaigns.map(c=>`
    <div class="stats"><div class="stat"><b>${c.approved}</b><span>معتمد</span></div>
    <div class="stat"><b style="color:var(--teal)">${c.neg}</b><span>قيد تفاوض</span></div>
    <div class="stat"><b style="color:var(--muted)">${c.wait}</b><span>انتظار</span></div></div></div>`).join('')).join('');}
+function deptView(id){ const team=IDS.filter(x=>P[x].mgr===id);
+  const rows=team.map(t=>`<div class="neg-row"><span class="st" style="background:${stCol(P[t].status)}"></span>
+    <div><div class="who">${P[t].name}</div><div class="cc">${P[t].act}</div></div>
+    <span class="stt" style="color:${stCol(P[t].status)}">${ST[P[t].status]}</span></div>`).join('');
+  return `<div><h5>فريق قسم الديجتال — ${team.length} أعضاء</h5>${rows||'<div class="cc" style="color:var(--muted)">لا أعضاء</div>'}</div>`; }
 function closePersp(){scrim.classList.remove('on');persp.classList.remove('on');}
 document.getElementById('pClose').onclick=closePersp; scrim.onclick=closePersp;
 
