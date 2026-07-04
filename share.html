@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>سيمبل · عرض الحملة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0f1a17;--muted:#6f867f;--line:#e7edeb;--teal:#12b5a3;--tint:#e3f6f1;
+    --green:#1f9d6b;--green-soft:#e7f6ee;--deep:#0a5f56;--page:#f5faf8;}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--page);color:var(--ink);font-family:"Tajawal",system-ui,sans-serif}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line)}
+  .logo{display:flex;align-items:center;gap:10px;font-family:"Cairo";font-weight:800;font-size:18px}
+  .logo .badge{width:34px;height:34px;background:#fff;border:1px solid var(--line);border-radius:9px;display:inline-flex;align-items:center;justify-content:center}
+  .ro{font-size:12px;color:var(--deep);background:var(--tint);padding:7px 13px;border-radius:999px;white-space:nowrap}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px 16px 60px}
+  .title{font-family:"Cairo";font-weight:800;font-size:22px;margin:6px 2px 2px}
+  .sub{color:var(--muted);font-size:13px;margin:0 2px 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .sub .done{color:var(--green);font-weight:700}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:auto;box-shadow:0 1px 2px rgba(15,26,23,.04),0 10px 30px rgba(15,26,23,.05)}
+  table{border-collapse:collapse;width:100%;min-width:760px}
+  th,td{padding:12px 10px;text-align:center;font-size:12.5px;border-bottom:1px solid var(--line)}
+  th{background:#fbfdfc;color:var(--muted);font-weight:700;font-family:"Cairo";position:sticky;top:0}
+  td.name{text-align:right;font-weight:700;color:var(--ink);white-space:nowrap;padding-inline-start:16px}
+  td.idx{color:var(--muted);width:42px}
+  .cell{width:36px;height:24px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+  .cell.on{background:var(--green-soft);color:var(--green)}
+  .cell.full{background:var(--green);color:#fff}
+  .cell.off{background:#f1f4f3;color:#c4cfca}
+  tr:hover td{background:#fafcfb}
+  .state{max-width:520px;margin:80px auto;text-align:center;color:var(--muted)}
+  .state h2{font-family:"Cairo";color:var(--ink);font-size:20px;margin:0 0 8px}
+  .foot{margin-top:16px;color:var(--muted);font-size:12px;text-align:center}
+  .spin{width:34px;height:34px;border:3px solid var(--tint);border-top-color:var(--teal);border-radius:50%;margin:80px auto;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <span class="badge"><svg viewBox="0 0 100 60" width="26" height="26" aria-label="سيمبل">
+      <g fill="none" stroke="#0c0f0e" stroke-width="7" stroke-linecap="round"><path d="M7,30 Q35,11 63,30 Q35,49 7,30 Z"/><path d="M37,30 Q65,11 93,30 Q65,49 37,30 Z"/></g>
+      <path d="M34,30 Q50,22 66,30 Q50,38 34,30 Z" fill="#17b0a5"/><circle cx="50" cy="30" r="4.3" fill="#0c0f0e"/></svg></span>
+    سيمبل
+  </div>
+  <div class="ro" id="roBadge">👁️ عرض للقراءة فقط</div>
+</header>
+
+<div class="wrap" id="wrap">
+  <div class="spin" id="spin"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ✏️ عدّل هذين السطرين (تلقاهما في supabase-config.js عندكم):
+  const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
+  const SUPABASE_ANON_KEY = 'ضع_مفتاح_anon_من_supabase-config.js';
+
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const wrap = document.getElementById('wrap');
+  const params = new URLSearchParams(location.search);
+  const token = params.get('t');
+
+  function stateMsg(title, msg){
+    wrap.innerHTML = `<div class="state"><h2>${title}</h2><div>${msg}</div></div>`;
+  }
+  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  async function load(){
+    if(!token){ stateMsg('رابط غير صالح', 'لا يوجد رمز في الرابط.'); return; }
+    let res;
+    try{ res = await client.rpc('get_snapshot', { p_token: token }); }
+    catch(e){ stateMsg('تعذّر التحميل', 'حصل خطأ أثناء جلب العرض. حاول لاحقًا.'); return; }
+    const row = res && res.data && res.data[0];
+    if(res.error || !row){ stateMsg('انتهت صلاحية الرابط أو أُلغي', 'اطلب رابطًا جديدًا من صاحب الحملة.'); return; }
+
+  function renderSnapshot(title, d, createdAt){
+    d = d || {};
+    const stages = Array.isArray(d.stages) ? d.stages : [];
+    const rows = Array.isArray(d.rows) ? d.rows : [];
+    const completed = rows.filter(r => (r.done||[]).every(Boolean)).length;
+    const when = new Date(createdAt).toLocaleString('ar-SA', {dateStyle:'medium', timeStyle:'short'});
+    let head = `<th class="idx">#</th><th class="name" style="text-align:right">المعلن</th>` +
+      stages.map((s,i)=>`<th>${String(i+1).padStart(2,'0')}· ${esc(s)}</th>`).join('');
+    let body = rows.map((r,ri)=>{
+      const cells = stages.map((_,ci)=>{
+        const on = !!(r.done && r.done[ci]);
+        const last = ci===stages.length-1;
+        const cls = on ? (last?'cell full':'cell on') : 'cell off';
+        return `<td><span class="${cls}">${on?'✓':''}</span></td>`;
+      }).join('');
+      return `<tr><td class="idx">${ri+1}</td><td class="name">${esc(r.name)}</td>${cells}</tr>`;
+    }).join('');
+    wrap.innerHTML = `
+      <div class="title">${esc(title)}</div>
+      <div class="sub">
+        <span>${rows.length} معلن</span><span>·</span>
+        <span class="done">${completed} مكتمل</span><span>·</span>
+        <span>لقطة بتاريخ ${when}</span>
+      </div>
+      <div class="card"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
+      <div class="foot">هذا عرض ثابت للقراءة فقط تمّت مشاركته من لوحة سيمبل — لا يتطلّب تسجيل دخول.</div>`;
+  }
+
+  // مثال معاينة (يفتح عبر share.html?demo=1) — بدون قاعدة بيانات
+  const DEMO_STAGES = ['العنوان','الشحن','الاستلام','البريف','المحتوى','الموافقة','النشر','البنكية','مكتمل'];
+  const DEMO_NAMES = ['أروى عبدالله','هند المبارك','سارة العتيبي','دليل الرياض','ساره سعيد الدوسري',
+    'وهج التأثير','نجلاء المري','دلال البارق','مريم','ندى النفيعي','حنان آل عمار','نوال الشلاحي',
+    'حنين لايف','هدى بلوقر','هياء الودعاني','ميس القحطاني'];
+  const DEMO = { title:'شركة ريف للعطور — حملة الإطلاق',
+    data:{ brand:'شركة ريف للعطور', campaign:'حملة الإطلاق', stages:DEMO_STAGES,
+      rows:DEMO_NAMES.map(n=>({name:n, done:[1,1,1,1,1,1,1,1,1]})) } };
+
+  async function load(){
+    if(params.get('demo')==='1'){ renderSnapshot(DEMO.title, DEMO.data, new Date().toISOString()); return; }
+    if(!token){ stateMsg('رابط غير صالح', 'لا يوجد رمز في الرابط. للمعاينة افتح <b>share.html?demo=1</b>'); return; }
+    let res;
+    try{ res = await client.rpc('get_snapshot', { p_token: token }); }
+    catch(e){ stateMsg('تعذّر التحميل', 'حصل خطأ أثناء جلب العرض. حاول لاحقًا.'); return; }
+    const row = res && res.data && res.data[0];
+    if(res.error || !row){ stateMsg('انتهت صلاحية الرابط أو أُلغي', 'اطلب رابطًا جديدًا من صاحب الحملة.'); return; }
+    renderSnapshot(row.title, row.data, row.created_at);
+  }
+  load();
+</script>
+</body>
+</html>
