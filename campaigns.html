@@ -2100,29 +2100,33 @@ function renderGuestData(data) {
     return '<tr><td class="mx-idx">' + (ri + 1) + '</td><td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">' + av + '</span><span style="font-weight:600;color:var(--ink);">' + nm + '</span></div></td>' + cells + '</tr>';
   }).join('');
 
-  const logo = '<svg viewBox="0 0 100 60" width="26" height="26"><g fill="none" stroke="#0c0f0e" stroke-width="7" stroke-linecap="round"><path d="M7,30 Q35,11 63,30 Q35,49 7,30 Z"/><path d="M37,30 Q65,11 93,30 Q65,49 37,30 Z"/></g><path d="M34,30 Q50,22 66,30 Q50,38 34,30 Z" fill="#17b0a5"/><circle cx="50" cy="30" r="4.3" fill="#0c0f0e"/></svg>';
-
-  document.body.innerHTML =
-    '<div style="min-height:100vh;background:var(--cream,#f5faf8);">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line,#e7edeb);">' +
-        '<div style="display:flex;align-items:center;gap:10px;font-family:Cairo,system-ui,sans-serif;font-weight:800;font-size:18px;color:var(--ink,#0f1a17);">' +
-          '<span style="width:34px;height:34px;background:#fff;border:1px solid var(--line,#e7edeb);border-radius:9px;display:inline-flex;align-items:center;justify-content:center;">' + logo + '</span> سيمبل' +
-        '</div>' +
-        '<span style="font-size:12px;color:#0a5f56;background:#e3f6f1;padding:7px 13px;border-radius:999px;">👁️ عرض للقراءة فقط</span>' +
-      '</div>' +
-      '<div style="max-width:1100px;margin:0 auto;padding:24px 16px 60px;">' +
-        '<div class="campaign-row is-complete">' +
-          '<div class="top"><div>' +
-            '<h3>' + esc(title) + '</h3>' +
-            '<div class="campaign-meta"><span>' + rows.length + ' معلن</span><span style="color:#1f9d6b;font-weight:600;">' + completed + ' مكتمل</span></div>' +
-          '</div></div>' +
-          '<div class="mx-wrap"><table class="mx-table">' +
-            '<thead><tr><th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">المعلن</th>' + th + '</tr></thead>' +
-            '<tbody>' + bodyRows + '</tbody>' +
-          '</table></div>' +
-        '</div>' +
-      '</div>' +
+  // نُبقي صفحة موقعك الحقيقية (الهيدر واللوقو) كما هي، ونعبّي الجدول للقراءة فقط داخلها
+  const card =
+    '<div class="campaign-row is-complete">' +
+      '<div class="top"><div>' +
+        '<h3>' + esc(title) + '</h3>' +
+        '<div class="campaign-meta"><span>' + rows.length + ' معلن</span><span style="color:#1f9d6b;font-weight:600;">' + completed + ' مكتمل</span></div>' +
+      '</div></div>' +
+      '<div class="mx-wrap"><table class="mx-table">' +
+        '<thead><tr><th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">المعلن</th>' + th + '</tr></thead>' +
+        '<tbody>' + bodyRows + '</tbody>' +
+      '</table></div>' +
     '</div>';
+
+  const list = document.getElementById('campaigns-list');
+  if (list) list.innerHTML = card;
+
+  // الهيرو: عنوان الحملة + ملاحظة قراءة فقط، وإخفاء أزرار الإنشاء والروابط الخاصة بالمسجّلين
+  const ht = document.querySelector('.hero-title'); if (ht) ht.textContent = title;
+  const hs = document.querySelector('.hero-sub'); if (hs) hs.textContent = 'عرض للقراءة فقط — مشاركة من لوحة سيمبل';
+  document.querySelectorAll('.hero .hero-cta').forEach((b) => { if (b.parentElement) b.parentElement.style.display = 'none'; });
+  document.querySelectorAll('.hero a').forEach((a) => { a.style.display = 'none'; });
+
+  // استبدال أدوات تسجيل الدخول بشارة «عرض للقراءة فقط»
+  const um = document.getElementById('user-menu');
+  if (um) um.innerHTML = '<span style="font-size:12px;color:#0a5f56;background:#e3f6f1;padding:8px 14px;border-radius:999px;">👁️ عرض للقراءة فقط</span>';
+  const pills = document.getElementById('campaign-pills'); if (pills) pills.innerHTML = '';
+
   document.title = 'سيمبل · ' + title;
 }
 
