@@ -59,7 +59,6 @@
   const SUPABASE_URL = 'https://rdzzzasbyzugxogbgwwn.supabase.co';
   const SUPABASE_ANON_KEY = 'ضع_مفتاح_anon_من_supabase-config.js';
 
-  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const wrap = document.getElementById('wrap');
   const params = new URLSearchParams(location.search);
   const token = params.get('t');
@@ -117,9 +116,15 @@
   async function load(){
     if(params.get('demo')==='1'){ renderSnapshot(DEMO.title, DEMO.data, new Date().toISOString()); return; }
     if(!token){ stateMsg('رابط غير صالح', 'لا يوجد رمز في الرابط. للمعاينة افتح <b>share.html?demo=1</b>'); return; }
+    if(!window.supabase || !window.supabase.createClient){
+      stateMsg('تعذّر تحميل مكتبة العرض', 'تأكّد من الاتصال بالإنترنت ثم أعد المحاولة.'); return; }
+    if(!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.indexOf('ضع_') === 0){
+      stateMsg('الإعداد غير مكتمل', 'لم يُضبط مفتاح anon في share.html بعد.'); return; }
     let res;
-    try{ res = await client.rpc('get_snapshot', { p_token: token }); }
-    catch(e){ stateMsg('تعذّر التحميل', 'حصل خطأ أثناء جلب العرض. حاول لاحقًا.'); return; }
+    try{
+      const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      res = await client.rpc('get_snapshot', { p_token: token });
+    }catch(e){ stateMsg('تعذّر التحميل', 'حصل خطأ أثناء جلب العرض. حاول لاحقًا.'); return; }
     const row = res && res.data && res.data[0];
     if(res.error || !row){ stateMsg('انتهت صلاحية الرابط أو أُلغي', 'اطلب رابطًا جديدًا من صاحب الحملة.'); return; }
     renderSnapshot(row.title, row.data, row.created_at);
