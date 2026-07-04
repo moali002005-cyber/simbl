@@ -2060,15 +2060,27 @@ function selectFollowerRange(btn) {
 }
 
 // ============ وضع الضيف: عرض الحملة للقراءة فقط داخل المنصّة (بدون تسجيل دخول) ============
-function renderGuestView(b64) {
+async function renderGuestView(param) {
   let data;
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param);
   try {
-    let s = b64.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
-    data = JSON.parse(decodeURIComponent(escape(atob(s))));
+    if (isUUID && typeof supabaseClient !== 'undefined') {
+      const r = await supabaseClient.rpc('get_snapshot', { p_token: param });
+      if (r.error) throw r.error;
+      const row = r.data && r.data[0];
+      if (!row) throw new Error('not-found');
+      data = row.data;
+    } else {
+      let s = param.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
+      data = JSON.parse(decodeURIComponent(escape(atob(s))));
+    }
   } catch (e) {
-    document.body.innerHTML = '<div style="padding:80px 20px;text-align:center;color:#6f867f;font-family:Tajawal,system-ui,sans-serif;">تعذّر فتح الرابط — قد يكون غير مكتمل. اطلب رابطًا جديدًا.</div>';
+    document.body.innerHTML = '<div style="padding:80px 20px;text-align:center;color:#6f867f;font-family:Tajawal,system-ui,sans-serif;">تعذّر فتح الرابط — قد يكون منتهيًا أو غير مكتمل. اطلب رابطًا جديدًا.</div>';
     return;
   }
+  renderGuestData(data);
+}
+function renderGuestData(data) {
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const title = data.t || 'حملة';
   const stages = data.s || [];
@@ -3376,7 +3388,7 @@ function renderSingleCampaign(c) {
 }
 
 // ============ رابط مشاركة العرض (قراءة فقط بدون تسجيل دخول — الرابط يحمل البيانات) ============
-function shareCampaignSnapshot(cid) {
+async function shareCampaignSnapshot(cid) {
   try {
     const c = (typeof myCampaigns !== 'undefined' && myCampaigns ? myCampaigns : []).find(x => x.id === cid) || {};
     const table = document.getElementById('apps-' + cid);
@@ -3403,11 +3415,19 @@ function shareCampaignSnapshot(cid) {
     const brand = (typeof currentUser !== 'undefined' && currentUser && currentUser.company_name) ? currentUser.company_name : 'الشركة';
     const camp = c.title || 'حملة';
     const payload = { t: brand + ' — ' + camp, s: stages, r: rows, g: new Date().toISOString() };
-    const json = JSON.stringify(payload);
-    const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    const url = location.origin + location.pathname + '?share=' + b64;
-    const copy = () => { try { navigator.clipboard.writeText(url); } catch (e) { window.prompt('انسخ رابط العرض:', url); } };
-    copy();
+    const owner = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
+    const base = location.origin + location.pathname;
+    let url;
+    try {
+      const r = await supabaseClient.rpc('create_snapshot', { p_campaign: cid, p_title: brand + ' — ' + camp, p_data: payload, p_owner: owner });
+      if (r.error || !r.data) throw r.error || new Error('no-token');
+      url = base + '?share=' + r.data;                 // رمز قصير (المفضّل)
+    } catch (dbErr) {
+      const json = JSON.stringify(payload);
+      const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      url = base + '?share=' + b64;                     // احتياطي: الرابط يحمل البيانات
+    }
+    try { await navigator.clipboard.writeText(url); } catch (e) { window.prompt('انسخ رابط العرض:', url); }
     showToast('تم نسخ رابط العرض — شاركه مع فريقك 🔗', 'success', 6000);
   } catch (e) {
     showToast('تعذّر إنشاء الرابط', 'error', 4000);
