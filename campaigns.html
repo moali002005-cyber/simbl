@@ -2155,6 +2155,7 @@ async function loadData() {
     myCampaigns.forEach(c => { campaignApps[c.id] = []; });
     allApps.forEach(a => {
       if (a.status === 'campaign_full') return; // تفاوض متوقف لاكتمال الحملة — لا يظهر في الشيت
+      if (a.is_reserve === true) return; // احتياط مخفي — جاهز في الخلفية، لا يظهر للشركة
       (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a);
     });
 
@@ -2920,42 +2921,71 @@ async function rebalanceCampaign(campaignId, campaignTitle) {
     }
     if (target <= 0) return;
 
-    // اعدد النشطين والمنتظرين من القاعدة (المصدر الموثوق، لا النسخة المحلية)
+    // اعدد الطلبات من القاعدة (المصدر الموثوق) — نحتاج is_reserve للتمييز
     const { data: apps, error } = await supabaseClient
       .from('applications')
-      .select('id, creator_id, status, created_at')
+      .select('id, creator_id, status, created_at, is_reserve, final_price')
       .eq('campaign_id', campaignId)
       .in('status', ['closed', 'pending', 'active', 'waitlisted'])
       .order('created_at', { ascending: true });
     if (error || !apps) { console.error('rebalance read failed:', error); return; }
 
+    // «النشط» يشغل مكانًا فعليًا في الحجم = صفقة عادية (غير احتياط): closed/pending/active.
+    // الاحتياط (is_reserve=true) لا يُحسب في العدد — هو بنك جاهز خارج الحجم.
     const activeCount = apps.filter(a =>
-      a.status === 'closed' || a.status === 'pending' || a.status === 'active'
+      a.is_reserve !== true &&
+      (a.status === 'closed' || a.status === 'pending' || a.status === 'active')
     ).length;
     const vacancies = target - activeCount;
     if (vacancies <= 0) return; // الحملة ممتلئة → لا شي
 
-    // المنتظرون الأقدم أولًا، نرقّي بعدد الشاغر فقط
-    const waiting = apps.filter(a => a.status === 'waitlisted');
-    if (!waiting.length) return;
-    const toPromote = waiting.slice(0, vacancies);
+    let filled = 0;
 
-    for (const w of toPromote) {
+    // (١) الأولوية: الاحتياط المقفول الجاهز → ترقية فورية للتعميد بلا تفاوض جديد.
+    // نحوّله is_reserve=false فيصير صفقة مقفلة عادية تظهر للشركة «بانتظار تعميدك» فورًا.
+    const readyReserves = apps
+      .filter(a => a.is_reserve === true && a.status === 'closed')
+      .sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
+    for (const r of readyReserves) {
+      if (filled >= vacancies) break;
       const { error: upErr } = await supabaseClient
-        .from('applications').update({ status: 'pending' }).eq('id', w.id);
-      if (upErr) { console.error('rebalance promote failed:', upErr); continue; }
-      if (w.creator_id) {
-        const title = '🎉 جاك دورك! تم اختيارك';
-        const body = `${campaignTitle || 'حملة'}: انفتح لك مكان في الحملة — ابدأ التفاوض مع الوكيل الحين.`;
-        createNotification(w.creator_id, 'waitlist_promoted', title, body, '/creator.html').catch(console.error);
+        .from('applications').update({ is_reserve: false }).eq('id', r.id);
+      if (upErr) { console.error('reserve promote failed:', upErr); continue; }
+      filled++;
+      if (r.creator_id) {
+        const title = '🎉 تمّت ترقيتك للحملة!';
+        const body = `${campaignTitle || 'حملة'}: انفتح مكان وصفقتك الآن بانتظار تعميد الشركة — بنخبرك أول ما تُعتمد 🌿`;
+        createNotification(r.creator_id, 'waitlist_promoted', title, body, '/creator.html').catch(console.error);
         fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
-          body: JSON.stringify({ title, body, url: '/creator.html', target_users: [w.creator_id] })
+          body: JSON.stringify({ title, body, url: '/creator.html', target_users: [r.creator_id] })
         }).catch(console.error);
       }
     }
-    console.log(`rebalance: promoted ${toPromote.length} of ${vacancies} vacancies in campaign ${campaignId}.`);
+
+    // (٢) لو ما كفى الاحتياط، رقّي منتظرين عاديين ليفاوضوا (يملؤون النقص المتبقّي).
+    if (filled < vacancies) {
+      const waiting = apps.filter(a => a.status === 'waitlisted');
+      const toPromote = waiting.slice(0, vacancies - filled);
+      for (const w of toPromote) {
+        const { error: upErr } = await supabaseClient
+          .from('applications').update({ status: 'pending' }).eq('id', w.id);
+        if (upErr) { console.error('rebalance promote failed:', upErr); continue; }
+        filled++;
+        if (w.creator_id) {
+          const title = '🎉 جاك دورك! تم اختيارك';
+          const body = `${campaignTitle || 'حملة'}: انفتح لك مكان في الحملة — ابدأ التفاوض مع الوكيل الحين.`;
+          createNotification(w.creator_id, 'waitlist_promoted', title, body, '/creator.html').catch(console.error);
+          fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+            body: JSON.stringify({ title, body, url: '/creator.html', target_users: [w.creator_id] })
+          }).catch(console.error);
+        }
+      }
+    }
+    console.log(`rebalance: filled ${filled} of ${vacancies} vacancies in campaign ${campaignId} (reserves first).`);
   } catch (e) { console.error('rebalanceCampaign error:', e); }
 }
 
