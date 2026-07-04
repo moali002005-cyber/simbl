@@ -2059,7 +2059,66 @@ function selectFollowerRange(btn) {
   if (input) input.value = vals.join(',');
 }
 
+// ============ وضع الضيف: عرض الحملة للقراءة فقط داخل المنصّة (بدون تسجيل دخول) ============
+function renderGuestView(b64) {
+  let data;
+  try {
+    let s = b64.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '=';
+    data = JSON.parse(decodeURIComponent(escape(atob(s))));
+  } catch (e) {
+    document.body.innerHTML = '<div style="padding:80px 20px;text-align:center;color:#6f867f;font-family:Tajawal,system-ui,sans-serif;">تعذّر فتح الرابط — قد يكون غير مكتمل. اطلب رابطًا جديدًا.</div>';
+    return;
+  }
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const title = data.t || 'حملة';
+  const stages = data.s || [];
+  const rows = data.r || [];
+  const completed = rows.filter((r) => r.d && r.d.split('').every((c) => c === '1')).length;
+
+  const th = stages.map((l, i) => '<th>' + (i + 1) + '·' + esc(l) + '</th>').join('');
+  const bodyRows = rows.map((r, ri) => {
+    const bits = (r.d || '').split('');
+    const cells = stages.map((_, ci) => {
+      const on = bits[ci] === '1', last = ci === stages.length - 1;
+      const inner = on ? '<div class="mx-in ' + (last ? 'mx-final' : 'mx-done') + '">✓</div>' : '<div class="mx-in mx-future">·</div>';
+      return '<td class="mx-cell">' + inner + '</td>';
+    }).join('');
+    const nm = esc(r.n || 'مؤثر');
+    const av = esc((String(r.n || 'م').trim()[0]) || 'م');
+    return '<tr><td class="mx-idx">' + (ri + 1) + '</td><td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">' + av + '</span><span style="font-weight:600;color:var(--ink);">' + nm + '</span></div></td>' + cells + '</tr>';
+  }).join('');
+
+  const logo = '<svg viewBox="0 0 100 60" width="26" height="26"><g fill="none" stroke="#0c0f0e" stroke-width="7" stroke-linecap="round"><path d="M7,30 Q35,11 63,30 Q35,49 7,30 Z"/><path d="M37,30 Q65,11 93,30 Q65,49 37,30 Z"/></g><path d="M34,30 Q50,22 66,30 Q50,38 34,30 Z" fill="#17b0a5"/><circle cx="50" cy="30" r="4.3" fill="#0c0f0e"/></svg>';
+
+  document.body.innerHTML =
+    '<div style="min-height:100vh;background:var(--cream,#f5faf8);">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#fff;border-bottom:1px solid var(--line,#e7edeb);">' +
+        '<div style="display:flex;align-items:center;gap:10px;font-family:Cairo,system-ui,sans-serif;font-weight:800;font-size:18px;color:var(--ink,#0f1a17);">' +
+          '<span style="width:34px;height:34px;background:#fff;border:1px solid var(--line,#e7edeb);border-radius:9px;display:inline-flex;align-items:center;justify-content:center;">' + logo + '</span> سيمبل' +
+        '</div>' +
+        '<span style="font-size:12px;color:#0a5f56;background:#e3f6f1;padding:7px 13px;border-radius:999px;">👁️ عرض للقراءة فقط</span>' +
+      '</div>' +
+      '<div style="max-width:1100px;margin:0 auto;padding:24px 16px 60px;">' +
+        '<div class="campaign-row is-complete">' +
+          '<div class="top"><div>' +
+            '<h3>' + esc(title) + '</h3>' +
+            '<div class="campaign-meta"><span>' + rows.length + ' معلن</span><span style="color:#1f9d6b;font-weight:600;">' + completed + ' مكتمل</span></div>' +
+          '</div></div>' +
+          '<div class="mx-wrap"><table class="mx-table">' +
+            '<thead><tr><th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">المعلن</th>' + th + '</tr></thead>' +
+            '<tbody>' + bodyRows + '</tbody>' +
+          '</table></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  document.title = 'سيمبل · ' + title;
+}
+
 async function init() {
+  // وضع الضيف: رابط مشاركة للقراءة فقط — يفتح الحملة مباشرة بدون تسجيل دخول
+  const _shareParam = new URLSearchParams(location.search).get('share');
+  if (_shareParam) { renderGuestView(_shareParam); return; }
+
   await tryRestoreSession();
 
   currentUser = getCurrentUser();
@@ -3316,8 +3375,8 @@ function renderSingleCampaign(c) {
     `;
 }
 
-// ============ رابط مشاركة العرض (قراءة فقط بدون تسجيل دخول) ============
-async function shareCampaignSnapshot(cid) {
+// ============ رابط مشاركة العرض (قراءة فقط بدون تسجيل دخول — الرابط يحمل البيانات) ============
+function shareCampaignSnapshot(cid) {
   try {
     const c = (typeof myCampaigns !== 'undefined' && myCampaigns ? myCampaigns : []).find(x => x.id === cid) || {};
     const table = document.getElementById('apps-' + cid);
@@ -3325,7 +3384,7 @@ async function shareCampaignSnapshot(cid) {
     const stages = MX_LABELS.slice();
     const rows = [];
     table.querySelectorAll('tbody tr').forEach(tr => {
-      if (tr.classList.contains('mx-detail')) return;         // صف التفاصيل الموسّع
+      if (tr.classList.contains('mx-detail')) return;
       const nameEl = tr.querySelector('.mx-name');
       if (!nameEl) return;
       let name = '';
@@ -3336,24 +3395,22 @@ async function shareCampaignSnapshot(cid) {
       if (!name) return;
       const cells = Array.from(tr.querySelectorAll('td.mx-cell'));
       const done = cells.length >= 9
-        ? cells.slice(0, 9).map(td => (td.textContent || '').includes('✓'))
-        : stages.map(() => false);                            // صف قيد التفاوض/انتظار/بانتظار تعميد
-      rows.push({ name, done });
+        ? cells.slice(0, 9).map(td => (td.textContent || '').includes('✓') ? '1' : '0').join('')
+        : '000000000';
+      rows.push({ n: name, d: done });
     });
     if (!rows.length) { showToast('ما فيه صفوف لعرضها في هذه الحملة', 'error'); return; }
     const brand = (typeof currentUser !== 'undefined' && currentUser && currentUser.company_name) ? currentUser.company_name : 'الشركة';
     const camp = c.title || 'حملة';
-    const payload = { brand: brand, campaign: camp, stages: stages, rows: rows, generatedAt: new Date().toISOString() };
-    const owner = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
-    const { data: token, error } = await supabaseClient.rpc('create_snapshot', {
-      p_campaign: cid, p_title: brand + ' — ' + camp, p_data: payload, p_owner: owner
-    });
-    if (error) throw error;
-    const url = location.origin + '/share.html?t=' + token;
-    try { await navigator.clipboard.writeText(url); } catch (e) {}
+    const payload = { t: brand + ' — ' + camp, s: stages, r: rows, g: new Date().toISOString() };
+    const json = JSON.stringify(payload);
+    const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const url = location.origin + location.pathname + '?share=' + b64;
+    const copy = () => { try { navigator.clipboard.writeText(url); } catch (e) { window.prompt('انسخ رابط العرض:', url); } };
+    copy();
     showToast('تم نسخ رابط العرض — شاركه مع فريقك 🔗', 'success', 6000);
   } catch (e) {
-    showToast('تعذّر إنشاء الرابط — تأكّد من إعداد قاعدة البيانات', 'error', 5000);
+    showToast('تعذّر إنشاء الرابط', 'error', 4000);
   }
 }
 
