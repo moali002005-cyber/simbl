@@ -102,6 +102,40 @@ async function supabaseCountClosedDeals(campaignId) {
   }
 }
 
+// عدد الصفقات العادية المقفلة (غير الاحتياط) — تحدد متى نبدأ الإقفال كاحتياط
+async function supabaseCountNonReserveClosed(campaignId) {
+  if (!campaignId) return 0;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/applications?campaign_id=eq.${campaignId}&status=eq.closed&is_reserve=eq.false&select=id`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) { console.error('count non-reserve error:', await res.text()); return 0; }
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch (err) {
+    console.error('Count non-reserve closed failed:', err);
+    return 0;
+  }
+}
+
+// عدد الاحتياط المقفل — لحماية سقف الاحتياط (RESERVE_COUNT)
+async function supabaseCountReserveClosed(campaignId) {
+  if (!campaignId) return 0;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/applications?campaign_id=eq.${campaignId}&status=eq.closed&is_reserve=eq.true&select=id`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) { console.error('count reserve error:', await res.text()); return 0; }
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows.length : 0;
+  } catch (err) {
+    console.error('Count reserve closed failed:', err);
+    return 0;
+  }
+}
+
 // جلب طلبات الحملة الحيّة (غير المرفوضة وغير المكتملة) مرتّبة بالأقدم — لتحديد الدفعة وقائمة الانتظار
 async function supabaseGetCampaignApps(campaignId) {
   if (!campaignId) return [];
@@ -308,15 +342,19 @@ export default async function handler(req, res) {
     }
   }
 
-  // ============ نظام الدفعة + قائمة الانتظار ============
-  // الوكيل يفاوض أول (campaignSize) حسب أولوية التقديم (الأقدم أولاً).
-  // من تعدّى العدد → قائمة انتظار (waitlisted): يُبلّغ ويُوقف، ويترقّى تلقائيًا لو انفتح مكان.
+  // ============ نظام الدفعة + قائمة الانتظار (مع احتياط ثابت = 10) ============
+  // الوكيل يفاوض أول (campaignSize + RESERVE_COUNT) حسب أولوية التقديم (الأقدم أولاً).
+  // أول (campaignSize) مقفولين = صفقات عادية تظهر للشركة.
+  // الـ (RESERVE_COUNT) المقفولين بعدهم = احتياط مخفي (is_reserve=true) جاهز للترقية الفورية.
+  // من تعدّى (campaignSize + RESERVE_COUNT) → قائمة انتظار (waitlisted).
+  const RESERVE_COUNT = 10;
   if (campaignSize) {
-    // المقفلون يحجزون أماكنهم دائمًا (أيًّا كانوا). المتبقّي = الهدف − عدد المقفلين.
+    const batchSize = campaignSize + RESERVE_COUNT; // النطاق الكامل اللي يفاوضه الوكيل
+    // المقفلون يحجزون أماكنهم دائمًا (أيًّا كانوا). المتبقّي = النطاق − عدد المقفلين.
     // نملأ المتبقّي من أقدم غير المقفلين (قيد التفاوض/الانتظار)، والباقي قائمة انتظار.
     const liveApps = await supabaseGetCampaignApps(campaignId); // غير مرفوض/مكتمل، الأقدم أولاً
     const closedCount = liveApps.filter(a => a.status === 'closed').length;
-    const remainingSlots = campaignSize - closedCount;
+    const remainingSlots = batchSize - closedCount;
     const candidates = liveApps.filter(a => a.status !== 'closed'); // pending/active/waitlisted بالأقدم
     const myPos = candidates.findIndex(a => a.id === application.id) + 1; // 1-based (0 = غير موجود)
     const inBatch = remainingSlots > 0 && myPos > 0 && myPos <= remainingSlots;
@@ -528,13 +566,21 @@ ${voiceInstructions}
       }
     }
 
-    // حماية إضافية: لا تقفل لو الحملة اكتمل عددها (سباق محتمل بين عدة مفاوضات)
+    // ============ تحديد: صفقة عادية أم احتياط؟ ============
+    // لو عدد الصفقات العادية المقفلة (غير الاحتياط) وصل campaignSize، فهذا المقفول = احتياط.
+    // الاحتياط مقفول لكن مخفي عن الشركة (is_reserve=true)، جاهز للترقية الفورية عند نقص.
+    let closeAsReserve = false;
     if (safeDealClosed && campaignSize) {
-      const closedNow = await supabaseCountClosedDeals(campaignId);
-      if (closedNow >= campaignSize) {
-        console.warn(`Campaign ${campaignId} reached size ${campaignSize}. Blocking extra close.`);
-        safeDealClosed = false;
-        safeDealDetails = null;
+      const closedNonReserve = await supabaseCountNonReserveClosed(campaignId);
+      if (closedNonReserve >= campaignSize) {
+        closeAsReserve = true; // الصفقات العادية اكتملت → هذا احتياط
+        // حماية سقف الاحتياط: لا نقفل أكثر من RESERVE_COUNT احتياطي
+        const reserveClosed = await supabaseCountReserveClosed(campaignId);
+        if (reserveClosed >= RESERVE_COUNT) {
+          console.warn(`Campaign ${campaignId}: reserve full (${reserveClosed}/${RESERVE_COUNT}). Blocking extra close.`);
+          safeDealClosed = false;
+          safeDealDetails = null;
+        }
       }
     }
 
@@ -551,13 +597,13 @@ ${voiceInstructions}
     // ============ الرسالة النهائية المعروضة للمعلن ============
     let replyToSend = cleanReply || agentReply;
 
-    // عند الإقفال: أضف تأكيد المبلغ + إعلام «بانتظار تعميد الشركة» بشكل حتمي
-    // (لا يعتمد على الموديل). هذا يسدّ الفجوة اللي خلّت المعلن ما يعرف الخطوة التالية.
+    // عند الإقفال: أضف تأكيد المبلغ + إعلام مناسب (صفقة عادية أو احتياط) بشكل حتمي.
     if (safeDealClosed && safeDealDetails) {
       const closedPrice = extractFinalPrice(safeDealDetails) || application.price;
-      const approvalNote = `تم الاتفاق على ${closedPrice} ريال 🎉 صفقتك الآن بانتظار تعميد الشركة، وبنخبرك أول ما تُعتمد ونكمل باقي الخطوات معك 🌿`;
+      const approvalNote = closeAsReserve
+        ? `تم الاتفاق على ${closedPrice} ريال 🎉 أنت الآن ضمن قائمة الاحتياط الجاهزة لهذي الحملة — لو انفتح مكان بنرقّيك فورًا للتعميد بلا أي خطوات إضافية. نشكر تعاونك 🌿`
+        : `تم الاتفاق على ${closedPrice} ريال 🎉 صفقتك الآن بانتظار تعميد الشركة، وبنخبرك أول ما تُعتمد ونكمل باقي الخطوات معك 🌿`;
       // لو أقفلنا عبر شبكة الأمان، رد الوكيل ممكن يكون خارج الموضوع → نستبدله بتأكيد واضح.
-      // غير كذا (الوكيل أقفل صح) → نضيف الإعلام تحت رسالته.
       replyToSend = closedBySafetyNet ? approvalNote : `${replyToSend}\n\n${approvalNote}`;
     }
 
@@ -578,7 +624,8 @@ ${voiceInstructions}
           status: 'closed',
           final_price: finalPrice,
           deal_details: safeDealDetails,
-          closed_at: new Date().toISOString()
+          closed_at: new Date().toISOString(),
+          is_reserve: closeAsReserve // احتياط أم صفقة عادية
         });
       } catch (err) {
         console.error('Failed to close deal:', err);
