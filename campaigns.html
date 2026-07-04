@@ -2161,6 +2161,12 @@ async function loadData() {
     // إقفال أي حملة اكتمل عددها المطلوب تلقائيًا قبل العرض
     await autoCompleteCampaigns();
 
+    // موازنة تلقائية: املأ الأماكن الشاغرة في الحملات النشطة من قائمة الانتظار
+    await Promise.all((myCampaigns || [])
+      .filter(c => c && c.status !== 'closed')
+      .map(c => rebalanceCampaign(c.id, c.title).catch(e => console.error('rebalance on load:', e)))
+    );
+
     updateHeroStats();
     renderCampaigns();
     renderDues();
@@ -2892,6 +2898,67 @@ async function promoteNextWaitlisted(campaignId, campaignTitle) {
   } catch (e) { console.error('promoteNextWaitlisted error:', e); }
 }
 
+// ============ الموازنة التلقائية: تحافظ على امتلاء الحملة من قائمة الانتظار ============
+// المشكلة: الأماكن كانت تفضى (رفض/عدم اكتمال) والمنتظرون يعلّقون بلا ترقية.
+// الحل: بعد أي حدث يغيّر العدد، نحسب الشاغر = الحجم − النشطين، ونرقّي بعدد الشاغر.
+// «النشط» = يشغل مكانًا فعليًا: closed (مقفول، معتمد أو ينتظر اعتماد) أو pending/active (يفاوض).
+// waitlisted و rejected و campaign_full = خارج العدد.
+async function rebalanceCampaign(campaignId, campaignTitle) {
+  if (!campaignId) return;
+  try {
+    // اجلب الحجم من النسخة المحلية أو من القاعدة
+    let target = 0;
+    const localC = (myCampaigns || []).find(c => c && c.id === campaignId);
+    if (localC) {
+      if (localC.status === 'closed') return; // حملة مقفولة → لا موازنة
+      target = campaignTarget(localC);
+    } else {
+      const { data: cRow } = await supabaseClient
+        .from('campaigns').select('campaign_size, status').eq('id', campaignId).single();
+      if (!cRow || cRow.status === 'closed') return;
+      target = parseInt(cRow.campaign_size, 10) || 0;
+    }
+    if (target <= 0) return;
+
+    // اعدد النشطين والمنتظرين من القاعدة (المصدر الموثوق، لا النسخة المحلية)
+    const { data: apps, error } = await supabaseClient
+      .from('applications')
+      .select('id, creator_id, status, created_at')
+      .eq('campaign_id', campaignId)
+      .in('status', ['closed', 'pending', 'active', 'waitlisted'])
+      .order('created_at', { ascending: true });
+    if (error || !apps) { console.error('rebalance read failed:', error); return; }
+
+    const activeCount = apps.filter(a =>
+      a.status === 'closed' || a.status === 'pending' || a.status === 'active'
+    ).length;
+    const vacancies = target - activeCount;
+    if (vacancies <= 0) return; // الحملة ممتلئة → لا شي
+
+    // المنتظرون الأقدم أولًا، نرقّي بعدد الشاغر فقط
+    const waiting = apps.filter(a => a.status === 'waitlisted');
+    if (!waiting.length) return;
+    const toPromote = waiting.slice(0, vacancies);
+
+    for (const w of toPromote) {
+      const { error: upErr } = await supabaseClient
+        .from('applications').update({ status: 'pending' }).eq('id', w.id);
+      if (upErr) { console.error('rebalance promote failed:', upErr); continue; }
+      if (w.creator_id) {
+        const title = '🎉 جاك دورك! تم اختيارك';
+        const body = `${campaignTitle || 'حملة'}: انفتح لك مكان في الحملة — ابدأ التفاوض مع الوكيل الحين.`;
+        createNotification(w.creator_id, 'waitlist_promoted', title, body, '/creator.html').catch(console.error);
+        fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+          body: JSON.stringify({ title, body, url: '/creator.html', target_users: [w.creator_id] })
+        }).catch(console.error);
+      }
+    }
+    console.log(`rebalance: promoted ${toPromote.length} of ${vacancies} vacancies in campaign ${campaignId}.`);
+  } catch (e) { console.error('rebalanceCampaign error:', e); }
+}
+
 async function confirmReject() {
   if (!rejectingAppId) return;
   const id = rejectingAppId;
@@ -2927,7 +2994,7 @@ async function confirmReject() {
     closeRejectModal();
     if (btn) { btn.disabled = false; btn.textContent = original; }
     showToast('تم استبدال المعلن، وترقية التالي من قائمة الانتظار.');
-    await promoteNextWaitlisted(campaign && campaign.id, campaign && campaign.title); // ترقية أقدم منتظر فورًا
+    await rebalanceCampaign(campaign && campaign.id, campaign && campaign.title); // موازنة: املأ كل الشاغر فورًا
     await loadData();
   } catch (err) {
     console.error('Reject error:', err);
