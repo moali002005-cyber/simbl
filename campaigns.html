@@ -3288,6 +3288,7 @@ function renderSingleCampaign(c) {
         <div style="margin:-2px 0 14px;display:flex;gap:10px;flex-wrap:wrap;">
           <button class="hero-cta" style="padding:10px 18px;font-size:13px;background:#1D9E75;" onclick="downloadDeliveryExcel('${c.id}')">📥 الإكسل الخاص بالتوصيل</button>
           ${waitlistApps.length > 0 ? `<button class="hero-cta" style="padding:10px 18px;font-size:13px;background:#5B6B7A;" onclick="openWaitlistModal('${c.id}')">🕓 قائمة الانتظار (${toArabic(waitlistApps.length)})</button>` : ''}
+          <button class="hero-cta" style="padding:10px 18px;font-size:13px;background:#0f1512;" onclick="event.stopPropagation(); shareCampaignSnapshot('${c.id}')">🔗 شارك العرض (قراءة فقط)</button>
         </div>
 
         ${apps.length > 0 ? `
@@ -3313,6 +3314,47 @@ function renderSingleCampaign(c) {
         `}
       </div>
     `;
+}
+
+// ============ رابط مشاركة العرض (قراءة فقط بدون تسجيل دخول) ============
+async function shareCampaignSnapshot(cid) {
+  try {
+    const c = (typeof myCampaigns !== 'undefined' && myCampaigns ? myCampaigns : []).find(x => x.id === cid) || {};
+    const table = document.getElementById('apps-' + cid);
+    if (!table) { showToast('افتح تفاصيل الحملة أولًا ثم أعد المحاولة', 'error'); return; }
+    const stages = MX_LABELS.slice();
+    const rows = [];
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      if (tr.classList.contains('mx-detail')) return;         // صف التفاصيل الموسّع
+      const nameEl = tr.querySelector('.mx-name');
+      if (!nameEl) return;
+      let name = '';
+      const a = nameEl.querySelector('a.ac-acct');
+      if (a) name = a.textContent;
+      else { const spans = Array.from(nameEl.querySelectorAll('span')); const nm = spans.find(s => !s.classList.contains('mx-av')); name = nm ? nm.textContent : ''; }
+      name = name.replace(/[×↗\s]+$/g, '').trim();
+      if (!name) return;
+      const cells = Array.from(tr.querySelectorAll('td.mx-cell'));
+      const done = cells.length >= 9
+        ? cells.slice(0, 9).map(td => (td.textContent || '').includes('✓'))
+        : stages.map(() => false);                            // صف قيد التفاوض/انتظار/بانتظار تعميد
+      rows.push({ name, done });
+    });
+    if (!rows.length) { showToast('ما فيه صفوف لعرضها في هذه الحملة', 'error'); return; }
+    const brand = (typeof currentUser !== 'undefined' && currentUser && currentUser.company_name) ? currentUser.company_name : 'الشركة';
+    const camp = c.title || 'حملة';
+    const payload = { brand: brand, campaign: camp, stages: stages, rows: rows, generatedAt: new Date().toISOString() };
+    const owner = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
+    const { data: token, error } = await supabaseClient.rpc('create_snapshot', {
+      p_campaign: cid, p_title: brand + ' — ' + camp, p_data: payload, p_owner: owner
+    });
+    if (error) throw error;
+    const url = location.origin + '/share.html?t=' + token;
+    try { await navigator.clipboard.writeText(url); } catch (e) {}
+    showToast('تم نسخ رابط العرض — شاركه مع فريقك 🔗', 'success', 6000);
+  } catch (e) {
+    showToast('تعذّر إنشاء الرابط — تأكّد من إعداد قاعدة البيانات', 'error', 5000);
+  }
 }
 
 function toggleApplications(campaignId) {
