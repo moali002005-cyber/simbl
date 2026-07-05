@@ -560,7 +560,7 @@ function renderDues() {
 // يُبنى لحظة الضغط من أحدث البيانات (يشمل أي تنظيف/تعديل سويته) — فهو محدّث تلقائيًا.
 function exportPaySheetCSV() {
   const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const header = ['رابط الفيديو', 'الاسم بالبنك', 'الآيبان'];
+  const header = ['#', 'رابط الفيديو', 'الاسم بالبنك', 'الآيبان'];
   const lines = [header];
   let count = 0;
   camps.forEach(c => {
@@ -571,10 +571,11 @@ function exportPaySheetCSV() {
       const bank = sd[8] || sd['8'] || {};
       const st7 = sd[7] || sd['7'] || {};
       const video = cleanUrl(st7.publish_link || '');
+      const videoCell = video ? ('=HYPERLINK("' + video.replace(/"/g, '') + '","▶ فتح الفيديو")') : '';
       const holder = cleanField(ov.holder != null ? ov.holder : (bank.account_holder || ''));
       const iban = cleanIban(ov.iban != null ? ov.iban : (bank.iban || ''));
-      lines.push([video, holder, iban]);
       count++;
+      lines.push([count, videoCell, holder, iban]);
     });
   });
   if (!count) { showToast('ما فيه صفقات معتمدة للتصدير', 'error'); return; }
