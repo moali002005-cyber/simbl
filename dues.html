@@ -312,6 +312,7 @@ function autoCleanIbans() {
       duesOverrides[id] = duesOverrides[id] || {}; duesOverrides[id].iban = cleaned; fixed++;
     } else { td.classList.add('iban-bad'); bad++; }
   });
+  if (typeof renderPaySheet === 'function') renderPaySheet();
   try { showToast('نُظّف ' + toArabic(fixed) + ' آيبان' + (bad ? ' · ' + toArabic(bad) + ' يحتاج تصحيح يدوي (بالأحمر)' : ''), bad ? 'error' : 'success', 6000); } catch (e) {}
 }
 // التقاط التعديلات اليدوية
@@ -323,6 +324,7 @@ document.addEventListener('input', function (e) {
   duesOverrides[id] = duesOverrides[id] || {};
   duesOverrides[id][f] = td.textContent.trim();
   if (f === 'iban') td.classList.toggle('iban-bad', td.textContent.trim() !== '' && !ibanLooksValid(td.textContent));
+  if (typeof renderPaySheet === 'function') renderPaySheet();
 });
 
 // صف معبّأ (صفقة معتمدة)
@@ -539,11 +541,51 @@ function renderDues() {
   }).join('');
 
   host.innerHTML =
-    '<div class="dues-wrap">'
+    '<div id="pay-sheet"></div>'
+    + '<div class="dues-wrap">'
     + '<div class="dues-head"><h3>📋 الحملات</h3></div>'
     + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح · الصفوف الفاضية = مقاعد معلنين لم تُعتمد بعد</p>'
     + blocks
     + '</div>';
+  renderPaySheet();
+}
+
+// ============ شيت الدفع السريع: رابط الفيديو + الاسم بالبنك + الآيبان ============
+function renderPaySheet() {
+  const el = document.getElementById('pay-sheet');
+  if (!el) return;
+  const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  let rows = '', idx = 0;
+  camps.forEach(c => {
+    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+    deals.forEach(a => {
+      idx++;
+      const ov = duesOverrides[a.id] || {};
+      const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+      const bank = sd[8] || sd['8'] || {};
+      const st7 = sd[7] || sd['7'] || {};
+      const video = st7.publish_link || '';
+      const holder = ov.holder != null ? ov.holder : (bank.account_holder || '');
+      const iban = ov.iban != null ? ov.iban : (bank.iban || '');
+      const ibanBad = (iban && !ibanLooksValid(iban)) ? ' iban-bad' : '';
+      const videoCell = video
+        ? '<a class="dues-link" href="' + escHtml(video) + '" target="_blank" rel="noopener">▶ فتح الفيديو ↗</a>'
+        : '<span class="dim">—</span>';
+      rows += '<tr><td class="xl-rowh">' + toArabic(idx) + '</td>'
+        + '<td>' + videoCell + '</td>'
+        + '<td class="cell" data-copy="' + escHtml(holder) + '" onclick="duesCopy(this)">' + escHtml(holder || '—') + '</td>'
+        + '<td class="cell xl-iban' + ibanBad + '" data-copy="' + escHtml(iban) + '" onclick="duesCopy(this)">' + escHtml(iban || '—') + '</td></tr>';
+    });
+  });
+  el.innerHTML = idx
+    ? '<div class="dues-wrap" style="margin-bottom:18px;">'
+      + '<div class="dues-head"><h3>💳 شيت الدفع السريع</h3></div>'
+      + '<p class="dues-hint">رابط الفيديو (يفتح بالضغط) + الاسم بالبنك + الآيبان — يتحدّث تلقائيًا مع أي تنظيف أو تعديل تسويه بالأسفل.</p>'
+      + '<div class="dues-grid-wrap"><table class="xl">'
+      + '<thead><tr><th class="xl-rowh"></th><th class="xl-label">رابط الفيديو</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">الآيبان</th></tr></thead>'
+      + '<tbody>' + rows + '</tbody></table></div>'
+      + '</div>'
+    : '';
 }
 
 async function setBrandPaid(applicationId) {
