@@ -1657,14 +1657,14 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 
       <div id="visit-timing-fields" style="display:none;">
         <div class="field">
-          <label>موعد الزيارة — التاريخ</label>
-          <input type="date" name="visit_date">
+          <label>موعد الزيارة — اليوم</label>
+          <select name="visit_date"><option value="">اختر اليوم</option></select>
         </div>
         <div class="field-row">
-          <div class="field"><label>من الساعة</label><input type="time" name="visit_time_from"></div>
-          <div class="field"><label>إلى الساعة</label><input type="time" name="visit_time_to"></div>
+          <div class="field"><label>من الساعة</label><select name="visit_time_from"><option value="">اختر الوقت</option></select></div>
+          <div class="field"><label>إلى الساعة</label><select name="visit_time_to"><option value="">اختر الوقت</option></select></div>
         </div>
-        <div class="hint">اليوم والوقت اللي يزور فيه المعلن الموقع (من الساعة كذا إلى كذا).</div>
+        <div class="hint">اختر اليوم من القائمة (اليوم، غدًا، وحتى شهر قدام) والوقت من–إلى.</div>
       </div>
 
       <div class="field">
@@ -1993,10 +1993,42 @@ function toggleCampaignType() {
   show('visit-location-field', isVisit);
   show('home-timing-field', !isVisit);
   show('visit-timing-fields', isVisit);
+  if (isVisit) { populateVisitDates(); populateVisitTimes(); }
   const pt = document.querySelector('[name="publish_timing"]');
   const vd = document.querySelector('[name="visit_date"]');
   if (pt) pt.required = !isVisit;
   if (vd) vd.required = isVisit;
+}
+function populateVisitDates() {
+  const sel = document.querySelector('[name="visit_date"]');
+  if (!sel || sel.dataset.filled) return;
+  const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const today = new Date(); today.setHours(0,0,0,0);
+  let html = '<option value="">اختر اليوم</option>';
+  for (let i = 0; i < 31; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    const iso = y + '-' + m + '-' + day;
+    const pref = i === 0 ? 'اليوم · ' : i === 1 ? 'غدًا · ' : '';
+    html += '<option value="' + iso + '">' + pref + days[d.getDay()] + ' ' + day + '/' + m + '/' + y + '</option>';
+  }
+  sel.innerHTML = html; sel.dataset.filled = '1';
+}
+function populateVisitTimes() {
+  ['visit_time_from','visit_time_to'].forEach(function (name) {
+    const sel = document.querySelector('[name="' + name + '"]');
+    if (!sel || sel.dataset.filled) return;
+    let html = '<option value="">اختر الوقت</option>';
+    for (let h = 0; h < 24; h++) {
+      [0,30].forEach(function (mm) {
+        const v = String(h).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+        let h12 = h % 12; if (h12 === 0) h12 = 12;
+        const label = h12 + ':' + String(mm).padStart(2,'0') + ' ' + (h < 12 ? 'ص' : 'م');
+        html += '<option value="' + v + '">' + label + '</option>';
+      });
+    }
+    sel.innerHTML = html; sel.dataset.filled = '1';
+  });
 }
 function selectPlatform(btn) {
   document.querySelectorAll('#platform-grid .platform-chip').forEach(c => c.classList.remove('active'));
@@ -3260,12 +3292,12 @@ function setModalMode(mode, campaign) {
     const _ct = campaign.campaign_type || 'home';
     const _ctR = form.querySelector('[name="campaign_type"][value="' + _ct + '"]');
     if (_ctR) _ctR.checked = true;
+    toggleCampaignType();
     const _setv = (n, v) => { const el = form.querySelector('[name="' + n + '"]'); if (el && v != null) el.value = v; };
     _setv('visit_location', campaign.visit_location);
     _setv('visit_date', campaign.visit_date);
     _setv('visit_time_from', campaign.visit_time_from);
     _setv('visit_time_to', campaign.visit_time_to);
-    toggleCampaignType();
     // نطاقات المتابعين (اختيار متعدد)
     const selectedRanges = (campaign.follower_range || '').split(',').map(s => s.trim()).filter(Boolean);
     form.querySelectorAll('#range-grid .platform-chip').forEach(c => {
