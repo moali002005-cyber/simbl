@@ -161,6 +161,7 @@ table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn-export" id="dues-edit-btn" onclick="toggleDuesEdit()" style="background:#0f1512;">✏️ تعديل قبل التصدير</button>
         <button class="btn-export" onclick="autoCleanIbans()" style="background:#5B6B7A;">🧹 تنظيف الآيبانات</button>
+        <button class="btn-export" onclick="exportPaySheetCSV()" style="background:#1D9E75;">💳 شيت الدفع المختصر</button>
         <button class="btn-export" onclick="exportDuesCSV()">📥 تصدير Excel (CSV)</button>
       </div>
     </div>
@@ -312,7 +313,6 @@ function autoCleanIbans() {
       duesOverrides[id] = duesOverrides[id] || {}; duesOverrides[id].iban = cleaned; fixed++;
     } else { td.classList.add('iban-bad'); bad++; }
   });
-  if (typeof renderPaySheet === 'function') renderPaySheet();
   try { showToast('نُظّف ' + toArabic(fixed) + ' آيبان' + (bad ? ' · ' + toArabic(bad) + ' يحتاج تصحيح يدوي (بالأحمر)' : ''), bad ? 'error' : 'success', 6000); } catch (e) {}
 }
 // التقاط التعديلات اليدوية
@@ -324,7 +324,6 @@ document.addEventListener('input', function (e) {
   duesOverrides[id] = duesOverrides[id] || {};
   duesOverrides[id][f] = td.textContent.trim();
   if (f === 'iban') td.classList.toggle('iban-bad', td.textContent.trim() !== '' && !ibanLooksValid(td.textContent));
-  if (typeof renderPaySheet === 'function') renderPaySheet();
 });
 
 // صف معبّأ (صفقة معتمدة)
@@ -541,51 +540,44 @@ function renderDues() {
   }).join('');
 
   host.innerHTML =
-    '<div id="pay-sheet"></div>'
-    + '<div class="dues-wrap">'
+    '<div class="dues-wrap">'
     + '<div class="dues-head"><h3>📋 الحملات</h3></div>'
     + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح · الصفوف الفاضية = مقاعد معلنين لم تُعتمد بعد</p>'
     + blocks
     + '</div>';
-  renderPaySheet();
 }
 
-// ============ شيت الدفع السريع: رابط الفيديو + الاسم بالبنك + الآيبان ============
-function renderPaySheet() {
-  const el = document.getElementById('pay-sheet');
-  if (!el) return;
+// ============ تصدير شيت الدفع المختصر: رابط الفيديو + الاسم بالبنك + الآيبان ============
+// يُبنى لحظة الضغط من أحدث البيانات (يشمل أي تنظيف/تعديل سويته) — فهو محدّث تلقائيًا.
+function exportPaySheetCSV() {
   const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  let rows = '', idx = 0;
+  const header = ['رابط الفيديو', 'الاسم بالبنك', 'الآيبان'];
+  const lines = [header];
+  let count = 0;
   camps.forEach(c => {
     const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
     deals.forEach(a => {
-      idx++;
       const ov = duesOverrides[a.id] || {};
       const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
       const bank = sd[8] || sd['8'] || {};
       const st7 = sd[7] || sd['7'] || {};
-      const video = st7.publish_link || '';
-      const holder = ov.holder != null ? ov.holder : (bank.account_holder || '');
-      const iban = ov.iban != null ? ov.iban : (bank.iban || '');
-      const ibanBad = (iban && !ibanLooksValid(iban)) ? ' iban-bad' : '';
-      const videoCell = video
-        ? '<a class="dues-link" href="' + escHtml(video) + '" target="_blank" rel="noopener">▶ فتح الفيديو ↗</a>'
-        : '<span class="dim">—</span>';
-      rows += '<tr><td class="xl-rowh">' + toArabic(idx) + '</td>'
-        + '<td>' + videoCell + '</td>'
-        + '<td class="cell" data-copy="' + escHtml(holder) + '" onclick="duesCopy(this)">' + escHtml(holder || '—') + '</td>'
-        + '<td class="cell xl-iban' + ibanBad + '" data-copy="' + escHtml(iban) + '" onclick="duesCopy(this)">' + escHtml(iban || '—') + '</td></tr>';
+      const video = cleanField(st7.publish_link || '');
+      const holder = cleanField(ov.holder != null ? ov.holder : (bank.account_holder || ''));
+      const iban = cleanIban(ov.iban != null ? ov.iban : (bank.iban || ''));
+      lines.push([video, holder, iban]);
+      count++;
     });
   });
-  el.innerHTML = idx
-    ? '<div class="dues-wrap" style="margin-bottom:18px;">'
-      + '<div class="dues-head"><h3>💳 شيت الدفع السريع</h3></div>'
-      + '<p class="dues-hint">رابط الفيديو (يفتح بالضغط) + الاسم بالبنك + الآيبان — يتحدّث تلقائيًا مع أي تنظيف أو تعديل تسويه بالأسفل.</p>'
-      + '<div class="dues-grid-wrap"><table class="xl">'
-      + '<thead><tr><th class="xl-rowh"></th><th class="xl-label">رابط الفيديو</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">الآيبان</th></tr></thead>'
-      + '<tbody>' + rows + '</tbody></table></div>'
-      + '</div>'
-    : '';
+  if (!count) { showToast('ما فيه صفقات معتمدة للتصدير', 'error'); return; }
+  const csv = '\uFEFF' + lines.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+  link.href = url; link.download = 'شيت-الدفع-سيمبل-' + today + '.csv';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('تم تصدير شيت الدفع المختصر (' + toArabic(count) + ' صف) ✓');
 }
 
 async function setBrandPaid(applicationId) {
