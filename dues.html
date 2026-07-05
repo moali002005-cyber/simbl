@@ -629,33 +629,40 @@ async function setBrandPaid(applicationId) {
   }
 }
 
-let _fixAppId = null;
+let _fixAppId = null, _fixStage = null;
+const FIX_STAGE_LABEL = { 3: 'الاستلام', 5: 'المحتوى / الفيديو', 7: 'رابط النشر / كود الترويج', 8: 'البيانات البنكية' };
 function requestFix(applicationId) {
-  _fixAppId = applicationId;
-  const m = document.getElementById('fix-modal');
+  _fixAppId = applicationId; _fixStage = null;
+  document.querySelectorAll('.fix-opt').forEach(b => b.classList.remove('sel'));
   const ta = document.getElementById('fix-note'); if (ta) ta.value = '';
-  if (m) m.style.display = 'flex';
-  setTimeout(function () { if (ta) ta.focus(); }, 50);
+  const m = document.getElementById('fix-modal'); if (m) m.style.display = 'flex';
+}
+function chooseFixStage(s, btn) {
+  _fixStage = s;
+  document.querySelectorAll('.fix-opt').forEach(b => b.classList.remove('sel'));
+  if (btn) btn.classList.add('sel');
 }
 function closeFixModal() { const m = document.getElementById('fix-modal'); if (m) m.style.display = 'none'; }
 async function submitFix() {
   const applicationId = _fixAppId; if (!applicationId) return;
+  if (!_fixStage) { showToast('اختر المرحلة اللي فيها الخطأ', 'error'); return; }
   const note = (document.getElementById('fix-note').value || '').trim();
+  const label = FIX_STAGE_LABEL[_fixStage] || 'مرحلة';
   const btn = document.getElementById('fix-confirm'); const o = btn.textContent; btn.disabled = true; btn.textContent = 'جاري الإرسال...';
   try {
     const { data: row, error: e1 } = await supabaseClient.from('applications').select('stage_data, creator_id').eq('id', applicationId).single();
     if (e1) throw e1;
     const existing = (row && typeof row.stage_data === 'object' && row.stage_data) ? { ...row.stage_data } : {};
-    existing[7] = { ...(existing[7] || {}), _fix_requested: true, _fix_note: note, _fix_at: new Date().toISOString() };
-    const { error: e2 } = await supabaseClient.from('applications').update({ stage: 7, stage_data: existing }).eq('id', applicationId).select();
+    existing[_fixStage] = { ...(existing[_fixStage] || {}), _fix_requested: true, _fix_note: note, _fix_at: new Date().toISOString() };
+    const { error: e2 } = await supabaseClient.from('applications').update({ stage: _fixStage, stage_data: existing }).eq('id', applicationId).select();
     if (e2) throw e2;
     const creatorId = row && row.creator_id;
-    const body = note ? ('راجع رابط الفيديو/كود الترويج — ' + note) : 'راجع رابط الفيديو وكود الترويج وصحّح الخطأ.';
+    const body = 'صحّح بيانات مرحلة «' + label + '»' + (note ? ' — ' + note : '') + '، وبتكمل الصفقة تلقائيًا.';
     if (creatorId) {
-      try { if (typeof createNotification === 'function') createNotification(creatorId, 'fix_requested', 'مطلوب تصحيح المنشور', body, '/creator.html'); } catch (e) {}
-      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey }, body: JSON.stringify({ title: 'مطلوب تصحيح المنشور', body: body, url: '/creator.html', target_users: [creatorId] }) }).catch(function () {});
+      try { if (typeof createNotification === 'function') createNotification(creatorId, 'fix_requested', 'مطلوب تصحيح: ' + label, body, '/creator.html'); } catch (e) {}
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey }, body: JSON.stringify({ title: 'مطلوب تصحيح: ' + label, body: body, url: '/creator.html', target_users: [creatorId] }) }).catch(function () {});
     }
-    showToast('تم إرجاع الصفقة للمعلن للتصحيح', 'success');
+    showToast('تم إرجاع «' + label + '» للمعلن للتصحيح', 'success');
     closeFixModal();
     if (typeof loadData === 'function') loadData();
   } catch (err) {
@@ -730,14 +737,27 @@ init();
 </script>
 
 <div id="fix-modal" style="display:none;position:fixed;inset:0;background:rgba(10,10,10,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:200;padding:20px;">
-  <div style="background:#fff;border-radius:20px;padding:26px;max-width:440px;width:100%;font-family:var(--font-body,sans-serif);">
+  <style>
+    .fix-opt{background:#f6f9f8;border:1.5px solid #e7edeb;border-radius:12px;padding:11px 10px;font-family:inherit;font-size:13px;font-weight:600;color:#33413c;cursor:pointer;text-align:center;transition:.15s;}
+    .fix-opt.sel{border-color:#c0392b;background:#fdecea;color:#a93226;}
+  </style>
+  <div style="background:#fff;border-radius:20px;padding:26px;max-width:460px;width:100%;font-family:var(--font-body,sans-serif);">
     <h3 style="margin:0 0 6px;">طلب تصحيح من المعلن</h3>
-    <p style="color:#6f867f;font-size:13px;margin:0 0 14px;">ترجع الصفقة لمرحلة النشر ويوصل المعلن إشعار يصحّح رابط الفيديو أو كود الترويج، ثم تكمل تلقائيًا.</p>
-    <label style="font-size:12px;font-weight:600;">وش الخطأ؟ (اختياري — يظهر للمعلن)</label>
-    <textarea id="fix-note" rows="3" placeholder="مثلًا: كود الترويج غلط، أو رابط الفيديو ما يفتح..." style="width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border:1px solid #e7edeb;border-radius:10px;font-family:inherit;"></textarea>
+    <p style="color:#6f867f;font-size:13px;margin:0 0 12px;">اختر المرحلة اللي فيها الخطأ — يرجع المعلن لها فقط، يصحّح، ويكمل الباقي تلقائيًا.</p>
+    <div id="fix-opts" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <button type="button" class="fix-opt" onclick="chooseFixStage(3,this)">📍 الاستلام</button>
+      <button type="button" class="fix-opt" onclick="chooseFixStage(5,this)">🎬 المحتوى / الفيديو</button>
+      <button type="button" class="fix-opt" onclick="chooseFixStage(7,this)">🔗 رابط النشر / كود الترويج</button>
+      <button type="button" class="fix-opt" onclick="chooseFixStage(8,this)">🏦 البيانات البنكية</button>
+    </div>
+    <label style="font-size:12px;font-weight:600;">ملاحظة (اختياري — تظهر للمعلن)</label>
+    <textarea id="fix-note" rows="2" placeholder="مثلًا: الآيبان غلط، أو كود الترويج ما يشتغل..." style="width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border:1px solid #e7edeb;border-radius:10px;font-family:inherit;"></textarea>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
       <button type="button" onclick="closeFixModal()" style="background:#f1f5f4;border:0;border-radius:10px;padding:10px 18px;font-family:inherit;font-weight:600;cursor:pointer;">إلغاء</button>
       <button type="button" id="fix-confirm" onclick="submitFix()" style="background:#c0392b;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-family:inherit;font-weight:600;cursor:pointer;">↩︎ إرسال للمعلن</button>
+    </div>
+  </div>
+</div>
     </div>
   </div>
 </div>

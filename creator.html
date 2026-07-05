@@ -2323,7 +2323,9 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   if (isMyTurn && currentStage === 5 && viewerRole === 'creator') {
     const _app5 = myApplications.find(a => a.id === applicationId);
     const _rej = (_app5 && _app5.stage_data && _app5.stage_data[5] && _app5.stage_data[5]._rejected) ? _app5.stage_data[5]._reject_reason : null;
-    const _rejBanner = _rej ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">✕ المحتوى السابق مرفوض من الشركة.<br><b>السبب:</b> ${escHtml(_rej)}<br>عدّل الفيديو وارفعه من جديد.</div>` : '';
+    const _fix5 = (_app5 && _app5.stage_data && _app5.stage_data[5] && _app5.stage_data[5]._fix_requested) ? (_app5.stage_data[5]._fix_note || '') : null;
+    const _rejBanner = _rej ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">✕ المحتوى السابق مرفوض من الشركة.<br><b>السبب:</b> ${escHtml(_rej)}<br>عدّل الفيديو وارفعه من جديد.</div>`
+      : (_fix5 !== null ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">⚠︎ الشركة تطلب تصحيح المحتوى.${_fix5 ? '<br><b>الملاحظة:</b> ' + escHtml(_fix5) : ''}<br>ارفع الفيديو الصحيح — والباقي يكمل تلقائيًا.</div>` : '');
     return `
       <div class="stage-action mine" onclick="event.stopPropagation()">
         <div class="sa-title">المرحلة الحالية: ${stageName}</div>
@@ -2345,10 +2347,10 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
 
   if (isMyTurn) {
     const _appF = myApplications.find(a => a.id === applicationId);
-    const _fixReq = (currentStage === 7 && _appF && _appF.stage_data && _appF.stage_data[7] && _appF.stage_data[7]._fix_requested);
-    const _fixNote = _fixReq ? _appF.stage_data[7]._fix_note : '';
+    const _fixReq = (_appF && _appF.stage_data && _appF.stage_data[currentStage] && _appF.stage_data[currentStage]._fix_requested);
+    const _fixNote = _fixReq ? _appF.stage_data[currentStage]._fix_note : '';
     const _fixBanner = _fixReq
-      ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">⚠︎ الشركة تطلب تصحيح المنشور.${_fixNote ? '<br><b>الملاحظة:</b> ' + escHtml(_fixNote) : ''}<br>صحّح رابط الفيديو أو كود الترويج وأكّد من جديد.</div>`
+      ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">⚠︎ الشركة تطلب تصحيح هذه المرحلة.${_fixNote ? '<br><b>الملاحظة:</b> ' + escHtml(_fixNote) : ''}<br>صحّح البيانات وأكّد — والباقي يكمل تلقائيًا.</div>`
       : '';
     const inputsHtml = fields.map(f => {
       const fid = `sf-${applicationId}-${f.name}`;
@@ -2378,9 +2380,9 @@ async function submitStageForm(applicationId) {
   if (!app) return;
   const oldStage = app.stage || 1;
   let newStage = oldStage + 1;
-  // تصحيح النشر: لو المعلن مدخّل بياناته البنكية من قبل، نتخطّى مرحلة البنكية ونكمل مباشرة
-  const _bankDone = app.stage_data && (app.stage_data[8] || app.stage_data['8']) && (app.stage_data[8] || app.stage_data['8']).iban;
-  if (oldStage === 7 && _bankDone) newStage = 9;
+  // تصحيح مرحلة: لو الشركة طلبت تصحيح هذي المرحلة، بعد ما يصلّحها المعلن نكمل مباشرة (باقي المراحل معبّأة)
+  const _fixPending = app.stage_data && app.stage_data[oldStage] && app.stage_data[oldStage]._fix_requested;
+  if (_fixPending) newStage = 9;
 
   // اجمع بيانات النموذج
   const form = document.getElementById(`stage-form-${applicationId}`);
