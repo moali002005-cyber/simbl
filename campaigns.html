@@ -1900,11 +1900,14 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 <div class="modal-backdrop" id="brief-modal">
   <div class="modal" style="max-width: 600px">
     <h3 id="brief-modal-title">البريف الإعلاني</h3>
-    <p class="sub">نص البريف الكامل للحملة — تقدر تنسخه كامل.</p>
+    <p class="sub">نص البريف الكامل للحملة — تقدر تنسخه أو تعدّله (يُحفظ ويظهر للجميع).</p>
     <div class="brief-content expanded" id="brief-modal-content" style="max-height:55vh;overflow-y:auto;"></div>
+    <textarea id="brief-modal-edit-text" rows="10" style="display:none;width:100%;box-sizing:border-box;max-height:55vh;"></textarea>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeBriefModal()">إغلاق</button>
-      <button type="button" class="btn-primary" id="brief-modal-copy" onclick="copyBriefModal()">📋 نسخ البريف</button>
+      <button type="button" class="btn-secondary" id="brief-modal-copy" onclick="copyBriefModal()">📋 نسخ</button>
+      <button type="button" class="btn-primary" id="brief-modal-edit" onclick="toggleBriefEdit()">✏️ تعديل</button>
+      <button type="button" class="btn-primary" id="brief-modal-save" onclick="saveBriefEdit()" style="display:none;">💾 حفظ</button>
     </div>
   </div>
 </div>
@@ -2783,14 +2786,59 @@ function toggleBrief(id, btn) {
 }
 
 // ============ نافذة عرض البريف الإعلاني ============
+let _briefCampaignId = null;
 function openBriefModal(campaignId) {
   const camp = (myCampaigns || []).find(c => c.id === campaignId);
   if (!camp) return;
+  _briefCampaignId = campaignId;
   const titleEl = document.getElementById('brief-modal-title');
   const contentEl = document.getElementById('brief-modal-content');
   if (titleEl) titleEl.textContent = camp.title || 'البريف الإعلاني';
   if (contentEl) contentEl.textContent = camp.description || 'لا يوجد بريف لهذه الحملة.';
+  // ابدأ دائمًا بوضع العرض
+  const ta = document.getElementById('brief-modal-edit-text');
+  if (ta) ta.style.display = 'none';
+  if (contentEl) contentEl.style.display = '';
+  document.getElementById('brief-modal-edit').style.display = '';
+  document.getElementById('brief-modal-copy').style.display = '';
+  document.getElementById('brief-modal-save').style.display = 'none';
   document.getElementById('brief-modal').classList.add('show');
+}
+function toggleBriefEdit() {
+  const camp = (myCampaigns || []).find(c => c.id === _briefCampaignId);
+  const contentEl = document.getElementById('brief-modal-content');
+  const ta = document.getElementById('brief-modal-edit-text');
+  ta.value = (camp && camp.description) ? camp.description : '';
+  contentEl.style.display = 'none';
+  ta.style.display = '';
+  document.getElementById('brief-modal-edit').style.display = 'none';
+  document.getElementById('brief-modal-copy').style.display = 'none';
+  document.getElementById('brief-modal-save').style.display = '';
+  setTimeout(function () { ta.focus(); }, 50);
+}
+async function saveBriefEdit() {
+  const text = (document.getElementById('brief-modal-edit-text').value || '').trim();
+  if (!text) { showToast('البريف ما يصير فاضي', 'error'); return; }
+  const saveBtn = document.getElementById('brief-modal-save');
+  saveBtn.disabled = true; const orig = saveBtn.textContent; saveBtn.textContent = 'جاري الحفظ...';
+  try {
+    const { error } = await supabaseClient.from('campaigns')
+      .update({ description: text }).eq('id', _briefCampaignId).select();
+    if (error) throw error;
+    const camp = (myCampaigns || []).find(c => c.id === _briefCampaignId);
+    if (camp) camp.description = text;                 // حدّث النسخة المحلية
+    document.getElementById('brief-modal-content').textContent = text;
+    // ارجع لوضع العرض
+    document.getElementById('brief-modal-edit-text').style.display = 'none';
+    document.getElementById('brief-modal-content').style.display = '';
+    document.getElementById('brief-modal-edit').style.display = '';
+    document.getElementById('brief-modal-copy').style.display = '';
+    saveBtn.style.display = 'none';
+    showToast('تم حفظ البريف — ظهر للجميع ✓', 'success');
+  } catch (err) {
+    console.error('brief save failed:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  } finally { saveBtn.disabled = false; saveBtn.textContent = orig; }
 }
 function closeBriefModal() {
   document.getElementById('brief-modal').classList.remove('show');
