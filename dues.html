@@ -163,7 +163,6 @@ table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn-export" id="dues-edit-btn" onclick="toggleDuesEdit()" style="background:#0f1512;">✏️ تعديل قبل التصدير</button>
-        <button class="btn-export" onclick="autoCleanIbans()" style="background:#5B6B7A;">🧹 تنظيف الآيبانات</button>
         <button class="btn-export" onclick="exportPaySheetCSV()" style="background:#1D9E75;">💳 شيت الدفع المختصر</button>
         <button class="btn-export" onclick="exportDuesCSV()">📥 تصدير Excel (CSV)</button>
       </div>
@@ -330,7 +329,6 @@ function autoCleanIbans() {
     } else { td.classList.add('iban-bad'); bad++; }
   });
   saveDuesOverrides();
-  try { showToast('نُظّف ' + toArabic(fixed) + ' آيبان' + (bad ? ' · ' + toArabic(bad) + ' يحتاج تصحيح يدوي (بالأحمر)' : ''), bad ? 'error' : 'success', 6000); } catch (e) {}
 }
 // التقاط التعديلات اليدوية
 document.addEventListener('input', function (e) {
@@ -563,6 +561,7 @@ function renderDues() {
     + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح · الصفوف الفاضية = مقاعد معلنين لم تُعتمد بعد</p>'
     + blocks
     + '</div>';
+  autoCleanIbans();   // تنظيف تلقائي صامت بعد كل رسم
 }
 
 // ============ تصدير شيت الدفع المختصر: رابط الفيديو + الاسم بالبنك + الآيبان ============
