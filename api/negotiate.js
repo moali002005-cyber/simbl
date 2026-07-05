@@ -323,6 +323,16 @@ export default async function handler(req, res) {
   const platformLabel = PLATFORM_LABELS[campaign.platform] || campaign.platform || 'غير محدد';
   const followerLabel = followerRangeTextSrv(campaign) || 'غير محدد';
   const timingLabel = publishTimingTextSrv(campaign);
+  // ---- سياق الزيارة (يُطبّق فقط لو campaign_type = visit) ----
+  const isVisit = campaign.campaign_type === 'visit';
+  const visitWhen = campaign.visit_date
+    ? `${campaign.visit_date}${campaign.visit_time_from ? ' من ' + campaign.visit_time_from : ''}${campaign.visit_time_to ? ' إلى ' + campaign.visit_time_to : ''}`
+    : 'يُحدَّد داخل المنصة';
+  const timingDesc = isVisit ? `موعد الزيارة: ${visitWhen}` : `موعد النشر: ${timingLabel}`;
+  const visitLocLine = (isVisit && campaign.visit_location) ? `\n- موقع الزيارة: ${campaign.visit_location}` : '';
+  const executionReassure = isVisit
+    ? 'كل تفاصيل الزيارة (الموقع والموعد) بتظهر لك خطوة بخطوة داخل المنصة بعد الاتفاق، ما تحتاجين تسوين شي الحين.'
+    : 'كل تفاصيل الشحن والتنفيذ بتظهر لك خطوة بخطوة داخل المنصة بعد الاتفاق، ما تحتاجين تسوين شي الحين.';
   const cityLabel = CITY_LABELS[campaign.city] || campaign.city || 'غير محدد';
   const payMin = parseInt(campaign.payment_min_days) || null;
   const payMax = parseInt(campaign.payment_max_days) || null;
@@ -403,7 +413,7 @@ ${voiceInstructions}
 ## تفاصيل الإعلان:
 - العنوان: ${campaign.title}
 - الوصف: ${campaign.description}
-- المنصة: ${platformLabel} · موعد النشر: ${timingLabel} · المتابعين: ${followerLabel} · المدينة: ${cityLabel} · الدفع: ${paymentLabel}
+- المنصة: ${platformLabel} · ${timingDesc} · المتابعين: ${followerLabel} · المدينة: ${cityLabel} · الدفع: ${paymentLabel}${visitLocLine}
 
 ## عرض المؤثرة:
 - الاسم: ${application.creator_name} · المنصة: ${application.platform || 'غير محدد'} · المتابعين: ${application.followers ? application.followers.toLocaleString('ar-SA') : 'غير محدد'}
@@ -432,7 +442,7 @@ ${voiceInstructions}
 أنت تفاوض على **السعر فقط**. كل ما يخص الشحن، التواصل، تفاصيل المنتج، تسليم المحتوى، والتنفيذ — **يتم داخل المنصة تلقائياً عبر خطوات منظّمة بعد الاتفاق**.
 - ❌ لا تسأل أبداً عن "طريقة التواصل" أو "كيف نوصل لك المنتج" أو "تفاصيل الشحن" أو "معلوماتك".
 - ❌ لا ترتّب أي شي خارج السعر. ما فيه تواصل خارج المنصة.
-- ✅ لو سألت المؤثرة عن الشحن/التواصل/التنفيذ، طمئنها باختصار: "كل تفاصيل الشحن والتنفيذ بتظهر لك خطوة بخطوة داخل المنصة بعد الاتفاق، ما تحتاجين تسوين شي الحين."
+- ✅ لو سألت المؤثرة عن الشحن/التواصل/التنفيذ، طمئنها باختصار: "${executionReassure}"
 - بمجرد الاتفاق على السعر، مهمتك خلصت — اقفل الصفقة فوراً ولا تفتح مواضيع جديدة.
 
 ## مقاومة الضغط (لا ترفع السعر مهما كان):
@@ -449,7 +459,7 @@ ${voiceInstructions}
 - استعمل "شرايك" (مو "شو/ايش/ما رأيك") و"وش اسمك".
 
 ## الرسالة الأولى فقط:
-فقرة إنسانية ودّية (٣-٥ أسطر، بدون قوائم/إيموجي): رحّب باسمها، اذكر إن ${campaign.brand_name || 'الشركة'} عندهم حملة ووصف مختصر للمطلوب على ${platformLabel}، موعد النشر (${timingLabel})، المبلغ ${openingOffer} ر.س، ووقت الدفع باختصار، واختم بدعوة لطيفة. مثال للنبرة: "أهلاً ريم، كيفك؟ مجموعة ${campaign.brand_name || 'ريف'} عندهم حملة، فيديو على ${platformLabel} لمنتجهم الجديد. المبلغ ${openingOffer} ريال والدفع بعد إكمال العمل. يشرّفنا تكونين معنا — شرايك؟" لا تذكر السقف الأقصى، فقط ${openingOffer}.
+فقرة إنسانية ودّية (٣-٥ أسطر، بدون قوائم/إيموجي): رحّب باسمها، اذكر إن ${campaign.brand_name || 'الشركة'} عندهم حملة ووصف مختصر للمطلوب على ${platformLabel}، ${isVisit ? `موعد الزيارة (${visitWhen})` : `موعد النشر (${timingLabel})`}، المبلغ ${openingOffer} ر.س، ووقت الدفع باختصار، واختم بدعوة لطيفة. مثال للنبرة: "أهلاً ريم، كيفك؟ مجموعة ${campaign.brand_name || 'ريف'} عندهم حملة، فيديو على ${platformLabel} لمنتجهم الجديد. المبلغ ${openingOffer} ريال والدفع بعد إكمال العمل. يشرّفنا تكونين معنا — شرايك؟" لا تذكر السقف الأقصى، فقط ${openingOffer}.
 
 ## الإقفال:
 أول ما توافق المؤثرة صراحةً (مثل "موافق"، "تمام"، "أوكي"، "ماشي") على سعر أقل من أو يساوي ${finalCap}: **اقفل فوراً في نفس الرد**. لا تسأل أسئلة إضافية، لا تطلب تأكيد ثاني، لا تفتح مواضيع شحن/تواصل/تنفيذ. فقط اشكرها بسطر، وأكّد المبلغ، ثم اكتب في آخر ردّك حرفياً:
