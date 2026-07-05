@@ -3840,8 +3840,24 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
     }
   }
 
+  if (isMyTurn && currentStage === 6) {
+    return `
+      <div class="stage-action mine">
+        <div class="sa-title">المرحلة الحالية: ${stageName}</div>
+        <div class="sa-desc">${myInfo.desc || ''}</div>
+        <form class="sa-form" id="stage-form-${applicationId}" onsubmit="event.preventDefault(); submitStageForm('${applicationId}')">
+          <div class="sa-field"><label for="sf-${applicationId}-note">ملاحظات (اختياري)</label><input type="text" id="sf-${applicationId}-note" name="note" placeholder="أي ملاحظات..."></div>
+          <button type="submit" class="sa-btn">${myInfo.label}</button>
+        </form>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line,#e7edeb);">
+          <div class="sa-field"><label for="rej-${applicationId}">سبب الرفض (يظهر للمعلن)</label><textarea id="rej-${applicationId}" rows="2" placeholder="مثلًا: الإضاءة ضعيفة، أعد التصوير أوضح، أضف عرض المنتج بوضوح..."></textarea></div>
+          <button type="button" class="sa-btn" style="background:#fff;color:#c0392b;border:1.5px solid #e6b0aa;" onclick="rejectContent('${applicationId}')">✕ رفض المحتوى وإرجاعه</button>
+        </div>
+      </div>
+    `;
+  }
+
   if (isMyTurn) {
-    const fields = STAGE_FIELDS[currentStage] || [];
     const inputsHtml = fields.map(f => {
       const fid = `sf-${applicationId}-${f.name}`;
       if (f.type === 'textarea') {
@@ -3862,6 +3878,39 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
     `;
   }
   return `<div class="stage-action waiting"><div class="sa-title">⏳ المرحلة الحالية: ${stageName}</div><div class="sa-desc">${myInfo.desc || ''}</div></div>`;
+}
+
+async function rejectContent(applicationId) {
+  const { app, campaign } = findAppById(applicationId);
+  if (!app) return;
+  const reasonEl = document.getElementById('rej-' + applicationId);
+  const reason = reasonEl ? reasonEl.value.trim() : '';
+  if (!reason) { showToast('اكتب سبب الرفض للمعلن أولًا', 'error'); return; }
+  if (!confirm('رفض المحتوى وإرجاع المعلن لإعادة التصوير؟')) return;
+  const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
+  existing[5] = { ...(existing[5] || {}), _rejected: true, _reject_reason: reason, _reject_at: new Date().toISOString() };
+  try {
+    const { error } = await supabaseClient
+      .from('applications')
+      .update({ stage: 5, stage_data: existing })
+      .eq('id', applicationId).select();
+    if (error) throw error;
+    const creatorId = app.creator_id;
+    const title = (campaign && campaign.title) || 'صفقة';
+    if (creatorId) {
+      try { createNotification(creatorId, 'content_rejected', 'المحتوى يحتاج تعديل', title + ' — السبب: ' + reason, '/creator.html'); } catch (e) {}
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title: 'المحتوى يحتاج تعديل', body: title + ' — السبب: ' + reason, url: '/creator.html', target_users: [creatorId] })
+      }).catch(function () {});
+    }
+    showToast('تم إرجاع المحتوى للمعلن مع السبب', 'success');
+    await loadData();
+  } catch (err) {
+    console.error('reject failed:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
 }
 
 function findAppById(applicationId) {

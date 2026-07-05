@@ -2315,10 +2315,14 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   const fields = STAGE_FIELDS[currentStage] || [];
 
   if (isMyTurn && currentStage === 5 && viewerRole === 'creator') {
+    const _app5 = myApplications.find(a => a.id === applicationId);
+    const _rej = (_app5 && _app5.stage_data && _app5.stage_data[5] && _app5.stage_data[5]._rejected) ? _app5.stage_data[5]._reject_reason : null;
+    const _rejBanner = _rej ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">✕ المحتوى السابق مرفوض من الشركة.<br><b>السبب:</b> ${escHtml(_rej)}<br>عدّل الفيديو وارفعه من جديد.</div>` : '';
     return `
       <div class="stage-action mine" onclick="event.stopPropagation()">
         <div class="sa-title">المرحلة الحالية: ${stageName}</div>
         <div class="sa-desc">${myInfo.desc || ''}</div>
+        ${_rejBanner}
         <form class="sa-form" id="stage-form-${applicationId}" onclick="event.stopPropagation()" onsubmit="event.preventDefault(); event.stopPropagation(); submitStageForm('${applicationId}')">
           <input type="hidden" id="sf-${applicationId}-content_link" name="content_link">
           <input type="hidden" id="sf-${applicationId}-_video_path" name="_video_path">
