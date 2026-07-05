@@ -1653,6 +1653,22 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
         <input type="text" name="title" required placeholder="مثل: إطلاق عطر العيد الجديد">
       </div>
 
+      <style>
+        .ctype-opt{flex:1;display:flex;gap:8px;align-items:flex-start;border:1.5px solid #e7edeb;border-radius:12px;padding:12px;cursor:pointer;transition:.15s;}
+        .ctype-opt:has(input:checked){border-color:#12b5a3;background:#e3f6f1;}
+        .ctype-opt input{margin-top:3px;flex:none;}
+      </style>
+      <div class="field">
+        <label>نوع الحملة</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <label class="ctype-opt"><input type="radio" name="campaign_type" value="home" checked>
+            <span><b style="display:block;">🏠 إعلان منزلي</b><span style="font-size:12px;color:#6f867f;">المعلن يستلم المنتج في بيته ويصوّر — نفس المراحل الحالية.</span></span></label>
+          <label class="ctype-opt"><input type="radio" name="campaign_type" value="visit">
+            <span><b style="display:block;">📍 زيارة</b><span style="font-size:12px;color:#6f867f;">المعلن يزور الموقع للتصوير — تتغيّر بعض المراحل بعد التفاوض.</span></span></label>
+        </div>
+        <div class="hint">يحدّد مسار الحملة بعد التفاوض: المنزلي = المراحل الحالية · الزيارة = مسار مختلف.</div>
+      </div>
+
       <div class="field">
         <label>البريف الإعلاني</label>
         <textarea name="description" required rows="4" placeholder="وضّح للمعلن: المنتج، الجمهور المستهدف، المحاور والنقاط المطلوبة، نوع المحتوى، الكلمات المفتاحية، أي مراجع أو أمثلة... (يُرسل للمعلن تلقائيًا في مرحلة البريف)"></textarea>
@@ -3923,6 +3939,9 @@ function setModalMode(mode, campaign) {
     togglePublishDate();
     if (campaign.publish_date) form.querySelector('[name="publish_date"]').value = campaign.publish_date;
     form.querySelector('[name="campaign_size"]').value = campaign.campaign_size || '';
+    const _ct = campaign.campaign_type || 'home';
+    const _ctR = form.querySelector('[name="campaign_type"][value="' + _ct + '"]');
+    if (_ctR) _ctR.checked = true;
     // نطاقات المتابعين (اختيار متعدد)
     const selectedRanges = (campaign.follower_range || '').split(',').map(s => s.trim()).filter(Boolean);
     form.querySelectorAll('#range-grid .platform-chip').forEach(c => {
@@ -4110,6 +4129,7 @@ async function submitCampaign(event) {
     platform: platform,
     follower_range: fd.get('follower_range') || null,
     campaign_size: parseInt(fd.get('campaign_size')) || null,
+    campaign_type: fd.get('campaign_type') || 'home',
     country: selCountry || null,
     city: selCountry ? (selCity || null) : null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
