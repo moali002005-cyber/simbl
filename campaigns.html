@@ -1649,17 +1649,17 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 
     <form onsubmit="submitCampaign(event)">
       <style>
-        .ctype-opt{flex:1;display:flex;gap:8px;align-items:flex-start;border:1.5px solid #e7edeb;border-radius:12px;padding:12px;cursor:pointer;transition:.15s;}
-        .ctype-opt:has(input:checked){border-color:#12b5a3;background:#e3f6f1;}
-        .ctype-opt input{margin-top:3px;flex:none;}
+        .ctype-seg{display:inline-flex;gap:6px;background:#f1f5f4;border:1px solid #e7edeb;border-radius:12px;padding:4px;}
+        .ctype-seg label{cursor:pointer;margin:0;}
+        .ctype-seg input{display:none;}
+        .ctype-seg span{display:inline-block;padding:8px 20px;border-radius:9px;font-size:13.5px;font-weight:600;color:#5a6f68;transition:.15s;}
+        .ctype-seg input:checked + span{background:#12b5a3;color:#fff;}
       </style>
       <div class="field">
         <label>نوع الحملة</label>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <label class="ctype-opt"><input type="radio" name="campaign_type" value="home" checked onchange="toggleCampaignType()">
-            <span><b style="display:block;">🏠 إعلان منزلي</b><span style="font-size:12px;color:#6f867f;">المعلن يستلم المنتج في بيته ويصوّر — المراحل الكاملة.</span></span></label>
-          <label class="ctype-opt"><input type="radio" name="campaign_type" value="visit" onchange="toggleCampaignType()">
-            <span><b style="display:block;">📍 زيارة</b><span style="font-size:12px;color:#6f867f;">المعلن يزور الموقع للتصوير — مراحل مختصرة.</span></span></label>
+        <div class="ctype-seg">
+          <label><input type="radio" name="campaign_type" value="home" checked onchange="toggleCampaignType()"><span>🏠 منزلي</span></label>
+          <label><input type="radio" name="campaign_type" value="visit" onchange="toggleCampaignType()"><span>📍 زيارة</span></label>
         </div>
       </div>
 
