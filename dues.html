@@ -81,6 +81,8 @@ table.xl td.cell:hover { background:#eef6f5; }
 table.xl td.cell.copied { background:#13B9B2; color:#fff; }
 table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 .xl-iban { direction:ltr; text-align:right; color:var(--accent-ink); font-weight:600; font-variant-numeric:tabular-nums; }
+.dues-editable[contenteditable="true"]{ outline:2px solid #12b5a3; outline-offset:-2px; background:#f0fbf9; cursor:text; min-width:80px; }
+td.iban-bad{ background:#fff2f2 !important; color:#c0392b !important; box-shadow:inset 0 0 0 1.5px #f0b4b4; }
 .xl-amount { font-variant-numeric:tabular-nums; font-weight:600; }
 .dp { display:inline-block; padding:2px 9px; border-radius:100px; font-size:11px; font-weight:600; }
 .dp-paid { background:rgba(19,185,178,0.14); color:var(--accent-ink); }
@@ -156,7 +158,11 @@ table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
         <h1 class="page-title">📋 متابعة الحملات والمستحقات</h1>
         <p class="page-sub">كل صفقاتك المعتمدة في مكان واحد — اضغط أي خانة لنسخها، أو رقم الصف لنسخه كامل.</p>
       </div>
-      <button class="btn-export" onclick="exportDuesCSV()">📥 تصدير Excel (CSV)</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-export" id="dues-edit-btn" onclick="toggleDuesEdit()" style="background:#0f1512;">✏️ تعديل قبل التصدير</button>
+        <button class="btn-export" onclick="autoCleanIbans()" style="background:#5B6B7A;">🧹 تنظيف الآيبانات</button>
+        <button class="btn-export" onclick="exportDuesCSV()">📥 تصدير Excel (CSV)</button>
+      </div>
     </div>
   </div>
 
@@ -250,6 +256,7 @@ function duesWaLink(raw) {
 }
 
 function duesCopy(el) {
+  if (typeof duesEditing !== 'undefined' && duesEditing) return;   // في وضع التعديل: لا ننسخ
   const txt = el.getAttribute('data-copy') || el.textContent || '';
   const done = () => {
     el.classList.add('copied');
@@ -270,18 +277,67 @@ function fallbackCopy(txt, done) {
   } catch (e) { try { showToast('تعذّر النسخ تلقائيًا'); } catch (e2) {} }
 }
 
+// ============ تعديل وتنظيف المستحقات قبل التصدير ============
+const duesOverrides = {};                        // { appId: { name, iban, holder } }
+let duesEditing = false;
+
+function cleanField(v) {                          // يشيل الأسطر الطويلة اللي تكبّر الصف في إكسل
+  return String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+function ibanLooksValid(v) {
+  return /^SA\d{22}$/.test(String(v || '').toUpperCase().replace(/[\s\-]/g, ''));
+}
+function cleanIban(v) {                           // يستخرج SA + الأرقام من أي كلام/اسم ملتصق
+  const s = String(v || '').toUpperCase().replace(/[\s\-]/g, '');
+  const m = s.match(/SA\d{22}/); if (m) return m[0];
+  const m2 = s.match(/SA\d+/);   if (m2) return m2[0];
+  return String(v || '').trim();
+}
+
+function toggleDuesEdit() {
+  duesEditing = !duesEditing;
+  document.querySelectorAll('.dues-editable').forEach(td => td.setAttribute('contenteditable', duesEditing ? 'true' : 'false'));
+  const btn = document.getElementById('dues-edit-btn');
+  if (btn) btn.textContent = duesEditing ? '✅ تم — أوقف التعديل' : '✏️ تعديل قبل التصدير';
+  try { showToast(duesEditing ? 'وضع التعديل مفعّل — صلّح الآيبان/الاسم ثم صدّر' : 'تم إيقاف التعديل — تعديلاتك محفوظة للتصدير', 'success', 4000); } catch (e) {}
+}
+function autoCleanIbans() {
+  let fixed = 0, bad = 0;
+  document.querySelectorAll('.dues-editable[data-field="iban"]').forEach(td => {
+    const id = td.getAttribute('data-appid');
+    const cleaned = cleanIban(td.textContent);
+    if (ibanLooksValid(cleaned)) {
+      if (cleaned !== td.textContent.trim()) td.textContent = cleaned;
+      td.classList.remove('iban-bad');
+      duesOverrides[id] = duesOverrides[id] || {}; duesOverrides[id].iban = cleaned; fixed++;
+    } else { td.classList.add('iban-bad'); bad++; }
+  });
+  try { showToast('نُظّف ' + toArabic(fixed) + ' آيبان' + (bad ? ' · ' + toArabic(bad) + ' يحتاج تصحيح يدوي (بالأحمر)' : ''), bad ? 'error' : 'success', 6000); } catch (e) {}
+}
+// التقاط التعديلات اليدوية
+document.addEventListener('input', function (e) {
+  const td = e.target && e.target.closest ? e.target.closest('.dues-editable') : null;
+  if (!td) return;
+  const id = td.getAttribute('data-appid'), f = td.getAttribute('data-field');
+  if (!id || !f) return;
+  duesOverrides[id] = duesOverrides[id] || {};
+  duesOverrides[id][f] = td.textContent.trim();
+  if (f === 'iban') td.classList.toggle('iban-bad', td.textContent.trim() !== '' && !ibanLooksValid(td.textContent));
+});
+
 // صف معبّأ (صفقة معتمدة)
 function duesRowFilled(a, camp, idx, totals) {
+  const ov = duesOverrides[a.id] || {};
   const creator = a.users || {};
-  const nameRaw = creator.name || 'معلن';
+  const nameRaw = ov.name != null ? ov.name : (creator.name || 'معلن');
   const name = escHtml(nameRaw);
   const phoneRaw = (creator.whatsapp || creator.phone || '').trim();
   const amountNum = Number(a.final_price || a.price || 0);
   const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
   const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
   const bank = sd[8] || sd['8'] || {};
-  const ibanRaw = bank.iban || '';
-  const holderRaw = bank.account_holder || '';
+  const ibanRaw = ov.iban != null ? ov.iban : (bank.iban || '');
+  const holderRaw = ov.holder != null ? ov.holder : (bank.account_holder || '');
   const stage7 = sd[7] || sd['7'] || {};
   const pub = stage7.publish_link || '';
   const promo = stage7.promo_code || '';
@@ -313,7 +369,7 @@ function duesRowFilled(a, camp, idx, totals) {
     }
   }
 
-  const nameCell = '<td class="cell" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
+  const nameCell = '<td class="cell dues-editable" data-appid="' + a.id + '" data-field="name" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
   const phoneCell = phoneRaw
     ? '<td><div style="display:flex;gap:8px;align-items:center;justify-content:center;white-space:nowrap;"><a class="dues-link" href="' + escHtml(duesWaLink(phoneRaw)) + '" target="_blank" rel="noopener">واتساب ↗</a><span style="color:var(--line,#ddd);">|</span><span class="dues-link" data-copy="' + escHtml(phoneRaw) + '" onclick="duesCopy(this)" style="cursor:pointer;">' + escHtml(phoneRaw) + '</span></div></td>'
     : '<td class="dim">—</td>';
@@ -327,12 +383,9 @@ function duesRowFilled(a, camp, idx, totals) {
   const promoCell = promo
     ? '<td class="cell" data-copy="' + escHtml(promo) + '" onclick="duesCopy(this)"><span class="dues-link">انسخ كود الترويج ⎘</span></td>'
     : '<td class="dim">—</td>';
-  const ibanCell = ibanRaw
-    ? '<td class="cell xl-iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw) + '</td>'
-    : '<td class="dim">—</td>';
-  const holderCell = holderRaw
-    ? '<td class="cell" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw) + '</td>'
-    : '<td class="dim">—</td>';
+  const ibanBad = (ibanRaw && !ibanLooksValid(ibanRaw)) ? ' iban-bad' : '';
+  const ibanCell = '<td class="cell xl-iban dues-editable' + ibanBad + '" data-appid="' + a.id + '" data-field="iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw || '') + '</td>';
+  const holderCell = '<td class="cell dues-editable" data-appid="' + a.id + '" data-field="holder" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw || '') + '</td>';
   const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
   const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
   const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
@@ -371,6 +424,7 @@ function exportDuesCSV() {
     const ld = c.created_at ? new Date(c.created_at) : null;
     if (ld && !isNaN(ld.getTime())) launch = ld.toLocaleDateString('en-GB');
     deals.forEach(a => {
+      const ov = duesOverrides[a.id] || {};
       const creator = a.users || {};
       const amountNum = Number(a.final_price || a.price || 0);
       const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
@@ -387,8 +441,11 @@ function exportDuesCSV() {
       else if (ps === 'marked_paid') statusPlain = 'حوّلت - بانتظار التأكيد';
       else if (ps === 'disputed') statusPlain = 'نزاع استلام';
       else statusPlain = 'باقي' + (duesIsOverdue(a, c) ? ' - متأخر' : '');
-      lines.push([c.title || 'حملة', launch, creator.name || 'معلن', (creator.whatsapp || creator.phone || ''), duesAccountLink(creator) || '', dateCsv,
-        st7.publish_link || '', st7.promo_code || '', bank.iban || '', bank.account_holder || '', amountNum, statusPlain]);
+      const nameOut = cleanField(ov.name != null ? ov.name : (creator.name || 'معلن'));
+      const ibanOut = cleanIban(ov.iban != null ? ov.iban : (bank.iban || ''));
+      const holderOut = cleanField(ov.holder != null ? ov.holder : (bank.account_holder || ''));
+      lines.push([cleanField(c.title || 'حملة'), launch, nameOut, cleanField(creator.whatsapp || creator.phone || ''), cleanField(duesAccountLink(creator) || ''), dateCsv,
+        cleanField(st7.publish_link || ''), cleanField(st7.promo_code || ''), ibanOut, holderOut, amountNum, statusPlain]);
       count++;
     });
   });
