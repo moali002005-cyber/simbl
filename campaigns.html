@@ -3282,6 +3282,10 @@ function isBrandTurn(stage) {
 }
 
 const MX_LABELS = ['العنوان','الشحن','الاستلام','البريف','المحتوى','الموافقة','النشر','البنكية','مكتمل'];
+// مراحل مرئية (نتخطّى البريف=4). الزيارة تعرض 5 فقط. الأرقام الداخلية للمراحل ما تتغيّر.
+const HOME_FLOW = [{s:1,n:'العنوان'},{s:2,n:'الشحن'},{s:3,n:'الاستلام'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+const VISIT_FLOW = [{s:5,n:'بانتظار التصوير'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+function flowFor(type){ return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
 let expandedCellStage = null;
 
 function openCell(appId, stage) {
@@ -3368,7 +3372,9 @@ function renderCellDetail(a) {
   return `<div style="font-size:13px;color:var(--ink-muted);padding:6px 2px;">بانتظار المعلن في مرحلة «${MX_LABELS[stageNow-1] || ''}».</div>`;
 }
 
-function renderDealRow(a, idx) {
+function renderDealRow(a, idx, campaignType) {
+  const flow = flowFor(campaignType);
+  const NCOL = flow.length;
   const creator = a.users || {};
   const initial = (creator.name || 'م')[0];
   const isRejected = a.status === 'rejected';
@@ -3383,9 +3389,10 @@ function renderDealRow(a, idx) {
 
   let cells = '';
   if (isRejected) {
-    cells = `<td class="mx-cell click" colspan="9" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:rgba(201,48,48,0.08);color:#b32d2d;font-size:12px;font-weight:600;height:44px;">↔ تم الاستبدال — اضغط لعرض السبب</div></td>`;
+    cells = `<td class="mx-cell click" colspan="${NCOL}" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:rgba(201,48,48,0.08);color:#b32d2d;font-size:12px;font-weight:600;height:44px;">↔ تم الاستبدال — اضغط لعرض السبب</div></td>`;
   } else if (isApproved) {
-    for (let s = 1; s <= 9; s++) {
+    flow.forEach((st) => {
+      const s = st.s;
       if (s < stageNow) {
         cells += `<td class="mx-cell click" onclick="openCell('${a.id}',${s})"><div class="mx-in mx-done">✓</div></td>`;
       } else if (s === stageNow) {
@@ -3399,18 +3406,18 @@ function renderDealRow(a, idx) {
       } else {
         cells += `<td class="mx-cell"><div class="mx-in mx-future">·</div></td>`;
       }
-    }
+    });
   } else if (awaitingApproval) {
-    cells = `<td class="mx-cell click" colspan="9" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:#FAEEDA;color:#854F0B;font-size:12px;font-weight:600;height:44px;">⏳ بانتظار تعميدك — اضغط للاعتماد</div></td>`;
+    cells = `<td class="mx-cell click" colspan="${NCOL}" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:#FAEEDA;color:#854F0B;font-size:12px;font-weight:600;height:44px;">⏳ بانتظار تعميدك — اضغط للاعتماد</div></td>`;
   } else if (a.status === 'waitlisted') {
-    cells = `<td class="mx-cell" colspan="9"><div class="mx-in" style="background:#F0F4F8;color:#5B6B7A;font-size:12px;font-weight:600;height:44px;">🕓 في قائمة الانتظار — يبدأ التفاوض تلقائيًا لو انفتح مكان</div></td>`;
+    cells = `<td class="mx-cell" colspan="${NCOL}"><div class="mx-in" style="background:#F0F4F8;color:#5B6B7A;font-size:12px;font-weight:600;height:44px;">🕓 في قائمة الانتظار — يبدأ التفاوض تلقائيًا لو انفتح مكان</div></td>`;
   } else {
-    cells = `<td colspan="9" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')"><div class="mx-in" style="font-size:12px;color:var(--ink-muted);height:44px;">💬 قيد التفاوض — اضغط لعرض المفاوضة</div></td>`;
+    cells = `<td colspan="${NCOL}" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')"><div class="mx-in" style="font-size:12px;color:var(--ink-muted);height:44px;">💬 قيد التفاوض — اضغط لعرض المفاوضة</div></td>`;
   }
 
   const isExpanded = awaitingApproval || (expandedAppId === a.id);
   const detail = isExpanded
-    ? `<tr class="mx-detail"><td colspan="11"><div class="ac-body" onclick="event.stopPropagation()">${renderCellDetail(a)}</div></td></tr>`
+    ? `<tr class="mx-detail"><td colspan="${NCOL + 2}"><div class="ac-body" onclick="event.stopPropagation()">${renderCellDetail(a)}</div></td></tr>`
     : '';
 
   return `
@@ -3522,9 +3529,9 @@ function renderSingleCampaign(c) {
           <div class="mx-wrap"><table class="mx-table" id="apps-${c.id}">
             <thead><tr>
               <th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">المعلن</th>
-              ${MX_LABELS.map((lbl, i) => `<th>${toArabic(i + 1)}·${lbl}</th>`).join('')}
+              ${flowFor(c.campaign_type).map((st, i) => `<th>${toArabic(i + 1)}·${st.n}</th>`).join('')}
             </tr></thead>
-            <tbody>${sheetApps.map((a, idx) => renderDealRow(a, idx)).join('')}</tbody>
+            <tbody>${sheetApps.map((a, idx) => renderDealRow(a, idx, c.campaign_type)).join('')}</tbody>
           </table></div>
         ` : `
           <div class="applications-summary">

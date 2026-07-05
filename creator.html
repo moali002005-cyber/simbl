@@ -1601,6 +1601,10 @@ function updateHeroStats() {
 }
 
 const MX_LABELS = ['العنوان','الشحن','الاستلام','البريف','المحتوى','الموافقة','النشر','البنكية','مكتمل'];
+// مراحل مرئية (نتخطّى البريف=4). الزيارة تعرض 5 فقط.
+const HOME_FLOW = [{s:1,n:'العنوان'},{s:2,n:'الشحن'},{s:3,n:'الاستلام'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+const VISIT_FLOW = [{s:5,n:'بانتظار التصوير'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+function flowFor(type){ return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
 
 // بطاقة صفقة مستقلة للمعلن: رأس + شريط المراحل التسع + المرحلة الحالية فقط
 function renderCreatorDealCard(c, a) {
@@ -1640,8 +1644,10 @@ function renderCreatorDealCard(c, a) {
   } else if (isWaitlisted) {
     body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🕓 أنت في قائمة الانتظار لهذي الحملة حسب أولوية تقديمك. العدد المطلوب اكتمل حالياً، وبمجرد ما ينفتح مكان بننبّهك فورًا ويبدأ الوكيل يفاوضك. خلّك متابع 🌿</div>`;
   } else if (isApproved) {
+    const flow = flowFor(c.campaign_type);
     let strip = '';
-    for (let s = 1; s <= 9; s++) {
+    flow.forEach((st) => {
+      const s = st.s;
       let cls = 'future', ic = '·';
       if (s < stageNow) { cls = 'done'; ic = '✓'; }
       else if (s === stageNow) {
@@ -1649,8 +1655,8 @@ function renderCreatorDealCard(c, a) {
         else if (isCreatorTurn(s)) { cls = 'act'; ic = '✎'; }
         else { cls = 'wait'; ic = '⏳'; }
       }
-      strip += `<div class="dc-step"><div class="dc-box ${cls}">${ic}</div><div class="dc-lbl${s === stageNow ? ' on' : ''}">${MX_LABELS[s-1]}</div></div>`;
-    }
+      strip += `<div class="dc-step"><div class="dc-box ${cls}">${ic}</div><div class="dc-lbl${s === stageNow ? ' on' : ''}">${st.n}</div></div>`;
+    });
     body = `${isCompleted ? '<div class="dc-done-banner">🎉 تمّت الحملة بنجاح — شكرًا لجهودك!</div>' : ''}<div class="dc-strip">${strip}</div><div class="dc-action">${renderStageAction(a.id, stageNow, 'creator')}</div>`;
   } else if (awaitingApproval) {
     body = `<div class="dc-note amber">⏳ بانتظار الشركة لاعتماد الصفقة وبدء التنفيذ.</div>`;
