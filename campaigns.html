@@ -1868,6 +1868,22 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
   </div>
 </div>
 
+<!-- نافذة مراجعة المحتوى (موافقة/رفض) -->
+<div class="modal-backdrop" id="content-review-modal">
+  <div class="modal" style="max-width: 480px">
+    <h3 id="cr-title">مراجعة المحتوى</h3>
+    <p class="sub" id="cr-sub"></p>
+    <div class="field">
+      <label id="cr-label">ملاحظة</label>
+      <textarea id="cr-text" rows="4" placeholder=""></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeContentReview()">إلغاء</button>
+      <button type="button" class="btn-primary" id="cr-confirm" onclick="submitContentReview()">تأكيد</button>
+    </div>
+  </div>
+</div>
+
 <!-- نافذة قائمة الانتظار -->
 <div class="modal-backdrop" id="waitlist-modal">
   <div class="modal" style="max-width: 640px">
@@ -3876,59 +3892,63 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   return `<div class="stage-action waiting"><div class="sa-title">⏳ المرحلة الحالية: ${stageName}</div><div class="sa-desc">${myInfo.desc || ''}</div></div>`;
 }
 
-async function approveContent(applicationId) {
-  const { app, campaign } = findAppById(applicationId);
-  if (!app) return;
-  let note = prompt('تبي تضيف ملاحظة للمعلن مع الموافقة؟ (اتركها فاضية لو ما فيه)', '');
-  if (note === null) return; // ألغى
-  note = (note || '').trim();
-  const oldStage = app.stage || 6;
-  const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
-  existing[oldStage] = { ...(note ? { note } : {}), _at: new Date().toISOString() };
-  try {
-    const { error } = await supabaseClient.from('applications')
-      .update({ stage: oldStage + 1, stage_data: existing }).eq('id', applicationId).select();
-    if (error) throw error;
-    // حذف فيديو المراجعة بعد الموافقة
-    const vpath = (app.stage_data && app.stage_data[5] && app.stage_data[5]._video_path) || null;
-    if (vpath) { try { Promise.resolve(supabaseClient.rpc('delete_content_file', { p_path: vpath })).catch(function () {}); } catch (e) {} }
-    const creatorId = app.creator_id;
-    if (creatorId) {
-      try { createNotification(creatorId, 'workflow_update', 'تمّت الموافقة على المحتوى', ((campaign && campaign.title) || 'صفقة') + (note ? ' — ملاحظة: ' + note : ''), '/creator.html'); } catch (e) {}
-    }
-    showToast('تمّت الموافقة على المحتوى ✓', 'success');
-    await loadData();
-  } catch (err) { console.error('approve failed:', err); showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error'); }
+let _crAppId = null, _crMode = null;
+function openContentReview(applicationId, mode) {
+  _crAppId = applicationId; _crMode = mode;
+  const isApprove = mode === 'approve';
+  document.getElementById('cr-title').textContent = isApprove ? 'الموافقة على المحتوى' : 'رفض المحتوى';
+  document.getElementById('cr-sub').textContent = isApprove ? 'تقدر تضيف ملاحظة للمعلن (اختياري) ثم اعتمد.' : 'اكتب سبب الرفض — يظهر للمعلن ليعدّل ويعيد الرفع.';
+  document.getElementById('cr-label').textContent = isApprove ? 'ملاحظة للمعلن (اختياري)' : 'سبب الرفض';
+  const ta = document.getElementById('cr-text'); ta.value = ''; ta.placeholder = isApprove ? 'أي ملاحظة...' : 'مثلًا: الإضاءة ضعيفة، أعد التصوير أوضح...';
+  const btn = document.getElementById('cr-confirm');
+  btn.textContent = isApprove ? '✓ اعتماد المحتوى' : '✕ رفض وإرجاع';
+  btn.classList.toggle('btn-danger', !isApprove);
+  btn.disabled = false;
+  document.getElementById('content-review-modal').classList.add('show');
+  setTimeout(function () { ta.focus(); }, 60);
 }
+function closeContentReview() { document.getElementById('content-review-modal').classList.remove('show'); }
+function approveContent(applicationId) { openContentReview(applicationId, 'approve'); }
+function rejectContent(applicationId) { openContentReview(applicationId, 'reject'); }
 
-async function rejectContent(applicationId) {
+async function submitContentReview() {
+  const applicationId = _crAppId; if (!applicationId) return;
   const { app, campaign } = findAppById(applicationId);
   if (!app) return;
-  let reason = prompt('اكتب سبب الرفض (يظهر للمعلن ليعدّل ويعيد الرفع):', '');
-  if (reason === null) return;
-  reason = (reason || '').trim();
-  if (!reason) { showToast('لازم تكتب سبب الرفض', 'error'); return; }
+  const text = (document.getElementById('cr-text').value || '').trim();
+  const isApprove = _crMode === 'approve';
+  const btn = document.getElementById('cr-confirm');
+  if (!isApprove && !text) { showToast('لازم تكتب سبب الرفض', 'error'); return; }
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = 'جاري الحفظ...';
   const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
-  existing[5] = { ...(existing[5] || {}), _rejected: true, _reject_reason: reason, _reject_at: new Date().toISOString() };
+  const creatorId = app.creator_id;
+  const title = (campaign && campaign.title) || 'صفقة';
   try {
-    const { error } = await supabaseClient.from('applications')
-      .update({ stage: 5, stage_data: existing }).eq('id', applicationId).select();
-    if (error) throw error;
-    const creatorId = app.creator_id;
-    const title = (campaign && campaign.title) || 'صفقة';
-    if (creatorId) {
-      try { createNotification(creatorId, 'content_rejected', 'المحتوى يحتاج تعديل', title + ' — السبب: ' + reason, '/creator.html'); } catch (e) {}
-      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
-        body: JSON.stringify({ title: 'المحتوى يحتاج تعديل', body: title + ' — السبب: ' + reason, url: '/creator.html', target_users: [creatorId] })
-      }).catch(function () {});
+    if (isApprove) {
+      const oldStage = app.stage || 6;
+      existing[oldStage] = { ...(text ? { note: text } : {}), _at: new Date().toISOString() };
+      const { error } = await supabaseClient.from('applications').update({ stage: oldStage + 1, stage_data: existing }).eq('id', applicationId).select();
+      if (error) throw error;
+      const vpath = (app.stage_data && app.stage_data[5] && app.stage_data[5]._video_path) || null;
+      if (vpath) { try { Promise.resolve(supabaseClient.rpc('delete_content_file', { p_path: vpath })).catch(function () {}); } catch (e) {} }
+      if (creatorId) { try { createNotification(creatorId, 'workflow_update', 'تمّت الموافقة على المحتوى', title + (text ? ' — ملاحظة: ' + text : ''), '/creator.html'); } catch (e) {} }
+      showToast('تمّت الموافقة على المحتوى ✓', 'success');
+    } else {
+      existing[5] = { ...(existing[5] || {}), _rejected: true, _reject_reason: text, _reject_at: new Date().toISOString() };
+      const { error } = await supabaseClient.from('applications').update({ stage: 5, stage_data: existing }).eq('id', applicationId).select();
+      if (error) throw error;
+      if (creatorId) {
+        try { createNotification(creatorId, 'content_rejected', 'المحتوى يحتاج تعديل', title + ' — السبب: ' + text, '/creator.html'); } catch (e) {}
+        fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey }, body: JSON.stringify({ title: 'المحتوى يحتاج تعديل', body: title + ' — السبب: ' + text, url: '/creator.html', target_users: [creatorId] }) }).catch(function () {});
+      }
+      showToast('تم إرجاع المحتوى للمعلن مع السبب', 'success');
     }
-    showToast('تم إرجاع المحتوى للمعلن مع السبب', 'success');
+    closeContentReview();
     await loadData();
   } catch (err) {
-    console.error('reject failed:', err);
+    console.error('review failed:', err);
     showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+    btn.disabled = false; btn.textContent = orig;
   }
 }
 
