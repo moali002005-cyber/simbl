@@ -92,6 +92,8 @@ td.iban-bad{ background:#fff2f2 !important; color:#c0392b !important; box-shadow
 .dim { color:var(--ink-faint); }
 .dues-mark { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:5px 12px; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer; }
 .dues-mark:hover { background:var(--accent-ink); }
+.dues-fix { background:#fff; color:#c0392b; border:1.5px solid #e6b0aa; border-radius:7px; padding:5px 10px; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer; margin-inline-start:6px; }
+.dues-fix:hover { background:#fdecea; }
 .dues-link { color:var(--accent-ink); font-weight:600; text-decoration:none; }
 .dues-link:hover { text-decoration:underline; }
 .dues-empty { padding:30px 22px; text-align:center; color:var(--ink-faint); font-size:13.5px; line-height:1.8; }
@@ -350,7 +352,7 @@ function duesRowFilled(a, camp, idx, totals) {
   const holderRaw = ov.holder != null ? ov.holder : (bank.account_holder || '');
   const stage7 = sd[7] || sd['7'] || {};
   const pub = cleanUrl(stage7.publish_link || '');
-  const promo = stage7.promo_code || '';
+  const promo = ov.promo != null ? ov.promo : (stage7.promo_code || '');
   const publishIso = stage7._at || a.completed_at || '';
   const acctLink = duesAccountLink(creator);
   const stg = a.stage || 1;
@@ -390,15 +392,14 @@ function duesRowFilled(a, camp, idx, totals) {
   const videoCell = pub
     ? '<td><div style="display:flex;gap:8px;align-items:center;justify-content:center;white-space:nowrap;"><a class="dues-link" href="' + escHtml(pub) + '" target="_blank" rel="noopener">فتح ↗</a><span style="color:var(--line,#ddd);">|</span><span class="dues-link" data-copy="' + escHtml(pub) + '" onclick="duesCopy(this)" style="cursor:pointer;">نسخ ⎘</span></div></td>'
     : '<td class="dim">—</td>';
-  const promoCell = promo
-    ? '<td class="cell" data-copy="' + escHtml(promo) + '" onclick="duesCopy(this)"><span class="dues-link">انسخ كود الترويج ⎘</span></td>'
-    : '<td class="dim">—</td>';
+  const promoCell = '<td class="cell dues-editable" data-appid="' + a.id + '" data-field="promo" data-copy="' + escHtml(promo) + '" onclick="duesCopy(this)">' + escHtml(promo || '') + '</td>';
   const ibanBad = (ibanRaw && !ibanLooksValid(ibanRaw)) ? ' iban-bad' : '';
   const ibanCell = '<td class="cell xl-iban dues-editable' + ibanBad + '" data-appid="' + a.id + '" data-field="iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw || '') + '</td>';
   const holderCell = '<td class="cell dues-editable" data-appid="' + a.id + '" data-field="holder" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw || '') + '</td>';
   const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
   const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
-  const actionCell = '<td>' + (action || '<span class="dim">—</span>') + '</td>';
+  const fixBtn = (stg >= 9) ? '<button class="dues-fix" onclick="requestFix(\'' + a.id + '\')">↩︎ طلب تصحيح</button>' : '';
+  const actionCell = '<td><div style="display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap;">' + (action || '') + fixBtn + ((action || fixBtn) ? '' : '<span class="dim">—</span>') + '</div></td>';
 
   const rowTSV = [nameRaw, phoneRaw || '—', acctLink || '—', dateCopy || '—', pub || '—', promo || '—', ibanRaw || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
   return '<tr><td class="xl-rowh xl-rowcopy" data-copy="' + escHtml(rowTSV) + '" onclick="duesCopyRow(this)" title="نسخ الصف كامل">' + toArabic(idx) + '</td>'
@@ -455,7 +456,7 @@ function exportDuesCSV() {
       const ibanOut = cleanIban(ov.iban != null ? ov.iban : (bank.iban || ''));
       const holderOut = cleanField(ov.holder != null ? ov.holder : (bank.account_holder || ''));
       lines.push([cleanField(c.title || 'حملة'), launch, nameOut, cleanField(creator.whatsapp || creator.phone || ''), cleanField(duesAccountLink(creator) || ''), dateCsv,
-        cleanUrl(st7.publish_link || ''), cleanField(st7.promo_code || ''), ibanOut, holderOut, amountNum, statusPlain]);
+        cleanUrl(st7.publish_link || ''), cleanField(ov.promo != null ? ov.promo : (st7.promo_code || '')), ibanOut, holderOut, amountNum, statusPlain]);
       count++;
     });
   });
@@ -620,6 +621,41 @@ async function setBrandPaid(applicationId) {
   }
 }
 
+let _fixAppId = null;
+function requestFix(applicationId) {
+  _fixAppId = applicationId;
+  const m = document.getElementById('fix-modal');
+  const ta = document.getElementById('fix-note'); if (ta) ta.value = '';
+  if (m) m.style.display = 'flex';
+  setTimeout(function () { if (ta) ta.focus(); }, 50);
+}
+function closeFixModal() { const m = document.getElementById('fix-modal'); if (m) m.style.display = 'none'; }
+async function submitFix() {
+  const applicationId = _fixAppId; if (!applicationId) return;
+  const note = (document.getElementById('fix-note').value || '').trim();
+  const btn = document.getElementById('fix-confirm'); const o = btn.textContent; btn.disabled = true; btn.textContent = 'جاري الإرسال...';
+  try {
+    const { data: row, error: e1 } = await supabaseClient.from('applications').select('stage_data, creator_id').eq('id', applicationId).single();
+    if (e1) throw e1;
+    const existing = (row && typeof row.stage_data === 'object' && row.stage_data) ? { ...row.stage_data } : {};
+    existing[7] = { ...(existing[7] || {}), _fix_requested: true, _fix_note: note, _fix_at: new Date().toISOString() };
+    const { error: e2 } = await supabaseClient.from('applications').update({ stage: 7, stage_data: existing }).eq('id', applicationId).select();
+    if (e2) throw e2;
+    const creatorId = row && row.creator_id;
+    const body = note ? ('راجع رابط الفيديو/كود الترويج — ' + note) : 'راجع رابط الفيديو وكود الترويج وصحّح الخطأ.';
+    if (creatorId) {
+      try { if (typeof createNotification === 'function') createNotification(creatorId, 'fix_requested', 'مطلوب تصحيح المنشور', body, '/creator.html'); } catch (e) {}
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey }, body: JSON.stringify({ title: 'مطلوب تصحيح المنشور', body: body, url: '/creator.html', target_users: [creatorId] }) }).catch(function () {});
+    }
+    showToast('تم إرجاع الصفقة للمعلن للتصحيح', 'success');
+    closeFixModal();
+    if (typeof loadData === 'function') loadData();
+  } catch (err) {
+    console.error('fix request failed:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  } finally { btn.disabled = false; btn.textContent = o; }
+}
+
 async function loadData() {
   try {
     myCampaigns = await dbGetMyCampaigns(currentUser.id);
@@ -685,5 +721,17 @@ async function init() {
 init();
 </script>
 
+<div id="fix-modal" style="display:none;position:fixed;inset:0;background:rgba(10,10,10,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:200;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:26px;max-width:440px;width:100%;font-family:var(--font-body,sans-serif);">
+    <h3 style="margin:0 0 6px;">طلب تصحيح من المعلن</h3>
+    <p style="color:#6f867f;font-size:13px;margin:0 0 14px;">ترجع الصفقة لمرحلة النشر ويوصل المعلن إشعار يصحّح رابط الفيديو أو كود الترويج، ثم تكمل تلقائيًا.</p>
+    <label style="font-size:12px;font-weight:600;">وش الخطأ؟ (اختياري — يظهر للمعلن)</label>
+    <textarea id="fix-note" rows="3" placeholder="مثلًا: كود الترويج غلط، أو رابط الفيديو ما يفتح..." style="width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border:1px solid #e7edeb;border-radius:10px;font-family:inherit;"></textarea>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button type="button" onclick="closeFixModal()" style="background:#f1f5f4;border:0;border-radius:10px;padding:10px 18px;font-family:inherit;font-weight:600;cursor:pointer;">إلغاء</button>
+      <button type="button" id="fix-confirm" onclick="submitFix()" style="background:#c0392b;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-family:inherit;font-weight:600;cursor:pointer;">↩︎ إرسال للمعلن</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

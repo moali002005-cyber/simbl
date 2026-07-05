@@ -2344,6 +2344,12 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   }
 
   if (isMyTurn) {
+    const _appF = myApplications.find(a => a.id === applicationId);
+    const _fixReq = (currentStage === 7 && _appF && _appF.stage_data && _appF.stage_data[7] && _appF.stage_data[7]._fix_requested);
+    const _fixNote = _fixReq ? _appF.stage_data[7]._fix_note : '';
+    const _fixBanner = _fixReq
+      ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">⚠︎ الشركة تطلب تصحيح المنشور.${_fixNote ? '<br><b>الملاحظة:</b> ' + escHtml(_fixNote) : ''}<br>صحّح رابط الفيديو أو كود الترويج وأكّد من جديد.</div>`
+      : '';
     const inputsHtml = fields.map(f => {
       const fid = `sf-${applicationId}-${f.name}`;
       if (f.type === 'textarea') {
@@ -2356,6 +2362,7 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
       <div class="stage-action mine" onclick="event.stopPropagation()">
         <div class="sa-title">المرحلة الحالية: ${stageName}</div>
         <div class="sa-desc">${myInfo.desc || ''}</div>
+        ${_fixBanner}
         <form class="sa-form" id="stage-form-${applicationId}" onclick="event.stopPropagation()" onsubmit="event.preventDefault(); event.stopPropagation(); submitStageForm('${applicationId}')">
           ${inputsHtml}
           <button type="submit" class="sa-btn" onclick="event.stopPropagation()">${myInfo.label}</button>
@@ -2370,7 +2377,10 @@ async function submitStageForm(applicationId) {
   const app = myApplications.find(a => a.id === applicationId);
   if (!app) return;
   const oldStage = app.stage || 1;
-  const newStage = oldStage + 1;
+  let newStage = oldStage + 1;
+  // تصحيح النشر: لو المعلن مدخّل بياناته البنكية من قبل، نتخطّى مرحلة البنكية ونكمل مباشرة
+  const _bankDone = app.stage_data && (app.stage_data[8] || app.stage_data['8']) && (app.stage_data[8] || app.stage_data['8']).iban;
+  if (oldStage === 7 && _bankDone) newStage = 9;
 
   // اجمع بيانات النموذج
   const form = document.getElementById(`stage-form-${applicationId}`);
