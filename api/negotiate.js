@@ -357,7 +357,7 @@ export default async function handler(req, res) {
   // أول (campaignSize) مقفولين = صفقات عادية تظهر للشركة.
   // الـ (RESERVE_COUNT) المقفولين بعدهم = احتياط مخفي (is_reserve=true) جاهز للترقية الفورية.
   // من تعدّى (campaignSize + RESERVE_COUNT) → قائمة انتظار (waitlisted).
-  const RESERVE_COUNT = 10;
+  const RESERVE_COUNT = campaignSize || 10;   // = حجم الحملة → يضاعف البنك الدافئ (يمتصّ الرفض العالي)
   if (campaignSize) {
     const batchSize = campaignSize + RESERVE_COUNT; // النطاق الكامل اللي يفاوضه الوكيل
     // المقفلون يحجزون أماكنهم دائمًا (أيًّا كانوا). المتبقّي = النطاق − عدد المقفلين.
