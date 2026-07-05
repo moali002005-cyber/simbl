@@ -321,6 +321,8 @@ function autoCleanIbans() {
   let fixed = 0, bad = 0;
   document.querySelectorAll('.dues-editable[data-field="iban"]').forEach(td => {
     const id = td.getAttribute('data-appid');
+    const raw = (td.textContent || '').trim();
+    if (!raw) { td.classList.remove('iban-bad'); return; }   // خانة فاضية = مقعد لم يُعتمد، تجاهلها
     const cleaned = cleanIban(td.textContent);
     if (ibanLooksValid(cleaned)) {
       if (cleaned !== td.textContent.trim()) td.textContent = cleaned;
