@@ -3844,14 +3844,10 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
     return `
       <div class="stage-action mine">
         <div class="sa-title">المرحلة الحالية: ${stageName}</div>
-        <div class="sa-desc">${myInfo.desc || ''}</div>
-        <form class="sa-form" id="stage-form-${applicationId}" onsubmit="event.preventDefault(); submitStageForm('${applicationId}')">
-          <div class="sa-field"><label for="sf-${applicationId}-note">ملاحظات (اختياري)</label><input type="text" id="sf-${applicationId}-note" name="note" placeholder="أي ملاحظات..."></div>
-          <button type="submit" class="sa-btn">${myInfo.label}</button>
-        </form>
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line,#e7edeb);">
-          <div class="sa-field"><label for="rej-${applicationId}">سبب الرفض (يظهر للمعلن)</label><textarea id="rej-${applicationId}" rows="2" placeholder="مثلًا: الإضاءة ضعيفة، أعد التصوير أوضح، أضف عرض المنتج بوضوح..."></textarea></div>
-          <button type="button" class="sa-btn" style="background:#fff;color:#c0392b;border:1.5px solid #e6b0aa;" onclick="rejectContent('${applicationId}')">✕ رفض المحتوى وإرجاعه</button>
+        <div class="sa-desc">راجع المحتوى، ثم:</div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button type="button" class="sa-btn" style="flex:1;" onclick="approveContent('${applicationId}')">✓ موافقة</button>
+          <button type="button" class="sa-btn" style="flex:1;background:#fff;color:#c0392b;border:1.5px solid #e6b0aa;" onclick="rejectContent('${applicationId}')">✕ رفض</button>
         </div>
       </div>
     `;
@@ -3880,20 +3876,43 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   return `<div class="stage-action waiting"><div class="sa-title">⏳ المرحلة الحالية: ${stageName}</div><div class="sa-desc">${myInfo.desc || ''}</div></div>`;
 }
 
+async function approveContent(applicationId) {
+  const { app, campaign } = findAppById(applicationId);
+  if (!app) return;
+  let note = prompt('تبي تضيف ملاحظة للمعلن مع الموافقة؟ (اتركها فاضية لو ما فيه)', '');
+  if (note === null) return; // ألغى
+  note = (note || '').trim();
+  const oldStage = app.stage || 6;
+  const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
+  existing[oldStage] = { ...(note ? { note } : {}), _at: new Date().toISOString() };
+  try {
+    const { error } = await supabaseClient.from('applications')
+      .update({ stage: oldStage + 1, stage_data: existing }).eq('id', applicationId).select();
+    if (error) throw error;
+    // حذف فيديو المراجعة بعد الموافقة
+    const vpath = (app.stage_data && app.stage_data[5] && app.stage_data[5]._video_path) || null;
+    if (vpath) { try { Promise.resolve(supabaseClient.rpc('delete_content_file', { p_path: vpath })).catch(function () {}); } catch (e) {} }
+    const creatorId = app.creator_id;
+    if (creatorId) {
+      try { createNotification(creatorId, 'workflow_update', 'تمّت الموافقة على المحتوى', ((campaign && campaign.title) || 'صفقة') + (note ? ' — ملاحظة: ' + note : ''), '/creator.html'); } catch (e) {}
+    }
+    showToast('تمّت الموافقة على المحتوى ✓', 'success');
+    await loadData();
+  } catch (err) { console.error('approve failed:', err); showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error'); }
+}
+
 async function rejectContent(applicationId) {
   const { app, campaign } = findAppById(applicationId);
   if (!app) return;
-  const reasonEl = document.getElementById('rej-' + applicationId);
-  const reason = reasonEl ? reasonEl.value.trim() : '';
-  if (!reason) { showToast('اكتب سبب الرفض للمعلن أولًا', 'error'); return; }
-  if (!confirm('رفض المحتوى وإرجاع المعلن لإعادة التصوير؟')) return;
+  let reason = prompt('اكتب سبب الرفض (يظهر للمعلن ليعدّل ويعيد الرفع):', '');
+  if (reason === null) return;
+  reason = (reason || '').trim();
+  if (!reason) { showToast('لازم تكتب سبب الرفض', 'error'); return; }
   const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
   existing[5] = { ...(existing[5] || {}), _rejected: true, _reject_reason: reason, _reject_at: new Date().toISOString() };
   try {
-    const { error } = await supabaseClient
-      .from('applications')
-      .update({ stage: 5, stage_data: existing })
-      .eq('id', applicationId).select();
+    const { error } = await supabaseClient.from('applications')
+      .update({ stage: 5, stage_data: existing }).eq('id', applicationId).select();
     if (error) throw error;
     const creatorId = app.creator_id;
     const title = (campaign && campaign.title) || 'صفقة';
