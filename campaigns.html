@@ -1648,11 +1648,6 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
     <p class="sub">عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.</p>
 
     <form onsubmit="submitCampaign(event)">
-      <div class="field">
-        <label>عنوان الحملة</label>
-        <input type="text" name="title" required placeholder="مثل: إطلاق عطر العيد الجديد">
-      </div>
-
       <style>
         .ctype-opt{flex:1;display:flex;gap:8px;align-items:flex-start;border:1.5px solid #e7edeb;border-radius:12px;padding:12px;cursor:pointer;transition:.15s;}
         .ctype-opt:has(input:checked){border-color:#12b5a3;background:#e3f6f1;}
@@ -1661,12 +1656,22 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
       <div class="field">
         <label>نوع الحملة</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <label class="ctype-opt"><input type="radio" name="campaign_type" value="home" checked>
-            <span><b style="display:block;">🏠 إعلان منزلي</b><span style="font-size:12px;color:#6f867f;">المعلن يستلم المنتج في بيته ويصوّر — نفس المراحل الحالية.</span></span></label>
-          <label class="ctype-opt"><input type="radio" name="campaign_type" value="visit">
-            <span><b style="display:block;">📍 زيارة</b><span style="font-size:12px;color:#6f867f;">المعلن يزور الموقع للتصوير — تتغيّر بعض المراحل بعد التفاوض.</span></span></label>
+          <label class="ctype-opt"><input type="radio" name="campaign_type" value="home" checked onchange="toggleCampaignType()">
+            <span><b style="display:block;">🏠 إعلان منزلي</b><span style="font-size:12px;color:#6f867f;">المعلن يستلم المنتج في بيته ويصوّر — المراحل الكاملة.</span></span></label>
+          <label class="ctype-opt"><input type="radio" name="campaign_type" value="visit" onchange="toggleCampaignType()">
+            <span><b style="display:block;">📍 زيارة</b><span style="font-size:12px;color:#6f867f;">المعلن يزور الموقع للتصوير — مراحل مختصرة.</span></span></label>
         </div>
-        <div class="hint">يحدّد مسار الحملة بعد التفاوض: المنزلي = المراحل الحالية · الزيارة = مسار مختلف.</div>
+      </div>
+
+      <div class="field">
+        <label>عنوان الحملة</label>
+        <input type="text" name="title" required placeholder="مثل: إطلاق عطر العيد الجديد">
+      </div>
+
+      <div class="field" id="visit-location-field" style="display:none;">
+        <label>موقع الزيارة</label>
+        <input type="text" name="visit_location" placeholder="ألصق رابط الموقع (خرائط قوقل)">
+        <div class="hint">رابط موقع الزيارة اللي يروح له المعلن.</div>
       </div>
 
       <div class="field">
@@ -1694,7 +1699,7 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
         </div>
       </div>
 
-      <div class="field-row">
+      <div class="field-row" id="home-timing-field">
         <div class="field">
           <label>موعد النشر المطلوب</label>
           <select name="publish_timing" id="publish-timing" required onchange="togglePublishDate()">
@@ -1711,6 +1716,18 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
           <input type="date" name="publish_date" id="publish-date">
           <div class="hint">التاريخ اللي تبي المحتوى يُنشر فيه</div>
         </div>
+      </div>
+
+      <div id="visit-timing-fields" style="display:none;">
+        <div class="field">
+          <label>موعد الزيارة — التاريخ</label>
+          <input type="date" name="visit_date">
+        </div>
+        <div class="field-row">
+          <div class="field"><label>من الساعة</label><input type="time" name="visit_time_from"></div>
+          <div class="field"><label>إلى الساعة</label><input type="time" name="visit_time_to"></div>
+        </div>
+        <div class="hint">اليوم والوقت اللي يزور فيه المعلن الموقع (من الساعة كذا إلى كذا).</div>
       </div>
 
       <div class="field">
@@ -2060,6 +2077,18 @@ function togglePublishDate() {
   field.style.display = isCustom ? '' : 'none';
   if (isCustom) { input.required = true; }
   else { input.required = false; input.value = ''; }
+}
+function toggleCampaignType() {
+  const sel = document.querySelector('[name="campaign_type"]:checked');
+  const isVisit = sel && sel.value === 'visit';
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('visit-location-field', isVisit);
+  show('home-timing-field', !isVisit);
+  show('visit-timing-fields', isVisit);
+  const pt = document.querySelector('[name="publish_timing"]');
+  const vd = document.querySelector('[name="visit_date"]');
+  if (pt) pt.required = !isVisit;
+  if (vd) vd.required = isVisit;
 }
 function selectPlatform(btn) {
   document.querySelectorAll('#platform-grid .platform-chip').forEach(c => c.classList.remove('active'));
@@ -3942,6 +3971,12 @@ function setModalMode(mode, campaign) {
     const _ct = campaign.campaign_type || 'home';
     const _ctR = form.querySelector('[name="campaign_type"][value="' + _ct + '"]');
     if (_ctR) _ctR.checked = true;
+    const _setv = (n, v) => { const el = form.querySelector('[name="' + n + '"]'); if (el && v != null) el.value = v; };
+    _setv('visit_location', campaign.visit_location);
+    _setv('visit_date', campaign.visit_date);
+    _setv('visit_time_from', campaign.visit_time_from);
+    _setv('visit_time_to', campaign.visit_time_to);
+    toggleCampaignType();
     // نطاقات المتابعين (اختيار متعدد)
     const selectedRanges = (campaign.follower_range || '').split(',').map(s => s.trim()).filter(Boolean);
     form.querySelectorAll('#range-grid .platform-chip').forEach(c => {
@@ -3977,6 +4012,7 @@ function setModalMode(mode, campaign) {
     form.querySelector('#follower-range-input').value = '';
     togglePublishDate();
     simblPopulateCities();
+    toggleCampaignType();
   }
 }
 
@@ -4130,6 +4166,10 @@ async function submitCampaign(event) {
     follower_range: fd.get('follower_range') || null,
     campaign_size: parseInt(fd.get('campaign_size')) || null,
     campaign_type: fd.get('campaign_type') || 'home',
+    visit_location: fd.get('visit_location') || null,
+    visit_date: fd.get('visit_date') || null,
+    visit_time_from: fd.get('visit_time_from') || null,
+    visit_time_to: fd.get('visit_time_to') || null,
     country: selCountry || null,
     city: selCountry ? (selCity || null) : null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
