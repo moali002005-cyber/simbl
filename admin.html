@@ -171,6 +171,18 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 </head>
 <body>
 
+<!-- ===== overlay: الدخول كالمستخدم ===== -->
+<div id="imp-overlay" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(10,10,10,.82);backdrop-filter:blur(3px);align-items:center;justify-content:center;flex-direction:column;gap:16px;color:#fff;font-family:inherit">
+  <div class="spinner" style="border-top-color:#13B9B2"></div>
+  <div id="imp-overlay-msg" style="font-size:15px;font-weight:600">جاري الدخول…</div>
+</div>
+<style>
+  #users-tbody tr.u-imp-row{cursor:pointer;transition:background .12s}
+  #users-tbody tr.u-imp-row:hover{background:var(--accent-bg)}
+  #users-tbody tr.u-imp-row .imp-eye{opacity:.32;font-size:12px;margin-inline-end:2px}
+  #users-tbody tr.u-imp-row:hover .imp-eye{opacity:1}
+</style>
+
 <svg width="0" height="0" style="position:absolute"><defs>
   <symbol id="eye" viewBox="0 0 200 200">
     <g fill="none" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="round">
@@ -961,6 +973,43 @@ function renderOverview(){
 }
 
 // ===== users =====
+// ===== الدخول كالمستخدم (Impersonation) — نقرة واحدة تنقلك لشاشته =====
+const IMPERSONATE_URL = SUPABASE_URL + '/functions/v1/impersonate';
+function showImpOverlay(msg){ const o=$('#imp-overlay'); if(!o) return; const m=$('#imp-overlay-msg'); if(m) m.textContent=msg||'جاري الدخول…'; o.style.display='flex'; }
+function hideImpOverlay(){ const o=$('#imp-overlay'); if(o) o.style.display='none'; }
+async function startImpersonation(userId){
+  const u = usersById[userId]; if(!u) return;
+  const name = u.role==='brand' ? (u.company_name||u.name||'المستخدم') : (u.name||'المستخدم');
+  showImpOverlay('جاري الدخول كـ '+name+'…');
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ hideImpOverlay(); alert('انتهت جلسة الأدمن — سجّل دخول من جديد.'); return; }
+    const res = await fetch(IMPERSONATE_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+session.access_token, 'apikey':SUPABASE_ANON_KEY },
+      body: JSON.stringify({ target_id:userId })
+    });
+    const out = await res.json().catch(()=>({}));
+    if(!res.ok || !out.ok){ hideImpOverlay(); alert('تعذّر الدخول: '+(out.error||('رمز '+res.status))); return; }
+    // 1) خزّن حالة الأدمن للرجوع لاحقًا
+    localStorage.setItem('simbl_imp_admin_session', JSON.stringify({ access_token:session.access_token, refresh_token:session.refresh_token }));
+    localStorage.setItem('simbl_imp_admin_user', localStorage.getItem('simbl_current_user')||'null');
+    // 2) بدّل جلسة Supabase Auth لهوية المستخدم الهدف (جلسة حقيقية → RLS يعامله كأنه هو)
+    const { error:vErr } = await sb.auth.verifyOtp({ token_hash: out.token_hash, type:'magiclink' });
+    if(vErr){
+      // تراجع: رجّع جلسة الأدمن ونظّف
+      try{ await sb.auth.setSession({ access_token:session.access_token, refresh_token:session.refresh_token }); }catch(_e){}
+      localStorage.removeItem('simbl_imp_admin_session'); localStorage.removeItem('simbl_imp_admin_user');
+      hideImpOverlay(); alert('تعذّر إنشاء جلسة المستخدم: '+vErr.message); return;
+    }
+    // 3) عيّن هوية التطبيق للمستخدم الهدف + علّم وضع المعاينة
+    localStorage.setItem('simbl_current_user', JSON.stringify(out.user));
+    localStorage.setItem('simbl_impersonation', JSON.stringify({ targetId:userId, targetRole:out.user.role, targetName:name, startedAt:Date.now() }));
+    // 4) انتقل لشاشته
+    window.location.href = (out.user.role==='brand') ? '/brand.html' : '/creator.html';
+  }catch(e){ hideImpOverlay(); alert('خطأ غير متوقع: '+(e && e.message ? e.message : e)); }
+}
+
 function renderUsers(){
   const q=($('#u-search').value||'').trim().toLowerCase();
   const role=$('#u-role').value;
@@ -978,7 +1027,7 @@ function renderUsers(){
     const sizeF=isB?(SIZE[u.size]||u.size||'—'):(u.followers?num(u.followers):'—');
     const contact=esc(u.email||u.whatsapp||u.phone||'—');
     const badge=isB?'<span class="badge b-brand">شركة</span>':'<span class="badge b-creator">معلن</span>';
-    return '<tr><td>'+esc(name)+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</td><td>'+badge+'</td><td class="dim">'+esc(seg)+'</td><td class="mono">'+sizeF+'</td><td class="dim">'+contact+'</td><td class="dim">'+fmtDate(u.created_at)+'</td><td><button onclick="adminDeleteUser(\''+u.id+'\')" style="padding:5px 10px;border:1px solid #e6bcbc;background:#fff;color:#c93030;border-radius:7px;font-size:12px;cursor:pointer">حذف</button></td></tr>';
+    return '<tr class="u-imp-row" onclick="startImpersonation(\''+u.id+'\')" title="اضغط للدخول كهذا المستخدم ومعاينة شاشته"><td><span class="imp-eye">👁</span> '+esc(name)+(u.handle?' <span class="dim">@'+esc(u.handle)+'</span>':'')+'</td><td>'+badge+'</td><td class="dim">'+esc(seg)+'</td><td class="mono">'+sizeF+'</td><td class="dim">'+contact+'</td><td class="dim">'+fmtDate(u.created_at)+'</td><td><button onclick="event.stopPropagation(); adminDeleteUser(\''+u.id+'\')" style="padding:5px 10px;border:1px solid #e6bcbc;background:#fff;color:#c93030;border-radius:7px;font-size:12px;cursor:pointer">حذف</button></td></tr>';
   }).join('') : '<tr><td colspan="7" class="empty">لا نتائج</td></tr>';
 }
 

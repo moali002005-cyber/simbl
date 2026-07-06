@@ -1153,6 +1153,43 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 </head>
 <body>
 
+<!-- ===== شريط المعاينة (impersonation) — يظهر فقط أثناء دخول الأدمن كمستخدم ===== -->
+<div id="simbl-imp-bar" style="display:none;position:sticky;top:0;z-index:99999;background:#0a0a0a;color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;padding:9px 16px;align-items:center;justify-content:center;gap:14px;box-shadow:0 2px 12px rgba(0,0,0,.28)">
+  <span id="simbl-imp-label" style="display:inline-flex;align-items:center;gap:7px">👁 وضع المعاينة</span>
+  <button onclick="simblExitImpersonation()" style="background:#13B9B2;color:#fff;border:0;padding:6px 15px;border-radius:100px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap">↩︎ رجوع لحسابك</button>
+</div>
+<script>
+(function(){
+  var raw=null; try{ raw=localStorage.getItem('simbl_impersonation'); }catch(e){}
+  if(!raw) return;
+  var imp={}; try{ imp=JSON.parse(raw)||{}; }catch(e){}
+  function show(){
+    var bar=document.getElementById('simbl-imp-bar'); if(!bar) return;
+    var lbl=document.getElementById('simbl-imp-label');
+    if(lbl) lbl.innerHTML='👁 تعاين كـ '+(imp.targetName||imp.targetId||'مستخدم')+' <span style="opacity:.6;font-weight:500">— للأدمن فقط</span>';
+    bar.style.display='flex';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',show); else show();
+})();
+async function simblExitImpersonation(){
+  try{
+    var adminSess=null; try{ adminSess=JSON.parse(localStorage.getItem('simbl_imp_admin_session')||'null'); }catch(e){}
+    var adminUser=localStorage.getItem('simbl_imp_admin_user');
+    if(adminSess && adminSess.access_token && window.supabaseClient){
+      await window.supabaseClient.auth.setSession({ access_token:adminSess.access_token, refresh_token:adminSess.refresh_token });
+    }
+    if(adminUser && adminUser!=='null') localStorage.setItem('simbl_current_user', adminUser);
+    else localStorage.removeItem('simbl_current_user');
+  }catch(e){ console.error('exit impersonation',e); }
+  try{
+    localStorage.removeItem('simbl_impersonation');
+    localStorage.removeItem('simbl_imp_admin_session');
+    localStorage.removeItem('simbl_imp_admin_user');
+  }catch(e){}
+  window.location.href='/admin.html';
+}
+</script>
+
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <nav class="nav">
