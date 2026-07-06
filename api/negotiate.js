@@ -390,7 +390,7 @@ export default async function handler(req, res) {
 
     // داخل الدفعة: لو كان في الانتظار وانفتح له مكان، رقّه ليُفاوَض
     if (realApp.status === 'waitlisted') {
-      try { await supabaseUpdate('applications', application.id, { status: 'pending' }); }
+      try { await supabaseUpdate('applications', application.id, { status: 'pending', pending_since: new Date().toISOString() }); }
       catch (e) { console.error('promote failed:', e); }
     }
   }
