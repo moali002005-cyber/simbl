@@ -450,6 +450,21 @@ body {
   transition: background .15s, color .15s, border-color .15s;
 }
 .app-del-btn:hover { background: #c93030; color: #fff; border-color: #c93030; }
+.app-swap-btn {
+  flex-shrink: 0;
+  border-radius: 20px;
+  border: 1px solid rgba(201,48,48,0.3);
+  background: #fff;
+  color: #c93030;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .15s;
+}
+.app-swap-btn:hover { background: #FDECEA; }
 
 .campaign-meta { display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted); flex-wrap: wrap; margin-top: 12px; }
 .campaign-meta strong { color: var(--ink); font-weight: 500; }
@@ -3370,7 +3385,6 @@ function renderCellDetail(a) {
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
         <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 عرض المفاوضة</button>
-        <button class="btn-negotiation" style="background:#fff;color:#c93030;border:1.5px solid rgba(201,48,48,0.4);" onclick="event.stopPropagation(); openRejectModal('${a.id}')">↔ استبدال المعلن</button>
       </div>`;
   }
   if (!isApproved) return '';
@@ -3445,7 +3459,7 @@ function renderDealRow(a, idx, campaignType) {
   return `
     <tr id="ac-${a.id}">
       <td class="mx-idx">${toArabic(idx + 1)}</td>
-      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);flex:1;min-width:0;">${nameHtml}</span><button class="app-del-btn" title="حذف هذا المعلن من الشيت" onclick="event.stopPropagation(); askDeleteApplication('${a.id}')">×</button></div></td>
+      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);flex:1;min-width:0;">${nameHtml}</span><button class="app-swap-btn" title="استبدال هذا المعلن بالتالي من قائمة الانتظار" onclick="event.stopPropagation(); openRejectModal('${a.id}')">↔ استبدال</button></div></td>
       ${cells}
     </tr>
     ${detail}
