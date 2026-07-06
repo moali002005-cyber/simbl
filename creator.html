@@ -1642,7 +1642,7 @@ function renderCreatorDealCard(c, a) {
   if (didntWin) {
     body = `<div class="dc-note full">اكتمل العدد المطلوب لهذي الحملة قبل ما يوصل دورك. تابع الحملات الجديدة وقدّم بسرعة — حظ أوفر 🌟</div>`;
   } else if (isWaitlisted) {
-    body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🕓 أنت في قائمة الانتظار لهذي الحملة حسب أولوية تقديمك. العدد المطلوب اكتمل حالياً، وبمجرد ما ينفتح مكان بننبّهك فورًا ويبدأ الوكيل يفاوضك. خلّك متابع 🌿</div>`;
+    body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🕓 أنت في قائمة الانتظار لهذي الحملة<span data-wpos="${a.id}"></span>. العدد المطلوب اكتمل حالياً، وبمجرد ما ينفتح مكان بننبّهك فورًا ويبدأ الوكيل يفاوضك. خلّك متابع 🌿</div>`;
   } else if (isApproved) {
     const flow = flowFor(c.campaign_type);
     let strip = '';
@@ -1756,6 +1756,20 @@ function renderUnified() {
   list.innerHTML = openHtml;
   // بعد رسم النماذج: استرجع أي مسودّات محفوظة + فعّل الحفظ التلقائي
   try { restoreStageDrafts(); } catch (e) { console.warn('restoreStageDrafts:', e); }
+  try { refreshWaitPositions(); } catch (e) { /* تجاهل */ }
+}
+
+// يعبّئ رقم ترتيب المعلن في قائمة الانتظار (لكل بطاقة انتظار)
+async function refreshWaitPositions() {
+  const els = document.querySelectorAll('[data-wpos]');
+  for (const el of els) {
+    const id = el.getAttribute('data-wpos');
+    if (!id) continue;
+    try {
+      const { data, error } = await supabaseClient.rpc('waitlist_position', { p_application_id: id });
+      if (!error && data != null) el.textContent = ' — ترتيبك رقم ' + toArabic(data);
+    } catch (e) { /* تجاهل بهدوء */ }
+  }
 }
 
 // ============ حفظ مؤقّت لحقول المرحلة (يمنع ضياعها لو المتصفح أعاد تحميل الصفحة) ============
