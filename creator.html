@@ -1635,7 +1635,9 @@ function renderCreatorDealCard(c, a) {
   } else if (awaitingApproval) {
     badge = `<span class="dc-badge amber">بانتظار التعميد</span>`;
   } else {
-    if (a.status === 'pending' && a.pending_since) {
+    if (a.status === 'pending' && a.pending_since && Date.now() >= new Date(a.pending_since).getTime() + 15 * 60000) {
+      badge = `<span class="dc-badge" style="background:#FDECEA;color:#a93226;border:1px solid #f0b4b4;">⌛ انتهت المهلة</span>`;
+    } else if (a.status === 'pending' && a.pending_since) {
       badge = `<span class="dc-badge" style="background:#E8850C;color:#fff;cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')">🔔 دورك الآن — افتح المحادثة</span>`;
     } else {
       badge = `<span class="dc-badge neutral" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 قيد التفاوض — افتح المحادثة</span>`;
@@ -1665,9 +1667,16 @@ function renderCreatorDealCard(c, a) {
   } else if (awaitingApproval) {
     body = `<div class="dc-note amber">⏳ بانتظار الشركة لاعتماد الصفقة وبدء التنفيذ.</div>`;
   } else if (a.status === 'pending' && a.pending_since) {
-    const _dl = new Date(new Date(a.pending_since).getTime() + 15 * 60000).toISOString();
-    body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🔔 <b>جاك دورك!</b> افتح المحادثة وابدأ التفاوض مع الوكيل الآن.<br>باقي لك <span class="cd-timer" data-deadline="${_dl}" style="font-weight:700;">--:--</span> قبل ما يُلغى دورك ويُعطى للتالي في قائمة الانتظار.</div>`
-      + `<button class="btn-negotiation" onclick="startNegotiation('${a.id}')" style="margin:0 14px 14px;">💬 ابدأ التفاوض الآن</button>`;
+    const _deadlineMs = new Date(a.pending_since).getTime() + 15 * 60000;
+    const _expired = Date.now() >= _deadlineMs;
+    if (_expired) {
+      // انتهت المهلة — يُمنع الدخول، ويُعطى السبب (بيُستبدل تلقائيًا)
+      body = `<div class="dc-note" style="background:#FDECEA;color:#a93226;border-right:3px solid #c0392b;">⌛ <b>انتهت مهلتك</b> (١٥ دقيقة) قبل ما تبدأ التفاوض، فتم تمرير دورك للتالي في قائمة الانتظار.<br>نعتذر منك، ونتمنى نشوفك في حملة قادمة 🌿</div>`;
+    } else {
+      const _dl = new Date(_deadlineMs).toISOString();
+      body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🔔 <b>جاك دورك!</b> افتح المحادثة وابدأ التفاوض مع الوكيل الآن.<br>باقي لك <span class="cd-timer" data-deadline="${_dl}" style="font-weight:700;">--:--</span> قبل ما يُلغى دورك ويُعطى للتالي في قائمة الانتظار.</div>`
+        + `<button class="btn-negotiation" onclick="startNegotiation('${a.id}')" style="margin:0 14px 14px;">💬 ابدأ التفاوض الآن</button>`;
+    }
   } else {
     body = `<div class="dc-note">💬 الوكيل يفاوض الشركة على عرضك. بمجرد الاتفاق راح تبدأ مراحل التنفيذ.</div>`
       + `<button class="btn-negotiation" onclick="startNegotiation('${a.id}')" style="margin:0 14px 14px;">💬 عرض المفاوضة</button>`;
