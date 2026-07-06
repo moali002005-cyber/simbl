@@ -1923,6 +1923,21 @@ let expandedAppId = null;
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
 
+// مؤقّت تنازلي حيّ لمهلة استبدال المعلن المُرقّى من الانتظار (يحدّث كل ثانية)
+if (!window._simblCountdownTick) {
+  window._simblCountdownTick = setInterval(function () {
+    document.querySelectorAll('.cd-timer').forEach(function (el) {
+      const dl = new Date(el.getAttribute('data-deadline')).getTime();
+      if (isNaN(dl)) return;
+      let ms = dl - Date.now();
+      if (ms <= 0) { el.textContent = 'انتهت'; return; }
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      el.textContent = toArabic(m) + ':' + toArabic(String(s).padStart(2, '0'));
+    });
+  }, 1000);
+}
+
 // ====== إشعار لطيف يختفي تلقائياً (بديل alert) ======
 function showToast(message, type = 'success', duration = 3500) {
   const wrap = document.getElementById('toast-wrap');
@@ -3411,7 +3426,10 @@ function renderDealRow(a, idx, campaignType) {
   } else if (a.status === 'waitlisted') {
     cells = `<td class="mx-cell" colspan="${NCOL}"><div class="mx-in" style="background:#F0F4F8;color:#5B6B7A;font-size:12px;font-weight:600;height:44px;">🕓 في قائمة الانتظار — يبدأ التفاوض تلقائيًا لو انفتح مكان</div></td>`;
   } else {
-    cells = `<td colspan="${NCOL}" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')"><div class="mx-in" style="font-size:12px;color:var(--ink-muted);height:44px;">💬 قيد التفاوض — اضغط لعرض المفاوضة</div></td>`;
+    const _onClock = (a.status === 'pending' && a.pending_since);
+    const _pnd = _onClock ? new Date(new Date(a.pending_since).getTime() + 15 * 60000).toISOString() : null;
+    const _cd = _pnd ? ` · ⏱ باقي <span class="cd-timer" data-deadline="${_pnd}" style="font-weight:700;color:#c0392b;">--:--</span> على الاستبدال` : '';
+    cells = `<td colspan="${NCOL}" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')"><div class="mx-in" style="font-size:12px;color:var(--ink-muted);height:44px;">💬 قيد التفاوض — اضغط لعرض المفاوضة${_cd}</div></td>`;
   }
 
   const isExpanded = awaitingApproval || (expandedAppId === a.id);
