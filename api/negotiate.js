@@ -275,6 +275,14 @@ export default async function handler(req, res) {
       dealDetails: null
     });
   }
+  // منتهي المهلة / مرفوض / صُرف لاكتمال الحملة → يُمنع من التفاوض نهائيًا في هذي الحملة
+  if (realApp.status === 'rejected' || realApp.status === 'campaign_full') {
+    return res.status(200).json({
+      reply: 'نعتذر منك، انتهت مهلتك في هذي الحملة وتم تمرير دورك لمعلن آخر. ما يصير نكمل التفاوض عليها — نتمنى نشوفك في حملة قادمة 🌿',
+      dealClosed: false,
+      dealDetails: null
+    });
+  }
   // ج) حدّ المعدّل: لا أكثر من ١٥ رسالة لنفس المفاوضة خلال ٦٠ ثانية (يوقف السبام الآلي)
   const sinceIso = new Date(Date.now() - 60 * 1000).toISOString();
   const recentMsgs = await supabaseCountRecentMessages(application.id, sinceIso);
