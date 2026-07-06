@@ -3101,7 +3101,7 @@ async function promoteNextWaitlisted(campaignId, campaignTitle) {
     const next = data[0];
     const { error: upErr } = await supabaseClient
       .from('applications')
-      .update({ status: 'pending' })
+      .update({ status: 'pending', pending_since: new Date().toISOString() })
       .eq('id', next.id);
     if (upErr) { console.error('promote update failed:', upErr); return; }
     // إشعار المعلن المرقّى فورًا
@@ -3189,7 +3189,7 @@ async function rebalanceCampaign(campaignId, campaignTitle) {
       const toPromote = waiting.slice(0, vacancies - filled);
       for (const w of toPromote) {
         const { error: upErr } = await supabaseClient
-          .from('applications').update({ status: 'pending' }).eq('id', w.id);
+          .from('applications').update({ status: 'pending', pending_since: new Date().toISOString() }).eq('id', w.id);
         if (upErr) { console.error('rebalance promote failed:', upErr); continue; }
         filled++;
         if (w.creator_id) {
