@@ -1591,6 +1591,11 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
         .ctype-seg input{display:none;}
         .ctype-seg span{display:inline-block;padding:8px 20px;border-radius:9px;font-size:13.5px;font-weight:600;color:#5a6f68;transition:.15s;}
         .ctype-seg input:checked + span{background:#12b5a3;color:#fff;}
+        .visit-days-grid{display:flex;flex-wrap:wrap;gap:8px;max-height:190px;overflow-y:auto;padding:4px 2px;}
+        .visit-day{cursor:pointer;margin:0;}
+        .visit-day input{display:none;}
+        .visit-day span{display:inline-block;padding:8px 12px;border-radius:10px;border:1.5px solid #e7edeb;font-size:12.5px;font-weight:600;color:#33413c;background:#fff;transition:.15s;white-space:nowrap;}
+        .visit-day input:checked + span{border-color:#12b5a3;background:#e3f6f1;color:#0b7d73;}
       </style>
       <div class="field">
         <label>نوع الحملة</label>
@@ -1657,14 +1662,14 @@ table.xl td.cell.copied .dp, table.xl td.cell.copied .dues-link { color:#fff; }
 
       <div id="visit-timing-fields" style="display:none;">
         <div class="field">
-          <label>موعد الزيارة — اليوم</label>
-          <select name="visit_date"><option value="">اختر اليوم</option></select>
+          <label>موعد الزيارة — الأيام (اختر يوم أو أكثر)</label>
+          <div id="visit-days" class="visit-days-grid"></div>
         </div>
         <div class="field-row">
           <div class="field"><label>من الساعة</label><select name="visit_time_from"><option value="">اختر الوقت</option></select></div>
           <div class="field"><label>إلى الساعة</label><select name="visit_time_to"><option value="">اختر الوقت</option></select></div>
         </div>
-        <div class="hint">اختر اليوم من القائمة (اليوم، غدًا، وحتى شهر قدام) والوقت من–إلى.</div>
+        <div class="hint">اختر يومًا واحدًا أو أكثر (اليوم، غدًا، وحتى شهر قدام) والوقت من–إلى.</div>
       </div>
 
       <div class="field">
@@ -2000,19 +2005,19 @@ function toggleCampaignType() {
   if (vd) vd.required = isVisit;
 }
 function populateVisitDates() {
-  const sel = document.querySelector('[name="visit_date"]');
-  if (!sel || sel.dataset.filled) return;
+  const box = document.getElementById('visit-days');
+  if (!box || box.dataset.filled) return;
   const days = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
   const today = new Date(); today.setHours(0,0,0,0);
-  let html = '<option value="">اختر اليوم</option>';
+  let html = '';
   for (let i = 0; i < 31; i++) {
     const d = new Date(today); d.setDate(today.getDate() + i);
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
     const iso = y + '-' + m + '-' + day;
     const pref = i === 0 ? 'اليوم · ' : i === 1 ? 'غدًا · ' : '';
-    html += '<option value="' + iso + '">' + pref + days[d.getDay()] + ' ' + day + '/' + m + '/' + y + '</option>';
+    html += '<label class="visit-day"><input type="checkbox" class="visit-day-cb" value="' + iso + '"><span>' + pref + days[d.getDay()] + ' ' + day + '/' + m + '</span></label>';
   }
-  sel.innerHTML = html; sel.dataset.filled = '1';
+  box.innerHTML = html; box.dataset.filled = '1';
 }
 function populateVisitTimes() {
   ['visit_time_from','visit_time_to'].forEach(function (name) {
@@ -3295,7 +3300,7 @@ function setModalMode(mode, campaign) {
     toggleCampaignType();
     const _setv = (n, v) => { const el = form.querySelector('[name="' + n + '"]'); if (el && v != null) el.value = v; };
     _setv('visit_location', campaign.visit_location);
-    _setv('visit_date', campaign.visit_date);
+    (function () { const saved = (campaign.visit_dates || campaign.visit_date || '').split(',').filter(Boolean); saved.forEach(function (iso) { const cb = form.querySelector('.visit-day-cb[value="' + iso + '"]'); if (cb) cb.checked = true; }); })();
     _setv('visit_time_from', campaign.visit_time_from);
     _setv('visit_time_to', campaign.visit_time_to);
     // نطاقات المتابعين (اختيار متعدد)
@@ -3488,7 +3493,8 @@ async function submitCampaign(event) {
     campaign_size: parseInt(fd.get('campaign_size')) || null,
     campaign_type: fd.get('campaign_type') || 'home',
     visit_location: fd.get('visit_location') || null,
-    visit_date: fd.get('visit_date') || null,
+    visit_dates: (function () { const ds = Array.from(document.querySelectorAll('.visit-day-cb:checked')).map(c => c.value).sort(); return ds.length ? ds.join(',') : null; })(),
+    visit_date: (function () { const ds = Array.from(document.querySelectorAll('.visit-day-cb:checked')).map(c => c.value).sort(); return ds.length ? ds[0] : null; })(),
     visit_time_from: fd.get('visit_time_from') || null,
     visit_time_to: fd.get('visit_time_to') || null,
     country: selCountry || null,
