@@ -333,9 +333,11 @@ export default async function handler(req, res) {
   const timingLabel = publishTimingTextSrv(campaign);
   // ---- سياق الزيارة (يُطبّق فقط لو campaign_type = visit) ----
   const isVisit = campaign.campaign_type === 'visit';
-  const visitWhen = campaign.visit_date
-    ? `${campaign.visit_date}${campaign.visit_time_from ? ' من ' + campaign.visit_time_from : ''}${campaign.visit_time_to ? ' إلى ' + campaign.visit_time_to : ''}`
-    : 'يُحدَّد داخل المنصة';
+  const _visitDays = campaign.visit_dates ? String(campaign.visit_dates).split(',').filter(Boolean) : (campaign.visit_date ? [campaign.visit_date] : []);
+  const _daysTxt = _visitDays.length === 0 ? 'يُحدَّد داخل المنصة'
+    : (_visitDays.length === 1 ? _visitDays[0] : ('أحد هذي الأيام: ' + _visitDays.join('، ')));
+  const _timeTxt = (campaign.visit_time_from ? ' من ' + campaign.visit_time_from : '') + (campaign.visit_time_to ? ' إلى ' + campaign.visit_time_to : '');
+  const visitWhen = _daysTxt + _timeTxt;
   const timingDesc = isVisit ? `موعد الزيارة: ${visitWhen}` : `موعد النشر: ${timingLabel}`;
   const visitLocLine = (isVisit && campaign.visit_location) ? `\n- موقع الزيارة: ${campaign.visit_location}` : '';
   const executionReassure = isVisit
