@@ -1660,6 +1660,10 @@ function renderCreatorDealCard(c, a) {
     body = `${isCompleted ? '<div class="dc-done-banner">🎉 تمّت الحملة بنجاح — شكرًا لجهودك!</div>' : ''}<div class="dc-strip">${strip}</div><div class="dc-action">${renderStageAction(a.id, stageNow, 'creator')}</div>`;
   } else if (awaitingApproval) {
     body = `<div class="dc-note amber">⏳ بانتظار الشركة لاعتماد الصفقة وبدء التنفيذ.</div>`;
+  } else if (a.status === 'pending' && a.pending_since) {
+    const _dl = new Date(new Date(a.pending_since).getTime() + 15 * 60000).toISOString();
+    body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🔔 <b>جاك دورك!</b> افتح المحادثة وابدأ التفاوض مع الوكيل الآن.<br>باقي لك <span class="cd-timer" data-deadline="${_dl}" style="font-weight:700;">--:--</span> قبل ما يُلغى دورك ويُعطى للتالي في قائمة الانتظار.</div>`
+      + `<button class="btn-negotiation" onclick="startNegotiation('${a.id}')" style="margin:0 14px 14px;">💬 ابدأ التفاوض الآن</button>`;
   } else {
     body = `<div class="dc-note">💬 الوكيل يفاوض الشركة على عرضك. بمجرد الاتفاق راح تبدأ مراحل التنفيذ.</div>`
       + `<button class="btn-negotiation" onclick="startNegotiation('${a.id}')" style="margin:0 14px 14px;">💬 عرض المفاوضة</button>`;
@@ -1770,6 +1774,21 @@ async function refreshWaitPositions() {
       if (!error && data != null) el.textContent = ' — ترتيبك رقم ' + toArabic(data);
     } catch (e) { /* تجاهل بهدوء */ }
   }
+}
+
+// مؤقّت تنازلي حيّ لمهلة «جاك دورك» (يحدّث كل ثانية)
+if (!window._simblCountdownTick) {
+  window._simblCountdownTick = setInterval(function () {
+    document.querySelectorAll('.cd-timer').forEach(function (el) {
+      const dl = new Date(el.getAttribute('data-deadline')).getTime();
+      if (isNaN(dl)) return;
+      let ms = dl - Date.now();
+      if (ms <= 0) { el.textContent = 'انتهت المهلة'; el.style.color = '#a93226'; return; }
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      el.textContent = toArabic(m) + ':' + toArabic(String(s).padStart(2, '0'));
+    });
+  }, 1000);
 }
 
 // ============ حفظ مؤقّت لحقول المرحلة (يمنع ضياعها لو المتصفح أعاد تحميل الصفحة) ============
