@@ -3512,7 +3512,7 @@ function renderSingleCampaign(c) {
     const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
     const waitlistApps = apps.filter(a => a.status === 'waitlisted');
-    const sheetApps = apps.filter(a => a.status !== 'waitlisted');
+    const sheetApps = apps.filter(a => a.status !== 'waitlisted' && a.status !== 'rejected' && a.status !== 'campaign_full');
     const target = campaignTarget(c);
     const approved = approvedDealCount(c.id);
     const complete = isCampaignComplete(c);
