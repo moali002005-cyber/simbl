@@ -1635,7 +1635,11 @@ function renderCreatorDealCard(c, a) {
   } else if (awaitingApproval) {
     badge = `<span class="dc-badge amber">بانتظار التعميد</span>`;
   } else {
-    badge = `<span class="dc-badge neutral">قيد التفاوض</span>`;
+    if (a.status === 'pending' && a.pending_since) {
+      badge = `<span class="dc-badge" style="background:#E8850C;color:#fff;cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')">🔔 دورك الآن — افتح المحادثة</span>`;
+    } else {
+      badge = `<span class="dc-badge neutral" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 قيد التفاوض — افتح المحادثة</span>`;
+    }
   }
 
   let body = '';
