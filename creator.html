@@ -1654,7 +1654,7 @@ function renderCreatorDealCard(c, a) {
   const isWaitlisted = a.status === 'waitlisted';
   const campClosed = !!(c && (c.status === 'closed' || c.status === 'completed'));
   const didntWin = campClosed && !isClosed;
-  const stageNow = a.stage || 1;
+  const stageNow = (a.stage === 4) ? 5 : (a.stage || 1); // البريف (٤) مُلغى — نعرضه كمرحلة المحتوى (٥)
   const price = (a.final_price || a.price || 0);
   const briefText = getBriefText(a);
   const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
@@ -2468,8 +2468,9 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
 async function submitStageForm(applicationId) {
   const app = myApplications.find(a => a.id === applicationId);
   if (!app) return;
-  const oldStage = app.stage || 1;
+  const oldStage = (app.stage === 4) ? 5 : (app.stage || 1); // البريف مُلغى — نعامله كالمحتوى
   let newStage = oldStage + 1;
+  if (newStage === 4) newStage = 5; // تخطِّ البريف: الاستلام (٣) ← المحتوى (٥) مباشرة
   // تصحيح مرحلة: لو الشركة طلبت تصحيح هذي المرحلة، بعد ما يصلّحها المعلن نكمل مباشرة (باقي المراحل معبّأة)
   const _fixPending = app.stage_data && app.stage_data[oldStage] && app.stage_data[oldStage]._fix_requested;
   if (_fixPending) newStage = 9;
