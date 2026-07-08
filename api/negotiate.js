@@ -208,6 +208,38 @@ function extractFinalPrice(text) {
 // ============ شبكة أمان الإقفال ============
 // كشف موافقة صريحة من المعلن (عشان نقفل تلقائيًا لو الوكيل نسي وسم [DEAL_CLOSED]).
 // متحفّظة عمدًا: ترفض أي رسالة فيها استفسار أو استمرار تفاوض أو نفي — عشان ما نقفل بالغلط.
+// ====== فحص استهداف الدولة/المدينة ======
+// دولة/مدينة المعلن لهذا العرض (عبر creator_id المرتبط)
+async function supabaseGetCreatorLocation(appId) {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/applications?id=eq.${appId}&select=creator_id,users!applications_creator_id_fkey(country,city)`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) { console.error('Creator location fetch error:', await res.text()); return null; }
+    const rows = await res.json();
+    const u = (rows && rows[0]) ? rows[0].users : null;
+    return u ? { country: u.country, city: u.city } : null;
+  } catch (err) {
+    console.error('Get creator location failed:', err);
+    return null;
+  }
+}
+
+// نفس منطق simblLocationMatch في supabase-config.js (لكن مع تطبيع بسيط للحالة/المسافات)
+function simblLocationMatchSrv(creator, campaign) {
+  const norm = v => (v == null ? '' : String(v).trim());
+  const cCountry = norm(campaign && campaign.country);
+  if (!cCountry) return true;                                                     // لا دولة على الحملة → الجميع
+  const uCountry = norm(creator && creator.country);
+  if (!uCountry || uCountry.toUpperCase() !== cCountry.toUpperCase()) return false; // لازم نفس الدولة
+  const cCity = norm(campaign && campaign.city);
+  if (!cCity || cCity.toLowerCase() === 'all') return true;                       // كل مدن الدولة
+  const uCity = norm(creator && creator.city);
+  if (!uCity) return true;                                                        // معلن بدون مدينة → ضمن دولته
+  return uCity.toLowerCase() === cCity.toLowerCase();
+}
+
 function creatorAcceptedExplicit(text) {
   if (!text) return false;
   const t = toAsciiDigits(String(text)).trim();
@@ -293,6 +325,21 @@ export default async function handler(req, res) {
       dealClosed: false,
       dealDetails: null
     });
+  }
+
+  // ============ فحص استهداف الدولة/المدينة (يقفل تفاوض معلن خارج نطاق الحملة) ============
+  // القاعدة تُطبَّق للعرض والإشعار، لكن الوكيل كان يفاوض أي معلن يفتح المحادثة بغضّ النظر عن دولته.
+  // هنا نقفل الباب نهائيًا: لو دولة المعلن ما تطابق دولة الحملة → لا نبدأ/نكمل التفاوض.
+  // (نفشل بأمان: لو تعذّر جلب موقع المعلن، لا نمنع — الفلترة عند العرض تبقى خط الدفاع الأول.)
+  if (campaign && campaign.country) {
+    const creatorLoc = await supabaseGetCreatorLocation(application.id);
+    if (creatorLoc && !simblLocationMatchSrv(creatorLoc, campaign)) {
+      return res.status(200).json({
+        reply: 'نعتذر منك، هذي الحملة مخصّصة لمنطقة مختلفة، فما نقدر نكمل التفاوض عليها. نتمنى نشوفك في حملة تناسب منطقتك 🌿',
+        dealClosed: false,
+        dealDetails: null
+      });
+    }
   }
 
   // ============ حساب الأرقام المحدّدة قبل البرومبت ============
