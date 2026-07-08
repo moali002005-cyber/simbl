@@ -1192,6 +1192,55 @@ async function simblExitImpersonation(){
 
 <div class="toast-wrap" id="toast-wrap"></div>
 
+<!-- ===== مودال «كمّل مدينتك» (لتقليل المعلنين بلا مدينة قبل تفعيل الاستهداف الصارم) ===== -->
+<style>
+  #city-modal{position:fixed;inset:0;z-index:10000;background:rgba(12,26,24,.55);display:none;align-items:center;justify-content:center;padding:20px}
+  #city-modal.on{display:flex}
+  #city-modal .cm-box{background:#fff;border-radius:20px;max-width:400px;width:100%;padding:26px 24px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;font-family:inherit}
+  #city-modal .cm-ic{font-size:38px;margin-bottom:8px}
+  #city-modal h3{margin:0 0 8px;font-size:20px;color:#141414}
+  #city-modal p{margin:0 0 18px;font-size:14px;color:#5b5b5b;line-height:1.7}
+  #city-modal select{width:100%;padding:13px 14px;border:1.5px solid #d9e2e0;border-radius:12px;font-family:inherit;font-size:15px;color:#141414;background:#fff;margin-bottom:14px}
+  #city-modal .cm-save{width:100%;padding:13px;border:0;border-radius:100px;background:var(--accent,#13B9B2);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
+  #city-modal .cm-save:disabled{opacity:.6;cursor:default}
+  #city-modal .cm-skip{display:inline-block;margin-top:12px;font-size:13px;color:#8a8a8a;cursor:pointer;text-decoration:underline}
+  #city-modal .cm-err{display:none;margin-top:10px;font-size:13px;color:#c0392b;line-height:1.6}
+</style>
+<div id="city-modal">
+  <div class="cm-box">
+    <div class="cm-ic">📍</div>
+    <h3>كمّل مدينتك</h3>
+    <p>حدّد مدينتك عشان توصلك حملات منطقتك المناسبة لك.</p>
+    <select id="city-select">
+      <option value="">اختر مدينتك…</option>
+      <option value="riyadh">الرياض</option>
+      <option value="jeddah">جدة</option>
+      <option value="makkah">مكة المكرمة</option>
+      <option value="madinah">المدينة المنورة</option>
+      <option value="dammam">الدمام</option>
+      <option value="khobar">الخبر</option>
+      <option value="dhahran">الظهران</option>
+      <option value="jubail">الجبيل</option>
+      <option value="ahsa">الأحساء</option>
+      <option value="qatif">القطيف</option>
+      <option value="taif">الطائف</option>
+      <option value="abha">أبها</option>
+      <option value="khamis">خميس مشيط</option>
+      <option value="jazan">جازان</option>
+      <option value="najran">نجران</option>
+      <option value="tabuk">تبوك</option>
+      <option value="hail">حائل</option>
+      <option value="buraidah">بريدة</option>
+      <option value="unaizah">عنيزة</option>
+      <option value="yanbu">ينبع</option>
+      <option value="other">مدينة أخرى</option>
+    </select>
+    <button id="city-save-btn" class="cm-save" onclick="saveCityChoice()">حفظ</button>
+    <div class="cm-err" id="city-err"></div>
+    <div class="cm-skip" onclick="skipCity()">لاحقًا</div>
+  </div>
+</div>
+
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="logo">
@@ -1471,6 +1520,39 @@ function kitToast(msg){
   clearTimeout(window._ktt); window._ktt=setTimeout(function(){ t.className=''; },2400);
 }
 
+// ===== «كمّل مدينتك»: نطلب المدينة من المعلن اللي مدينته فاضية (لتنظيف البيانات قبل الاستهداف الصارم) =====
+function maybePromptCity(){
+  try{
+    if(!currentUser) return;
+    if(currentUser.city && String(currentUser.city).trim()) return;      // عنده مدينة → لا شيء
+    if(sessionStorage.getItem('simbl_city_skip')==='1') return;          // أجّلها هذي الجلسة
+    var m=document.getElementById('city-modal'); if(m) m.classList.add('on');
+  }catch(e){ /* تجاهل */ }
+}
+async function saveCityChoice(){
+  var sel=document.getElementById('city-select'); var v=sel?sel.value:'';
+  var err=document.getElementById('city-err'); if(err){ err.style.display='none'; }
+  if(!v){ if(err){ err.textContent='اختر مدينتك أولًا.'; err.style.display='block'; } return; }
+  var btn=document.getElementById('city-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='جاري الحفظ…'; }
+  try{
+    if(!currentUser || !currentUser.id) throw new Error('no user');
+    const { error } = await supabaseClient.rpc('set_my_city', { p_city: v });
+    if(error) throw error;
+    currentUser.city = v;
+    if(typeof saveCurrentUser==='function') saveCurrentUser(currentUser);
+    var m=document.getElementById('city-modal'); if(m) m.classList.remove('on');
+  }catch(e){
+    console.error('save city failed:', e);
+    if(btn){ btn.disabled=false; btn.textContent='حفظ'; }
+    if(err){ err.innerHTML='تعذّر الحفظ من هنا. حدّث مدينتك من <a href="/profile.html" style="color:#0c4f4b;font-weight:700">الملف الشخصي</a>.'; err.style.display='block'; }
+  }
+}
+function skipCity(){
+  try{ sessionStorage.setItem('simbl_city_skip','1'); }catch(e){}
+  var m=document.getElementById('city-modal'); if(m) m.classList.remove('on');
+}
+
 async function init() {
   await tryRestoreSession();
 
@@ -1528,6 +1610,8 @@ async function init() {
     showPendingScreen(approvalStatus);
     return;
   }
+
+  maybePromptCity();
 
   initNotifications('user-menu');
 
