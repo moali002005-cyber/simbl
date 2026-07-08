@@ -280,71 +280,77 @@ place(); setScope('owner');
 <style>
   .pb-overlay{position:fixed;inset:0;z-index:60;background:var(--page);display:none;flex-direction:column}
   .pb-overlay.on{display:flex}
-  .pb-top{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;background:#fff;border-bottom:1px solid var(--line)}
+  .pb-top{display:flex;align-items:center;justify-content:space-between;padding:15px 24px;background:#fff;border-bottom:1px solid var(--line)}
   .pb-title{font-family:'Cairo';font-weight:800;font-size:19px;color:var(--ink)}
   .pb-actions{display:flex;align-items:center;gap:12px}
   .pb-stamp{color:var(--muted);font-size:12px}
   .pb-btn{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 14px;border-radius:999px;font-family:'Tajawal';font-weight:700;font-size:12.5px}
   .pb-btn:hover{border-color:var(--teal)}
   .pb-close{cursor:pointer;border:none;background:var(--tint);color:var(--deep);width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1}
-  .pb-scroll{flex:1;overflow:auto;padding:18px 22px 46px}
-  .pb-scroll>*{max-width:1140px;margin-inline:auto}
-  .pb-loading,.pb-error,.pb-empty{padding:32px;text-align:center;color:var(--muted);font-size:14px}
+  .pb-scroll{flex:1;overflow:auto;padding:22px}
+  .pb-wrap{max-width:1160px;margin-inline:auto;display:flex;flex-direction:column;gap:16px}
+  .pb-loading,.pb-error,.pb-empty{padding:34px;text-align:center;color:var(--muted);font-size:14px}
   .pb-error{color:#b23b3b}
-  .pb-sec-t{font-family:'Cairo';font-weight:800;font-size:15px;color:var(--ink);margin:22px auto 12px;display:flex}
-  .pb-sec-t:first-child{margin-top:4px}
   .pb-click{cursor:pointer}
-  /* تنبيهات */
-  .pb-alerts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .pb-alert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center}
-  .pb-alert-v{font-family:'Cairo';font-weight:800;font-size:30px;line-height:1;color:var(--ink)}
-  .pb-alert-l{font-size:12px;margin-top:7px;color:var(--muted)}
-  .pb-alert.bad{background:#fdeeee;border-color:#f2c9c9}.pb-alert.bad .pb-alert-v{color:#c0392b}
-  .pb-alert.warn{background:#fff7e8;border-color:#f0d9a8}.pb-alert.warn .pb-alert-v{color:#c98a12}
-  .pb-alert.good{background:var(--tint);border-color:transparent}.pb-alert.good .pb-alert-v{color:var(--deep)}
-  .pb-alert.ok .pb-alert-v{color:#9bb3ac}
-  /* خط الإنتاج */
-  .pb-funnel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}
-  .pb-fn-row{display:grid;grid-template-columns:120px 1fr 46px;align-items:center;gap:12px;padding:6px 0}
-  .pb-fn-name{font-size:13px;font-weight:600;color:var(--ink);text-align:right}
-  .pb-fn-bar{background:var(--page);border-radius:8px;height:22px;overflow:hidden}
-  .pb-fn-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--deep));border-radius:8px;min-width:2px}
-  .pb-fn-c{font-family:'Cairo';font-weight:700;font-size:15px;color:var(--ink);text-align:left}
-  .pb-fn-row.bn .pb-fn-fill{background:linear-gradient(90deg,#e2a13a,#c0392b)}
+  /* بطاقة الملخّص الذكي */
+  .pb-brief{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px 24px}
+  .pb-brief-h{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .pb-brief-ic{width:34px;height:34px;border-radius:10px;background:var(--tint);color:var(--deep);display:flex;align-items:center;justify-content:center;font-size:18px}
+  .pb-brief-t{font-family:'Cairo';font-weight:800;font-size:17px;color:var(--ink)}
+  .pb-brief-x{font-size:15.5px;line-height:1.85;color:var(--ink);margin:0 0 14px;font-weight:500}
+  .pb-notes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .pb-note{background:#fff7e8;color:#96690c;border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:600}
+  .pb-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;border-top:1px solid var(--line);padding-top:16px}
+  .pb-kpi{text-align:center}
+  .pb-kpi-v{font-family:'Cairo';font-weight:800;font-size:27px;line-height:1;color:var(--ink)}
+  .pb-kpi-l{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .pb-kpi.bad .pb-kpi-v{color:#c0392b}.pb-kpi.warn .pb-kpi-v{color:#c98a12}.pb-kpi.good .pb-kpi-v{color:var(--deep)}
+  /* بينتو */
+  .pb-bento{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  .pb-tile{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 20px}
+  .pb-tile-h{font-family:'Cairo';font-weight:800;font-size:14px;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .pb-tile-h .sub{font-family:'Tajawal';font-weight:500;font-size:12px;color:var(--muted)}
+  /* قمع */
+  .pb-fn-row{display:grid;grid-template-columns:96px 1fr 42px;align-items:center;gap:12px;padding:5px 0}
+  .pb-fn-name{font-size:12.5px;font-weight:600;color:var(--ink);text-align:right}
+  .pb-fn-bar{background:var(--page);border-radius:8px;height:20px;overflow:hidden}
+  .pb-fn-fill{height:100%;background:var(--teal);border-radius:8px;min-width:2px}
+  .pb-fn-c{font-family:'Cairo';font-weight:700;font-size:14px;color:var(--ink);text-align:left}
+  .pb-fn-row.bn .pb-fn-fill{background:#d9662a}
   .pb-fn-row.bn .pb-fn-c{color:#c0392b}
-  .pb-bn-tag{font-size:10px;background:#fdeeee;color:#c0392b;border-radius:999px;padding:1px 7px;font-weight:700}
+  .pb-bn-tag{font-size:9.5px;background:#fdeeee;color:#c0392b;border-radius:999px;padding:1px 7px;font-weight:700;margin-inline-start:5px}
   /* اتجاه */
-  .pb-trend{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;height:150px}
+  .pb-trend{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:132px}
   .pb-tr-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px}
-  .pb-tr-bar{width:70%;max-width:46px;background:linear-gradient(180deg,var(--teal),var(--deep));border-radius:6px 6px 0 0;min-height:5px}
-  .pb-tr-lbl{font-size:10.5px;color:var(--muted)}
-  .pb-tr-n{font-family:'Cairo';font-weight:700;font-size:12px;color:var(--ink)}
-  /* بطاقات */
+  .pb-tr-bar{width:66%;max-width:34px;background:var(--teal);border-radius:6px 6px 0 0;min-height:5px}
+  .pb-tr-lbl{font-size:10px;color:var(--muted)}
+  .pb-tr-n{font-family:'Cairo';font-weight:700;font-size:11.5px;color:var(--ink)}
+  /* بطاقات العلامات */
   .pb-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-  .pb-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}
-  .pb-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+  .pb-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px}
+  .pb-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
   .pb-brand{font-family:'Cairo';font-weight:800;font-size:18px;color:var(--ink)}
   .pb-mgr{color:var(--muted);font-size:12.5px;margin-top:2px}
-  .pb-today{text-align:center;background:var(--tint);border-radius:12px;padding:8px 14px;min-width:72px}
-  .pb-today-v{font-family:'Cairo';font-weight:800;font-size:24px;color:var(--deep);line-height:1}
+  .pb-today{text-align:center;background:var(--tint);border-radius:14px;padding:9px 15px;min-width:74px}
+  .pb-today-v{font-family:'Cairo';font-weight:800;font-size:25px;color:var(--deep);line-height:1}
   .pb-today-l{color:var(--deep);font-size:10px;margin-top:3px}
-  .pb-mini{margin-top:12px}
-  .pb-mini-h{font-size:11px;color:var(--muted);margin-bottom:6px}
-  .pb-mini-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:56px}
+  .pb-mini{margin-top:14px}
+  .pb-mini-h{font-size:11px;color:var(--muted);margin-bottom:7px}
+  .pb-mini-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:52px}
   .pb-ms{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px}
-  .pb-ms-bar{width:80%;background:var(--tint2);border-radius:4px 4px 0 0;min-height:3px}
+  .pb-ms-bar{width:78%;background:var(--tint2);border-radius:4px 4px 0 0;min-height:3px}
   .pb-ms-c{font-size:10px;font-weight:700;color:var(--ink)}
-  .pb-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:12px}
-  .pb-stat{background:var(--page);border:1px solid var(--line);border-radius:11px;padding:11px 6px;text-align:center}
+  .pb-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+  .pb-stat{background:var(--page);border:1px solid var(--line);border-radius:13px;padding:11px 8px;text-align:center}
   .pb-stat-v{font-family:'Cairo';font-weight:700;font-size:19px;color:var(--ink);line-height:1}
   .pb-stat-l{color:var(--muted);font-size:10.5px;margin-top:5px}
   .pb-stat.bad{background:#fdeeee;border-color:#f2c9c9}.pb-stat.bad .pb-stat-v{color:#c0392b}
   .pb-stat.warn{background:#fff7e8;border-color:#f0d9a8}.pb-stat.warn .pb-stat-v{color:#c98a12}
-  .pb-warn{margin-top:10px;background:#fff7e8;color:#96690c;border-radius:10px;padding:7px 11px;font-size:12px;text-align:center}
-  /* مودال التفاصيل */
+  .pb-warn{margin-top:10px;background:#fff7e8;color:#96690c;border-radius:11px;padding:7px 11px;font-size:12px;text-align:center}
+  /* مودال */
   .pb-detail{position:fixed;inset:0;z-index:70;background:rgba(15,26,23,.55);display:none;align-items:center;justify-content:center;padding:18px}
   .pb-detail.on{display:flex}
-  .pb-detail-box{background:#fff;border-radius:18px;width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(10,10,10,.28)}
+  .pb-detail-box{background:#fff;border-radius:18px;width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;overflow:hidden}
   .pb-detail-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);font-family:'Cairo';font-weight:800;font-size:16px;color:var(--ink)}
   .pb-detail-body{overflow:auto;padding:8px 16px 18px}
   .pb-item{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px 4px;border-bottom:1px solid var(--line)}
@@ -352,7 +358,7 @@ place(); setScope('owner');
   .pb-item-c{font-weight:700;color:var(--ink);font-size:14px}
   .pb-item-t{color:var(--muted);font-size:11.5px;text-align:left;align-self:center}
   .pb-item-s{grid-column:1/-1;color:var(--muted);font-size:12.5px}
-  @media(max-width:860px){.pb-alerts{grid-template-columns:repeat(2,1fr)}.pb-cards{grid-template-columns:1fr}.pb-fn-row{grid-template-columns:90px 1fr 40px}}
+  @media(max-width:880px){.pb-bento{grid-template-columns:1fr}.pb-cards{grid-template-columns:1fr}.pb-kpis{grid-template-columns:repeat(2,1fr)}}
 </style>
 
 <div class="pb-overlay" id="perfBoard">
@@ -364,7 +370,7 @@ place(); setScope('owner');
       <button class="pb-close" onclick="closePerfBoard()">×</button>
     </div>
   </div>
-  <div class="pb-scroll"><div id="pbBody"></div></div>
+  <div class="pb-scroll"><div class="pb-wrap" id="pbBody"></div></div>
 </div>
 
 <div class="pb-detail" id="pbDetail">
@@ -405,49 +411,92 @@ async function loadPerfBoard(){
   }
 }
 
+function pbGroupStages(brands){
+  const g={}; brands.forEach(b=>{const s=b.stages||{};Object.keys(s).forEach(k=>{g[k]=(g[k]||0)+(s[k]||0);});});
+  return g;
+}
+
+function buildSummary(data){
+  const brands=data.brands||[]; const sum=k=>brands.reduce((a,b)=>a+(b[k]||0),0);
+  const g=pbGroupStages(brands);
+  const entries=Object.keys(g).map(k=>({s:+k,n:g[k]})).filter(x=>x.n>0);
+  const inProg=sum('in_progress'), stuck=sum('stuck'), awaiting=sum('awaiting_approval'),
+        rej=sum('rejected_week'), doneToday=sum('completed_today'), doneWeek=sum('completed_week');
+  const daily=data.daily||[];
+  const avg = daily.length ? Math.round(daily.reduce((a,x)=>a+(x.n||0),0)/daily.length) : 0;
+  const ranked=[...brands].sort((a,b)=>(b.completed_week||0)-(a.completed_week||0));
+  const top=ranked[0], bottom=ranked[ranked.length-1];
+  const parts=[], notes=[];
+
+  if(entries.length){
+    const bn=entries.reduce((m,x)=>x.n>m.n?x:m);
+    const pct=inProg?Math.round(bn.n/inProg*100):0;
+    parts.push(`أكبر تكدّس عند «${PB_STAGE_NAME[bn.s]||('مرحلة '+bn.s)}» — ${pbNum(bn.n)} صفقة (${pbNum(pct)}٪ من قيد التنفيذ)، يستحق مراجعة السبب.`);
+  }
+  if(awaiting>0) parts.push(`${pbNum(awaiting)} صفقة بانتظار اعتماد المدير.`);
+  if(doneToday<avg) parts.push(`الإنجاز اليوم ${pbNum(doneToday)}، أقل من متوسط الأسبوع (~${pbNum(avg)}).`);
+  else if(doneToday>0) parts.push(`الإنجاز اليوم ${pbNum(doneToday)}، ضمن المتوسط أو فوقه (~${pbNum(avg)}).`);
+  if(top && bottom && top.label!==bottom.label && (top.completed_week||0)!==(bottom.completed_week||0))
+    parts.push(`${PB_LABEL[top.label]||top.label} الأعلى هذا الأسبوع (${pbNum(top.completed_week||0)})، و${PB_LABEL[bottom.label]||bottom.label} الأدنى (${pbNum(bottom.completed_week||0)}).`);
+
+  if(stuck>0) notes.push(`${pbNum(stuck)} صفقة عالقة ٥+ أيام`);
+  if(rej>doneWeek && rej>0) notes.push(`استبدال مرتفع (${pbNum(rej)}) مقابل ${pbNum(doneWeek)} إنجاز — يستحق نظرة`);
+
+  return { text: parts.join(' ') || 'لا توجد ملاحظات بارزة اليوم — الوضع مستقر.',
+           notes, inProg, stuck, awaiting, doneToday };
+}
+
 function renderPerfBoard(data){
-  const brands = (data && data.brands) ? data.brands : [];
-  const sum = k => brands.reduce((a,b)=>a+(b[k]||0),0);
+  const brands=(data&&data.brands)?data.brands:[];
+  const S=buildSummary(data);
 
-  // توزيع مراحل المجموعة
-  const g = {};
-  brands.forEach(b=>{ const st=b.stages||{}; Object.keys(st).forEach(k=>{ g[k]=(g[k]||0)+(st[k]||0); }); });
-  const stageArr = PB_STAGES.map(o=>({ ...o, c: g[o.s]||0 }));
-  const bnMax = Math.max(...stageArr.map(o=>o.c), 0);
-  const funnelMax = Math.max(1, ...stageArr.map(o=>o.c));
+  // KPIs
+  const kpi=(v,l,cls)=>`<div class="pb-kpi ${cls||''}"><div class="pb-kpi-v">${pbNum(v)}</div><div class="pb-kpi-l">${l}</div></div>`;
+  const notesHtml=S.notes.map(n=>`<span class="pb-note">⚠ ${n}</span>`).join('');
+  const brief=`<div class="pb-brief">
+    <div class="pb-brief-h"><div class="pb-brief-ic">🧠</div><div class="pb-brief-t">ملخّص اليوم</div></div>
+    <p class="pb-brief-x">${S.text}</p>
+    ${notesHtml?`<div class="pb-notes">${notesHtml}</div>`:''}
+    <div class="pb-kpis">
+      ${kpi(S.doneToday,'اكتمل اليوم','good')}
+      ${kpi(S.inProg,'قيد التنفيذ','')}
+      ${kpi(S.stuck,'عالقة ٥+ أيام',S.stuck>0?'bad':'')}
+      ${kpi(S.awaiting,'بانتظار اعتماد',S.awaiting>0?'warn':'')}
+    </div>
+  </div>`;
 
-  const stuck=sum('stuck'), awaiting=sum('awaiting_approval'), rej=sum('rejected_week'),
-        doneToday=sum('completed_today'), doneWeek=sum('completed_week'), totalInProg=sum('in_progress');
-
-  const alert=(icon,v,label,tone)=>`<div class="pb-alert ${tone}"><div class="pb-alert-v">${pbNum(v)}</div><div class="pb-alert-l">${icon} ${label}</div></div>`;
-  const alerts =
-    alert('⚠', stuck, 'عالقة (٥+ أيام)', stuck>0?'bad':'ok') +
-    alert('🕒', awaiting, 'بانتظار اعتماد', awaiting>0?'warn':'ok') +
-    alert('↩', rej, 'مستبدلة هذا الأسبوع', rej>0?'warn':'ok') +
-    alert('✅', doneToday, 'اكتمل اليوم', 'good');
-
-  const funnel = stageArr.map(o=>{
-    const pct = Math.round(o.c/funnelMax*100);
-    const bn = (o.c===bnMax && o.c>0);
-    return `<div class="pb-fn-row ${bn?'bn':''}"><div class="pb-fn-name">${o.n}${bn?' <span class="pb-bn-tag">اختناق</span>':''}</div><div class="pb-fn-bar"><div class="pb-fn-fill" style="width:${pct}%"></div></div><div class="pb-fn-c">${pbNum(o.c)}</div></div>`;
+  // funnel
+  const g=pbGroupStages(brands);
+  const stageArr=PB_STAGES.map(o=>({...o,c:g[o.s]||0}));
+  const bnMax=Math.max(...stageArr.map(o=>o.c),0);
+  const fmax=Math.max(1,...stageArr.map(o=>o.c));
+  const totalInProg=brands.reduce((a,b)=>a+(b.in_progress||0),0);
+  const funnel=stageArr.map(o=>{
+    const pct=Math.round(o.c/fmax*100), bn=(o.c===bnMax&&o.c>0);
+    return `<div class="pb-fn-row ${bn?'bn':''}"><div class="pb-fn-name">${o.n}${bn?'<span class="pb-bn-tag">اختناق</span>':''}</div><div class="pb-fn-bar"><div class="pb-fn-fill" style="width:${pct}%"></div></div><div class="pb-fn-c">${pbNum(o.c)}</div></div>`;
   }).join('');
 
-  // اتجاه ٧ أيام
-  const daily = (data && data.daily) ? data.daily : [];
-  const days=[]; const today=new Date();
-  for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i);
+  // trend
+  const daily=(data&&data.daily)?data.daily:[]; const days=[]; const today=new Date();
+  for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);
     const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    const f=daily.find(x=>x.d===key); days.push({date:d, n: f?f.n:0}); }
+    const f=daily.find(x=>x.d===key); days.push({date:d,n:f?f.n:0});}
   const tmax=Math.max(1,...days.map(x=>x.n));
-  const trend = days.map(x=>`<div class="pb-tr-col"><div class="pb-tr-bar" style="height:${Math.max(4,Math.round(x.n/tmax*100))}%"></div><div class="pb-tr-lbl">${PB_DOW[x.date.getDay()]}</div><div class="pb-tr-n">${pbNum(x.n)}</div></div>`).join('');
+  const doneWeek=brands.reduce((a,b)=>a+(b.completed_week||0),0);
+  const trend=days.map(x=>`<div class="pb-tr-col"><div class="pb-tr-bar" style="height:${Math.max(4,Math.round(x.n/tmax*100))}%"></div><div class="pb-tr-lbl">${PB_DOW[x.date.getDay()]}</div><div class="pb-tr-n">${pbNum(x.n)}</div></div>`).join('');
 
-  const cards = brands.map(b=>{
+  const bento=`<div class="pb-bento">
+    <div class="pb-tile"><div class="pb-tile-h">🏭 خط الإنتاج <span class="sub">— وين تتكدّس (${pbNum(totalInProg)} قيد التنفيذ)</span></div>${funnel||'<div class="pb-empty">لا صفقات قيد التنفيذ</div>'}</div>
+    <div class="pb-tile"><div class="pb-tile-h">📈 الإنجاز <span class="sub">— ٧ أيام (${pbNum(doneWeek)})</span></div><div class="pb-trend">${trend}</div></div>
+  </div>`;
+
+  // brand cards
+  const cards=brands.map(b=>{
     const label=PB_LABEL[b.label]||b.company_name||b.label, mgr=PB_MGR[b.label]||'';
-    const notLinked = b.linked===false?'<div class="pb-warn">⚠ الحساب غير مربوط — راجع الإيميل</div>':'';
-    const st=b.stages||{};
-    const bmax=Math.max(1,...PB_STAGES.map(o=>st[o.s]||0));
-    const strip = PB_STAGES.map(o=>{ const c=st[o.s]||0; const h=c>0?Math.max(10,Math.round(c/bmax*100)):3;
-      return `<div class="pb-ms" title="${o.n}: ${c}"><div class="pb-ms-bar" style="height:${h}%"></div><div class="pb-ms-c">${c>0?pbNum(c):''}</div></div>`; }).join('');
+    const notLinked=b.linked===false?'<div class="pb-warn">⚠ الحساب غير مربوط — راجع الإيميل</div>':'';
+    const st=b.stages||{}; const bmax=Math.max(1,...PB_STAGES.map(o=>st[o.s]||0));
+    const strip=PB_STAGES.map(o=>{const c=st[o.s]||0;const h=c>0?Math.max(10,Math.round(c/bmax*100)):3;
+      return `<div class="pb-ms" title="${o.n}: ${c}"><div class="pb-ms-bar" style="height:${h}%"></div><div class="pb-ms-c">${c>0?pbNum(c):''}</div></div>`;}).join('');
     return `<div class="pb-card">
       <div class="pb-card-head"><div><div class="pb-brand">${label}</div><div class="pb-mgr">${mgr}</div></div>
         <div class="pb-today"><div class="pb-today-v">${pbNum(b.completed_today)}</div><div class="pb-today-l">اكتمل اليوم</div></div></div>
@@ -462,44 +511,27 @@ function renderPerfBoard(data){
     </div>`;
   }).join('');
 
-  document.getElementById('pbBody').innerHTML =
-    `<div class="pb-sec-t">🚨 يحتاج تصرّف الآن</div><div class="pb-alerts">${alerts}</div>`+
-    `<div class="pb-sec-t">🏭 خط الإنتاج — وين تتكدّس الصفقات (${pbNum(totalInProg)} قيد التنفيذ)</div><div class="pb-funnel">${funnel||'<div class="pb-empty">لا صفقات قيد التنفيذ حاليًا</div>'}</div>`+
-    `<div class="pb-sec-t">📈 اتجاه الإنجاز — آخر ٧ أيام (${pbNum(doneWeek)} هذا الأسبوع)</div><div class="pb-trend">${trend}</div>`+
-    `<div class="pb-sec-t">🏷️ العلامات</div><div class="pb-cards">${cards||'<div class="pb-empty">لا بيانات</div>'}</div>`;
+  document.getElementById('pbBody').innerHTML = brief + bento + `<div class="pb-cards">${cards||'<div class="pb-empty">لا بيانات</div>'}</div>`;
 }
 
 async function openBrandDetail(label, kind){
   document.getElementById('pbDetail').classList.add('on');
-  const title = document.getElementById('pbDetailTitle');
-  const body = document.getElementById('pbDetailBody');
-  title.textContent = (PB_LABEL[label]||label) + ' — ' + (kind==='awaiting' ? 'بانتظار اعتمادك' : 'صفقات عالقة (٥+ أيام)');
-  body.innerHTML = '<div class="pb-loading">جاري التحميل…</div>';
+  const title=document.getElementById('pbDetailTitle'), body=document.getElementById('pbDetailBody');
+  title.textContent=(PB_LABEL[label]||label)+' — '+(kind==='awaiting'?'بانتظار اعتمادك':'صفقات عالقة (٥+ أيام)');
+  body.innerHTML='<div class="pb-loading">جاري التحميل…</div>';
   try{
-    let d = window.PB_DETAIL_CACHE[label];
-    if(!d){
-      const { data, error } = await window.supabaseClient.rpc('team_brand_detail', { p_label: label });
-      if(error) throw error;
-      d = data; window.PB_DETAIL_CACHE[label] = d;
-    }
-    const list = (kind==='awaiting' ? d.awaiting : d.stuck) || [];
-    if(!list.length){ body.innerHTML = '<div class="pb-loading">لا يوجد عناصر حاليًا ✓</div>'; return; }
-    body.innerHTML = list.map(it=>{
-      if(kind==='awaiting'){
-        const when = it.closed_at ? new Date(it.closed_at).toLocaleDateString('ar-SA') : '';
-        const price = it.price ? (' · ' + pbNum(it.price) + ' ر.س') : '';
-        return `<div class="pb-item"><div class="pb-item-c">${it.creator||'—'}</div><div class="pb-item-t">${when}</div><div class="pb-item-s">${it.campaign||''}${price}</div></div>`;
-      } else {
-        const when = it.closed_at ? new Date(it.closed_at).toLocaleDateString('ar-SA') : '';
-        const sname = PB_STAGE_NAME[it.stage] || ('مرحلة '+it.stage);
-        return `<div class="pb-item"><div class="pb-item-c">${it.creator||'—'}</div><div class="pb-item-t">منذ ${when}</div><div class="pb-item-s">${it.campaign||''} · واقفة عند: ${sname}</div></div>`;
-      }
+    let d=window.PB_DETAIL_CACHE[label];
+    if(!d){ const {data,error}=await window.supabaseClient.rpc('team_brand_detail',{p_label:label}); if(error) throw error; d=data; window.PB_DETAIL_CACHE[label]=d; }
+    const list=(kind==='awaiting'?d.awaiting:d.stuck)||[];
+    if(!list.length){ body.innerHTML='<div class="pb-loading">لا يوجد عناصر حاليًا ✓</div>'; return; }
+    body.innerHTML=list.map(it=>{
+      const when=it.closed_at?new Date(it.closed_at).toLocaleDateString('ar-SA'):'';
+      if(kind==='awaiting'){ const price=it.price?(' · '+pbNum(it.price)+' ر.س'):'';
+        return `<div class="pb-item"><div class="pb-item-c">${it.creator||'—'}</div><div class="pb-item-t">${when}</div><div class="pb-item-s">${it.campaign||''}${price}</div></div>`; }
+      const sname=PB_STAGE_NAME[it.stage]||('مرحلة '+it.stage);
+      return `<div class="pb-item"><div class="pb-item-c">${it.creator||'—'}</div><div class="pb-item-t">منذ ${when}</div><div class="pb-item-s">${it.campaign||''} · واقفة عند: ${sname}</div></div>`;
     }).join('');
-  }catch(e){
-    let human = String((e && (e.message||e.hint||e.details)) || e);
-    if(human.indexOf('forbidden')>=0) human = 'غير مصرّح (حساب الأونر فقط).';
-    body.innerHTML = '<div class="pb-error">تعذّر التحميل: '+human+'</div>';
-  }
+  }catch(e){ let h=String((e&&(e.message||e.hint))||e); if(h.indexOf('forbidden')>=0)h='غير مصرّح (حساب الأونر فقط).'; body.innerHTML='<div class="pb-error">تعذّر التحميل: '+h+'</div>'; }
 }
 function closeBrandDetail(){ document.getElementById('pbDetail').classList.remove('on'); }
 document.getElementById('pbDetail').addEventListener('click', function(e){ if(e.target===this) closeBrandDetail(); });
