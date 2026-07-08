@@ -280,37 +280,79 @@ place(); setScope('owner');
 <style>
   .pb-overlay{position:fixed;inset:0;z-index:60;background:var(--page);display:none;flex-direction:column}
   .pb-overlay.on{display:flex}
-  .pb-top{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#fff;border-bottom:1px solid var(--line)}
+  .pb-top{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;background:#fff;border-bottom:1px solid var(--line)}
   .pb-title{font-family:'Cairo';font-weight:800;font-size:19px;color:var(--ink)}
   .pb-actions{display:flex;align-items:center;gap:12px}
   .pb-stamp{color:var(--muted);font-size:12px}
   .pb-btn{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 14px;border-radius:999px;font-family:'Tajawal';font-weight:700;font-size:12.5px}
   .pb-btn:hover{border-color:var(--teal)}
   .pb-close{cursor:pointer;border:none;background:var(--tint);color:var(--deep);width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1}
-  .pb-scroll{flex:1;overflow:auto;padding:20px 22px 40px}
-  .pb-loading,.pb-error{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+  .pb-scroll{flex:1;overflow:auto;padding:18px 22px 46px}
+  .pb-scroll>*{max-width:1140px;margin-inline:auto}
+  .pb-loading,.pb-error,.pb-empty{padding:32px;text-align:center;color:var(--muted);font-size:14px}
   .pb-error{color:#b23b3b}
-  .pb-pulses{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:1100px;margin:0 auto 22px}
-  .pb-pulse{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
-  .pb-pulse-v{font-family:'Cairo';font-weight:800;font-size:30px;line-height:1}
-  .pb-pulse-l{color:var(--muted);font-size:12.5px;margin-top:6px}
-  .pb-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1100px;margin:0 auto}
-  .pb-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 1px 3px rgba(10,10,10,.03)}
-  .pb-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .pb-sec-t{font-family:'Cairo';font-weight:800;font-size:15px;color:var(--ink);margin:22px auto 12px;display:flex}
+  .pb-sec-t:first-child{margin-top:4px}
+  .pb-click{cursor:pointer}
+  /* تنبيهات */
+  .pb-alerts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .pb-alert{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center}
+  .pb-alert-v{font-family:'Cairo';font-weight:800;font-size:30px;line-height:1;color:var(--ink)}
+  .pb-alert-l{font-size:12px;margin-top:7px;color:var(--muted)}
+  .pb-alert.bad{background:#fdeeee;border-color:#f2c9c9}.pb-alert.bad .pb-alert-v{color:#c0392b}
+  .pb-alert.warn{background:#fff7e8;border-color:#f0d9a8}.pb-alert.warn .pb-alert-v{color:#c98a12}
+  .pb-alert.good{background:var(--tint);border-color:transparent}.pb-alert.good .pb-alert-v{color:var(--deep)}
+  .pb-alert.ok .pb-alert-v{color:#9bb3ac}
+  /* خط الإنتاج */
+  .pb-funnel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+  .pb-fn-row{display:grid;grid-template-columns:120px 1fr 46px;align-items:center;gap:12px;padding:6px 0}
+  .pb-fn-name{font-size:13px;font-weight:600;color:var(--ink);text-align:right}
+  .pb-fn-bar{background:var(--page);border-radius:8px;height:22px;overflow:hidden}
+  .pb-fn-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--deep));border-radius:8px;min-width:2px}
+  .pb-fn-c{font-family:'Cairo';font-weight:700;font-size:15px;color:var(--ink);text-align:left}
+  .pb-fn-row.bn .pb-fn-fill{background:linear-gradient(90deg,#e2a13a,#c0392b)}
+  .pb-fn-row.bn .pb-fn-c{color:#c0392b}
+  .pb-bn-tag{font-size:10px;background:#fdeeee;color:#c0392b;border-radius:999px;padding:1px 7px;font-weight:700}
+  /* اتجاه */
+  .pb-trend{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;height:150px}
+  .pb-tr-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px}
+  .pb-tr-bar{width:70%;max-width:46px;background:linear-gradient(180deg,var(--teal),var(--deep));border-radius:6px 6px 0 0;min-height:5px}
+  .pb-tr-lbl{font-size:10.5px;color:var(--muted)}
+  .pb-tr-n{font-family:'Cairo';font-weight:700;font-size:12px;color:var(--ink)}
+  /* بطاقات */
+  .pb-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .pb-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}
+  .pb-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--line)}
   .pb-brand{font-family:'Cairo';font-weight:800;font-size:18px;color:var(--ink)}
   .pb-mgr{color:var(--muted);font-size:12.5px;margin-top:2px}
-  .pb-today{text-align:center;background:var(--tint);border-radius:12px;padding:8px 14px;min-width:74px}
+  .pb-today{text-align:center;background:var(--tint);border-radius:12px;padding:8px 14px;min-width:72px}
   .pb-today-v{font-family:'Cairo';font-weight:800;font-size:24px;color:var(--deep);line-height:1}
-  .pb-today-l{color:var(--deep);font-size:10.5px;margin-top:3px}
-  .pb-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px}
-  .pb-stat{background:var(--page);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
-  .pb-stat-v{font-family:'Cairo';font-weight:700;font-size:20px;color:var(--ink);line-height:1}
-  .pb-stat-l{color:var(--muted);font-size:11px;margin-top:5px}
-  .pb-stat.attn{background:#fff7e8;border-color:#f0d9a8}
-  .pb-stat.attn .pb-stat-v{color:#c98a12}
-  .pb-overdue{margin-top:12px;background:#fdeeee;color:#b23b3b;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:600;text-align:center}
+  .pb-today-l{color:var(--deep);font-size:10px;margin-top:3px}
+  .pb-mini{margin-top:12px}
+  .pb-mini-h{font-size:11px;color:var(--muted);margin-bottom:6px}
+  .pb-mini-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:end;height:56px}
+  .pb-ms{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px}
+  .pb-ms-bar{width:80%;background:var(--tint2);border-radius:4px 4px 0 0;min-height:3px}
+  .pb-ms-c{font-size:10px;font-weight:700;color:var(--ink)}
+  .pb-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:12px}
+  .pb-stat{background:var(--page);border:1px solid var(--line);border-radius:11px;padding:11px 6px;text-align:center}
+  .pb-stat-v{font-family:'Cairo';font-weight:700;font-size:19px;color:var(--ink);line-height:1}
+  .pb-stat-l{color:var(--muted);font-size:10.5px;margin-top:5px}
+  .pb-stat.bad{background:#fdeeee;border-color:#f2c9c9}.pb-stat.bad .pb-stat-v{color:#c0392b}
+  .pb-stat.warn{background:#fff7e8;border-color:#f0d9a8}.pb-stat.warn .pb-stat-v{color:#c98a12}
   .pb-warn{margin-top:10px;background:#fff7e8;color:#96690c;border-radius:10px;padding:7px 11px;font-size:12px;text-align:center}
-  @media(max-width:820px){.pb-pulses{grid-template-columns:repeat(2,1fr)}.pb-cards{grid-template-columns:1fr}}
+  /* مودال التفاصيل */
+  .pb-detail{position:fixed;inset:0;z-index:70;background:rgba(15,26,23,.55);display:none;align-items:center;justify-content:center;padding:18px}
+  .pb-detail.on{display:flex}
+  .pb-detail-box{background:#fff;border-radius:18px;width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(10,10,10,.28)}
+  .pb-detail-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);font-family:'Cairo';font-weight:800;font-size:16px;color:var(--ink)}
+  .pb-detail-body{overflow:auto;padding:8px 16px 18px}
+  .pb-item{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px 4px;border-bottom:1px solid var(--line)}
+  .pb-item:last-child{border-bottom:none}
+  .pb-item-c{font-weight:700;color:var(--ink);font-size:14px}
+  .pb-item-t{color:var(--muted);font-size:11.5px;text-align:left;align-self:center}
+  .pb-item-s{grid-column:1/-1;color:var(--muted);font-size:12.5px}
+  @media(max-width:860px){.pb-alerts{grid-template-columns:repeat(2,1fr)}.pb-cards{grid-template-columns:1fr}.pb-fn-row{grid-template-columns:90px 1fr 40px}}
 </style>
 
 <div class="pb-overlay" id="perfBoard">
@@ -325,18 +367,29 @@ place(); setScope('owner');
   <div class="pb-scroll"><div id="pbBody"></div></div>
 </div>
 
+<div class="pb-detail" id="pbDetail">
+  <div class="pb-detail-box">
+    <div class="pb-detail-head"><span id="pbDetailTitle"></span><button class="pb-close" onclick="closeBrandDetail()">×</button></div>
+    <div class="pb-detail-body" id="pbDetailBody"></div>
+  </div>
+</div>
+
 <script>
 const PB_MGR   = { reef:'عبدالعزيز الحقباني', osma:'لمى غدار', buyar:'منى حاج' };
 const PB_LABEL = { reef:'ريف', osma:'اوسما', buyar:'بويار' };
+const PB_STAGES = [{s:1,n:'العنوان'},{s:2,n:'الشحن'},{s:3,n:'الاستلام'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'}];
+const PB_STAGE_NAME = {1:'العنوان',2:'الشحن',3:'الاستلام',5:'المحتوى',6:'الموافقة',7:'النشر',8:'البنكية'};
+const PB_DOW = ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
+window.PB_DETAIL_CACHE = window.PB_DETAIL_CACHE || {};
 
+function pbNum(n){ return (typeof n==='number'? n : (n||0)).toLocaleString('ar-SA'); }
 function openPerfBoard(){ document.getElementById('perfBoard').classList.add('on'); loadPerfBoard(); }
 function closePerfBoard(){ document.getElementById('perfBoard').classList.remove('on'); }
-function pbNum(n){ return (typeof n==='number'? n : (n||0)).toLocaleString('ar-SA'); }
 
 async function loadPerfBoard(){
   const body = document.getElementById('pbBody');
   const stamp = document.getElementById('pbStamp');
-  if(window.PB_DETAIL_CACHE) for(const k in window.PB_DETAIL_CACHE) delete window.PB_DETAIL_CACHE[k];
+  for(const k in window.PB_DETAIL_CACHE) delete window.PB_DETAIL_CACHE[k];
   body.innerHTML = '<div class="pb-loading">جاري تحميل الأرقام الحيّة…</div>';
   try{
     if(!window.supabaseClient) throw new Error('لم يتحمّل عميل قاعدة البيانات');
@@ -347,82 +400,80 @@ async function loadPerfBoard(){
     stamp.textContent = 'آخر تحديث: ' + t.toLocaleTimeString('ar-SA');
   }catch(e){
     let human = String((e && (e.message||e.hint||e.details)) || e);
-    if(human.indexOf('forbidden')>=0) human = 'غير مصرّح — لازم تكون داخل بحساب الأونر (hello@agentsimpleai.com).';
-    body.innerHTML = '<div class="pb-error">تعذّر تحميل اللوحة: '+human+'</div>';
+    if(human.indexOf('forbidden')>=0) human = 'غير مصرّح — لازم تكون داخل بحساب الأونر.';
+    body.innerHTML = '<div class="pb-error">تعذّر التحميل: '+human+'</div>';
   }
 }
 
 function renderPerfBoard(data){
   const brands = (data && data.brands) ? data.brands : [];
   const sum = k => brands.reduce((a,b)=>a+(b[k]||0),0);
-  const pulse = [
-    { l:'اكتمل اليوم', v:sum('completed_today'), c:'var(--teal)' },
-    { l:'قيد التنفيذ', v:sum('in_progress'), c:'var(--deep)' },
-    { l:'بانتظار اعتماد', v:sum('awaiting_approval'), c:'#c98a12' },
-    { l:'حملات نشطة', v:sum('active_campaigns'), c:'var(--ink)' },
-  ];
-  const pulseHtml = pulse.map(p=>`<div class="pb-pulse"><div class="pb-pulse-v" style="color:${p.c}">${pbNum(p.v)}</div><div class="pb-pulse-l">${p.l}</div></div>`).join('');
 
-  const stat = (l,v,cls='')=>`<div class="pb-stat ${cls}"><div class="pb-stat-v">${pbNum(v)}</div><div class="pb-stat-l">${l}</div></div>`;
+  // توزيع مراحل المجموعة
+  const g = {};
+  brands.forEach(b=>{ const st=b.stages||{}; Object.keys(st).forEach(k=>{ g[k]=(g[k]||0)+(st[k]||0); }); });
+  const stageArr = PB_STAGES.map(o=>({ ...o, c: g[o.s]||0 }));
+  const bnMax = Math.max(...stageArr.map(o=>o.c), 0);
+  const funnelMax = Math.max(1, ...stageArr.map(o=>o.c));
+
+  const stuck=sum('stuck'), awaiting=sum('awaiting_approval'), rej=sum('rejected_week'),
+        doneToday=sum('completed_today'), doneWeek=sum('completed_week'), totalInProg=sum('in_progress');
+
+  const alert=(icon,v,label,tone)=>`<div class="pb-alert ${tone}"><div class="pb-alert-v">${pbNum(v)}</div><div class="pb-alert-l">${icon} ${label}</div></div>`;
+  const alerts =
+    alert('⚠', stuck, 'عالقة (٥+ أيام)', stuck>0?'bad':'ok') +
+    alert('🕒', awaiting, 'بانتظار اعتماد', awaiting>0?'warn':'ok') +
+    alert('↩', rej, 'مستبدلة هذا الأسبوع', rej>0?'warn':'ok') +
+    alert('✅', doneToday, 'اكتمل اليوم', 'good');
+
+  const funnel = stageArr.map(o=>{
+    const pct = Math.round(o.c/funnelMax*100);
+    const bn = (o.c===bnMax && o.c>0);
+    return `<div class="pb-fn-row ${bn?'bn':''}"><div class="pb-fn-name">${o.n}${bn?' <span class="pb-bn-tag">اختناق</span>':''}</div><div class="pb-fn-bar"><div class="pb-fn-fill" style="width:${pct}%"></div></div><div class="pb-fn-c">${pbNum(o.c)}</div></div>`;
+  }).join('');
+
+  // اتجاه ٧ أيام
+  const daily = (data && data.daily) ? data.daily : [];
+  const days=[]; const today=new Date();
+  for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const f=daily.find(x=>x.d===key); days.push({date:d, n: f?f.n:0}); }
+  const tmax=Math.max(1,...days.map(x=>x.n));
+  const trend = days.map(x=>`<div class="pb-tr-col"><div class="pb-tr-bar" style="height:${Math.max(4,Math.round(x.n/tmax*100))}%"></div><div class="pb-tr-lbl">${PB_DOW[x.date.getDay()]}</div><div class="pb-tr-n">${pbNum(x.n)}</div></div>`).join('');
+
   const cards = brands.map(b=>{
-    const label = PB_LABEL[b.label] || b.company_name || b.label;
-    const mgr = PB_MGR[b.label] || '';
-    const notLinked = (b.linked===false) ? '<div class="pb-warn">⚠ الحساب غير مربوط — تأكّد من الإيميل</div>' : '';
-    const overdue = (b.overdue||0) > 0 ? `<div class="pb-overdue pb-click" onclick="openBrandDetail('${b.label}','overdue')">⚠ ${pbNum(b.overdue)} متأخرة عن المهلة — عرض</div>` : '';
+    const label=PB_LABEL[b.label]||b.company_name||b.label, mgr=PB_MGR[b.label]||'';
+    const notLinked = b.linked===false?'<div class="pb-warn">⚠ الحساب غير مربوط — راجع الإيميل</div>':'';
+    const st=b.stages||{};
+    const bmax=Math.max(1,...PB_STAGES.map(o=>st[o.s]||0));
+    const strip = PB_STAGES.map(o=>{ const c=st[o.s]||0; const h=c>0?Math.max(10,Math.round(c/bmax*100)):3;
+      return `<div class="pb-ms" title="${o.n}: ${c}"><div class="pb-ms-bar" style="height:${h}%"></div><div class="pb-ms-c">${c>0?pbNum(c):''}</div></div>`; }).join('');
     return `<div class="pb-card">
-      <div class="pb-card-head">
-        <div><div class="pb-brand">${label}</div><div class="pb-mgr">${mgr}</div></div>
-        <div class="pb-today"><div class="pb-today-v">${pbNum(b.completed_today)}</div><div class="pb-today-l">اكتمل اليوم</div></div>
-      </div>
+      <div class="pb-card-head"><div><div class="pb-brand">${label}</div><div class="pb-mgr">${mgr}</div></div>
+        <div class="pb-today"><div class="pb-today-v">${pbNum(b.completed_today)}</div><div class="pb-today-l">اكتمل اليوم</div></div></div>
       ${notLinked}
+      <div class="pb-mini"><div class="pb-mini-h">توزيع ${pbNum(b.in_progress)} صفقة قيد التنفيذ على المراحل</div><div class="pb-mini-strip">${strip}</div></div>
       <div class="pb-grid">
-        ${stat('حملات نشطة', b.active_campaigns)}
-        ${(b.awaiting_approval>0)
-          ? `<div class="pb-stat attn pb-click" onclick="openBrandDetail('${b.label}','awaiting')"><div class="pb-stat-v">${pbNum(b.awaiting_approval)}</div><div class="pb-stat-l">بانتظار اعتماد 🔎</div></div>`
-          : stat('بانتظار اعتماد', b.awaiting_approval)}
-        ${stat('قيد التنفيذ', b.in_progress)}
-        ${stat('اكتمل الأسبوع', b.completed_week)}
-        ${stat('يفاوض الآن', b.negotiating)}
-        ${stat('إجمالي مكتمل', b.completed_total)}
+        <div class="pb-stat ${b.stuck>0?'bad pb-click':''}" ${b.stuck>0?`onclick="openBrandDetail('${b.label}','stuck')"`:''}><div class="pb-stat-v">${pbNum(b.stuck)}</div><div class="pb-stat-l">عالقة ${b.stuck>0?'🔎':''}</div></div>
+        <div class="pb-stat ${b.awaiting_approval>0?'warn pb-click':''}" ${b.awaiting_approval>0?`onclick="openBrandDetail('${b.label}','awaiting')"`:''}><div class="pb-stat-v">${pbNum(b.awaiting_approval)}</div><div class="pb-stat-l">بانتظار اعتماد ${b.awaiting_approval>0?'🔎':''}</div></div>
+        <div class="pb-stat"><div class="pb-stat-v">${pbNum(b.completed_week)}</div><div class="pb-stat-l">اكتمل الأسبوع</div></div>
+        <div class="pb-stat"><div class="pb-stat-v">${pbNum(b.completed_total)}</div><div class="pb-stat-l">إجمالي مكتمل</div></div>
       </div>
-      ${overdue}
     </div>`;
   }).join('');
 
   document.getElementById('pbBody').innerHTML =
-    `<div class="pb-pulses">${pulseHtml}</div><div class="pb-cards">${cards || '<div class="pb-error">لا توجد بيانات</div>'}</div>`;
+    `<div class="pb-sec-t">🚨 يحتاج تصرّف الآن</div><div class="pb-alerts">${alerts}</div>`+
+    `<div class="pb-sec-t">🏭 خط الإنتاج — وين تتكدّس الصفقات (${pbNum(totalInProg)} قيد التنفيذ)</div><div class="pb-funnel">${funnel||'<div class="pb-empty">لا صفقات قيد التنفيذ حاليًا</div>'}</div>`+
+    `<div class="pb-sec-t">📈 اتجاه الإنجاز — آخر ٧ أيام (${pbNum(doneWeek)} هذا الأسبوع)</div><div class="pb-trend">${trend}</div>`+
+    `<div class="pb-sec-t">🏷️ العلامات</div><div class="pb-cards">${cards||'<div class="pb-empty">لا بيانات</div>'}</div>`;
 }
-</script>
 
-<style>
-  .pb-click{cursor:pointer;transition:transform .1s}
-  .pb-click:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(10,10,10,.08)}
-  .pb-detail{position:fixed;inset:0;z-index:70;background:rgba(15,26,23,.55);display:none;align-items:center;justify-content:center;padding:18px}
-  .pb-detail.on{display:flex}
-  .pb-detail-box{background:#fff;border-radius:18px;width:min(560px,100%);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(10,10,10,.28)}
-  .pb-detail-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);font-family:'Cairo';font-weight:800;font-size:16px;color:var(--ink)}
-  .pb-detail-body{overflow:auto;padding:12px 16px 18px}
-  .pb-item{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px 4px;border-bottom:1px solid var(--line)}
-  .pb-item:last-child{border-bottom:none}
-  .pb-item-c{font-weight:700;color:var(--ink);font-size:14px}
-  .pb-item-t{color:var(--muted);font-size:11.5px;text-align:left;align-self:center}
-  .pb-item-s{grid-column:1/-1;color:var(--muted);font-size:12.5px}
-</style>
-
-<div class="pb-detail" id="pbDetail">
-  <div class="pb-detail-box">
-    <div class="pb-detail-head"><span id="pbDetailTitle"></span><button class="pb-close" onclick="closeBrandDetail()">×</button></div>
-    <div class="pb-detail-body" id="pbDetailBody"></div>
-  </div>
-</div>
-
-<script>
-window.PB_DETAIL_CACHE = window.PB_DETAIL_CACHE || {};
 async function openBrandDetail(label, kind){
   document.getElementById('pbDetail').classList.add('on');
   const title = document.getElementById('pbDetailTitle');
   const body = document.getElementById('pbDetailBody');
-  title.textContent = (PB_LABEL[label]||label) + ' — ' + (kind==='awaiting' ? 'بانتظار اعتمادك' : 'متأخرة عن المهلة');
+  title.textContent = (PB_LABEL[label]||label) + ' — ' + (kind==='awaiting' ? 'بانتظار اعتمادك' : 'صفقات عالقة (٥+ أيام)');
   body.innerHTML = '<div class="pb-loading">جاري التحميل…</div>';
   try{
     let d = window.PB_DETAIL_CACHE[label];
@@ -431,7 +482,7 @@ async function openBrandDetail(label, kind){
       if(error) throw error;
       d = data; window.PB_DETAIL_CACHE[label] = d;
     }
-    const list = (kind==='awaiting' ? d.awaiting : d.overdue) || [];
+    const list = (kind==='awaiting' ? d.awaiting : d.stuck) || [];
     if(!list.length){ body.innerHTML = '<div class="pb-loading">لا يوجد عناصر حاليًا ✓</div>'; return; }
     body.innerHTML = list.map(it=>{
       if(kind==='awaiting'){
@@ -439,8 +490,9 @@ async function openBrandDetail(label, kind){
         const price = it.price ? (' · ' + pbNum(it.price) + ' ر.س') : '';
         return `<div class="pb-item"><div class="pb-item-c">${it.creator||'—'}</div><div class="pb-item-t">${when}</div><div class="pb-item-s">${it.campaign||''}${price}</div></div>`;
       } else {
-        const since = it.pending_since ? new Date(it.pending_since).toLocaleString('ar-SA') : '';
-        return `<div class="pb-item"><div class="pb-item-c">${it.creator||'—'}</div><div class="pb-item-t">${since}</div><div class="pb-item-s">${it.campaign||''}</div></div>`;
+        const when = it.closed_at ? new Date(it.closed_at).toLocaleDateString('ar-SA') : '';
+        const sname = PB_STAGE_NAME[it.stage] || ('مرحلة '+it.stage);
+        return `<div class="pb-item"><div class="pb-item-c">${it.creator||'—'}</div><div class="pb-item-t">منذ ${when}</div><div class="pb-item-s">${it.campaign||''} · واقفة عند: ${sname}</div></div>`;
       }
     }).join('');
   }catch(e){
