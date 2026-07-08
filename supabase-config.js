@@ -71,11 +71,24 @@ async function dbGetCampaigns() {
   if (error) throw error;
 
   // فلترة الموقع: المعلن يشوف فقط الحملات اللي تستهدف دولته/مدينته.
-  // fail-open: لو موقع المعلن غير معروف (كائن قديم) نعرض كل الحملات كما كان.
-  const __me = getCurrentUser();
+  // إصلاح fail-open: بدل ما نعرض كل الحملات لمعلن دولته مجهولة في الكائن المخزّن،
+  // نعيد جلب دولته من القاعدة أولًا (ونحدّث المخزّن)، ثم نفلتر دائمًا — فلا تتسرّب حملة خارج منطقته.
+  let __me = getCurrentUser();
   let __rows = data || [];
-  if (__me && __me.role === 'creator' && __me.country && typeof simblLocationMatch === 'function') {
-    __rows = __rows.filter(c => simblLocationMatch(__me, c));
+  if (__me && __me.role === 'creator') {
+    if (!__me.country && __me.id) {
+      try {
+        const { data: __fresh } = await supabaseClient
+          .from('users').select('country, city').eq('id', __me.id).maybeSingle();
+        if (__fresh) {
+          __me = { ...__me, country: __fresh.country, city: __fresh.city };
+          if (typeof saveCurrentUser === 'function') saveCurrentUser(__me); // حدّث الكائن المخزّن للمرات الجاية
+        }
+      } catch (e) { /* تجاهل — نفلتر بالمتاح */ }
+    }
+    if (typeof simblLocationMatch === 'function') {
+      __rows = __rows.filter(c => simblLocationMatch(__me, c));
+    }
   }
   return __rows.map(c => ({
     ...c,
