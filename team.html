@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <style>
   :root{
     --page:#f6faf9; --canvas:#ffffff; --ink:#0f1a17; --muted:#6f867f; --line:#e7edeb;
@@ -104,7 +106,10 @@
         <path d="M34,30 Q50,22 66,30 Q50,38 34,30 Z" fill="#17b0a5"/><circle cx="50" cy="30" r="4.3" fill="#0c0f0e"/></svg></span>
       سيمبل <small>· خريطة الفريق</small>
     </div>
-    <div class="live"><i></i> <span id="liveCount">—</span> نشِط الآن</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="openBoardBtn" onclick="openPerfBoard()" style="cursor:pointer;border:none;background:var(--black);color:#fff;padding:9px 16px;border-radius:999px;font-family:'Tajawal';font-weight:700;font-size:13px;display:flex;align-items:center;gap:7px">📊 لوحة الأداء</button>
+      <div class="live"><i></i> <span id="liveCount">—</span> نشِط الآن</div>
+    </div>
   </header>
   <div class="viewas" id="viewas"><span class="lab">شاهِد باسم:</span></div>
   <div class="caption" id="caption"></div>
@@ -270,6 +275,120 @@ document.getElementById('pClose').onclick=closePersp; scrim.onclick=closePersp;
 
 document.getElementById('liveCount').textContent=IDS.filter(x=>P[x].status!=='idle').length;
 place(); setScope('owner');
+</script>
+
+<style>
+  .pb-overlay{position:fixed;inset:0;z-index:60;background:var(--page);display:none;flex-direction:column}
+  .pb-overlay.on{display:flex}
+  .pb-top{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#fff;border-bottom:1px solid var(--line)}
+  .pb-title{font-family:'Cairo';font-weight:800;font-size:19px;color:var(--ink)}
+  .pb-actions{display:flex;align-items:center;gap:12px}
+  .pb-stamp{color:var(--muted);font-size:12px}
+  .pb-btn{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 14px;border-radius:999px;font-family:'Tajawal';font-weight:700;font-size:12.5px}
+  .pb-btn:hover{border-color:var(--teal)}
+  .pb-close{cursor:pointer;border:none;background:var(--tint);color:var(--deep);width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1}
+  .pb-scroll{flex:1;overflow:auto;padding:20px 22px 40px}
+  .pb-loading,.pb-error{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+  .pb-error{color:#b23b3b}
+  .pb-pulses{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:1100px;margin:0 auto 22px}
+  .pb-pulse{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
+  .pb-pulse-v{font-family:'Cairo';font-weight:800;font-size:30px;line-height:1}
+  .pb-pulse-l{color:var(--muted);font-size:12.5px;margin-top:6px}
+  .pb-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1100px;margin:0 auto}
+  .pb-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 1px 3px rgba(10,10,10,.03)}
+  .pb-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .pb-brand{font-family:'Cairo';font-weight:800;font-size:18px;color:var(--ink)}
+  .pb-mgr{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .pb-today{text-align:center;background:var(--tint);border-radius:12px;padding:8px 14px;min-width:74px}
+  .pb-today-v{font-family:'Cairo';font-weight:800;font-size:24px;color:var(--deep);line-height:1}
+  .pb-today-l{color:var(--deep);font-size:10.5px;margin-top:3px}
+  .pb-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px}
+  .pb-stat{background:var(--page);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
+  .pb-stat-v{font-family:'Cairo';font-weight:700;font-size:20px;color:var(--ink);line-height:1}
+  .pb-stat-l{color:var(--muted);font-size:11px;margin-top:5px}
+  .pb-stat.attn{background:#fff7e8;border-color:#f0d9a8}
+  .pb-stat.attn .pb-stat-v{color:#c98a12}
+  .pb-overdue{margin-top:12px;background:#fdeeee;color:#b23b3b;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:600;text-align:center}
+  .pb-warn{margin-top:10px;background:#fff7e8;color:#96690c;border-radius:10px;padding:7px 11px;font-size:12px;text-align:center}
+  @media(max-width:820px){.pb-pulses{grid-template-columns:repeat(2,1fr)}.pb-cards{grid-template-columns:1fr}}
+</style>
+
+<div class="pb-overlay" id="perfBoard">
+  <div class="pb-top">
+    <div class="pb-title">📊 لوحة أداء المجموعة</div>
+    <div class="pb-actions">
+      <span class="pb-stamp" id="pbStamp"></span>
+      <button class="pb-btn" onclick="loadPerfBoard()">↻ تحديث</button>
+      <button class="pb-close" onclick="closePerfBoard()">×</button>
+    </div>
+  </div>
+  <div class="pb-scroll"><div id="pbBody"></div></div>
+</div>
+
+<script>
+const PB_MGR   = { reef:'عبدالعزيز الحقباني', osma:'لمى غدار', buyar:'منى حاج' };
+const PB_LABEL = { reef:'ريف', osma:'اوسما', buyar:'بويار' };
+
+function openPerfBoard(){ document.getElementById('perfBoard').classList.add('on'); loadPerfBoard(); }
+function closePerfBoard(){ document.getElementById('perfBoard').classList.remove('on'); }
+function pbNum(n){ return (typeof n==='number'? n : (n||0)).toLocaleString('ar-SA'); }
+
+async function loadPerfBoard(){
+  const body = document.getElementById('pbBody');
+  const stamp = document.getElementById('pbStamp');
+  body.innerHTML = '<div class="pb-loading">جاري تحميل الأرقام الحيّة…</div>';
+  try{
+    if(!window.supabaseClient) throw new Error('لم يتحمّل عميل قاعدة البيانات');
+    const { data, error } = await window.supabaseClient.rpc('team_overview');
+    if(error) throw error;
+    renderPerfBoard(data);
+    const t = (data && data.generated_at) ? new Date(data.generated_at) : new Date();
+    stamp.textContent = 'آخر تحديث: ' + t.toLocaleTimeString('ar-SA');
+  }catch(e){
+    let human = String((e && (e.message||e.hint||e.details)) || e);
+    if(human.indexOf('forbidden')>=0) human = 'غير مصرّح — لازم تكون داخل بحساب الأونر (hello@agentsimpleai.com).';
+    body.innerHTML = '<div class="pb-error">تعذّر تحميل اللوحة: '+human+'</div>';
+  }
+}
+
+function renderPerfBoard(data){
+  const brands = (data && data.brands) ? data.brands : [];
+  const sum = k => brands.reduce((a,b)=>a+(b[k]||0),0);
+  const pulse = [
+    { l:'اكتمل اليوم', v:sum('completed_today'), c:'var(--teal)' },
+    { l:'قيد التنفيذ', v:sum('in_progress'), c:'var(--deep)' },
+    { l:'بانتظار اعتماد', v:sum('awaiting_approval'), c:'#c98a12' },
+    { l:'حملات نشطة', v:sum('active_campaigns'), c:'var(--ink)' },
+  ];
+  const pulseHtml = pulse.map(p=>`<div class="pb-pulse"><div class="pb-pulse-v" style="color:${p.c}">${pbNum(p.v)}</div><div class="pb-pulse-l">${p.l}</div></div>`).join('');
+
+  const stat = (l,v,cls='')=>`<div class="pb-stat ${cls}"><div class="pb-stat-v">${pbNum(v)}</div><div class="pb-stat-l">${l}</div></div>`;
+  const cards = brands.map(b=>{
+    const label = PB_LABEL[b.label] || b.company_name || b.label;
+    const mgr = PB_MGR[b.label] || '';
+    const notLinked = (b.linked===false) ? '<div class="pb-warn">⚠ الحساب غير مربوط — تأكّد من الإيميل</div>' : '';
+    const overdue = (b.overdue||0) > 0 ? `<div class="pb-overdue">⚠ ${pbNum(b.overdue)} متأخرة عن المهلة</div>` : '';
+    return `<div class="pb-card">
+      <div class="pb-card-head">
+        <div><div class="pb-brand">${label}</div><div class="pb-mgr">${mgr}</div></div>
+        <div class="pb-today"><div class="pb-today-v">${pbNum(b.completed_today)}</div><div class="pb-today-l">اكتمل اليوم</div></div>
+      </div>
+      ${notLinked}
+      <div class="pb-grid">
+        ${stat('حملات نشطة', b.active_campaigns)}
+        ${stat('بانتظار اعتماد', b.awaiting_approval, (b.awaiting_approval>0?'attn':''))}
+        ${stat('قيد التنفيذ', b.in_progress)}
+        ${stat('اكتمل الأسبوع', b.completed_week)}
+        ${stat('يفاوض الآن', b.negotiating)}
+        ${stat('إجمالي مكتمل', b.completed_total)}
+      </div>
+      ${overdue}
+    </div>`;
+  }).join('');
+
+  document.getElementById('pbBody').innerHTML =
+    `<div class="pb-pulses">${pulseHtml}</div><div class="pb-cards">${cards || '<div class="pb-error">لا توجد بيانات</div>'}</div>`;
+}
 </script>
 </body>
 </html>
