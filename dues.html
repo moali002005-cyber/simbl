@@ -90,6 +90,12 @@ td.iban-bad{ background:#fff2f2 !important; color:#c0392b !important; box-shadow
 .dp-wait { background:rgba(184,134,11,0.15); color:#8a6500; }
 .dp-due  { background:rgba(201,48,48,0.12); color:#b32d2d; }
 .dp-prog { background:var(--cream-darker); color:var(--ink-muted); }
+.dp-fixwait { background:rgba(184,134,11,0.18); color:#8a6500; }
+.dp-fixdone { background:rgba(29,158,117,0.16); color:#12805f; }
+.camp-exports { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.camp-exp-btn { cursor:pointer; border:1px solid #e0e7e5; background:#fff; border-radius:100px; padding:6px 12px; font-family:inherit; font-size:12px; font-weight:600; color:#0f1512; }
+.camp-exp-btn.pay { background:#1D9E75; color:#fff; border-color:#1D9E75; }
+.camp-exp-btn:hover { filter:brightness(0.97); }
 .dim { color:var(--ink-faint); }
 .dues-mark { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:5px 12px; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer; }
 .dues-mark:hover { background:var(--accent-ink); }
@@ -163,8 +169,6 @@ table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn-export" id="dues-edit-btn" onclick="toggleDuesEdit()" style="background:#0f1512;">✏️ تعديل قبل التصدير</button>
-        <button class="btn-export" onclick="exportPaySheetCSV()" style="background:#1D9E75;">💳 شيت الدفع المختصر</button>
-        <button class="btn-export" onclick="exportDuesCSV()">📥 تصدير Excel (CSV)</button>
       </div>
     </div>
   </div>
@@ -289,6 +293,30 @@ let duesEditing = false;
 function cleanField(v) {                          // يشيل الأسطر الطويلة اللي تكبّر الصف في إكسل
   return String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
 }
+// ===== استنتاج اسم البنك من الآيبان السعودي =====
+// رمز البنك = الخانتان 5–6 من الآيبان (بعد SA + خانتَي التحقق)، حسب معيار ساما.
+const SA_BANK_CODES = {
+  '10': 'البنك الأهلي السعودي',
+  '15': 'مصرف الإنماء',
+  '20': 'بنك الرياض',
+  '30': 'البنك العربي الوطني',
+  '40': 'بنك الجزيرة',
+  '45': 'بنك البلاد',
+  '50': 'البنك السعودي البريطاني (ساب)',
+  '55': 'البنك السعودي الفرنسي',
+  '60': 'البنك العربي الوطني',
+  '65': 'البنك السعودي للاستثمار',
+  '76': 'بنك الإمارات دبي الوطني',
+  '80': 'مصرف الراجحي',
+  '90': 'بنك الخليج الدولي'
+};
+function bankFromIban(iban) {
+  const s = String(iban || '').replace(/\s+/g, '').toUpperCase();
+  if (!/^SA\d{22}$/.test(s)) return '';                 // ليس آيبانًا سعوديًا صالحًا
+  const code = s.slice(4, 6);                            // رمز البنك (خانتان)
+  return SA_BANK_CODES[code] || ('بنك (رمز ' + code + ')');
+}
+
 function ibanLooksValid(v) {
   return /^SA\d{22}$/.test(String(v || '').toUpperCase().replace(/[\s\-]/g, ''));
 }
@@ -345,6 +373,18 @@ document.addEventListener('input', function (e) {
   saveDuesOverrides();
 });
 
+// حالة طلب التصحيح: يبحث في stage_data عن مرحلة عليها طلب تصحيح لم يُراجَع بعد
+function getDuesFixInfo(a){
+  const sd = (a && typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+  for (const k of Object.keys(sd)) {
+    const s = sd[k];
+    if (s && s._fix_requested === true && !s._fix_cleared) {
+      return { requested:true, stage:(parseInt(k,10)||k), at:(s._fix_at||''), note:(s._fix_note||'') };
+    }
+  }
+  return { requested:false };
+}
+
 // صف معبّأ (صفقة معتمدة)
 function duesRowFilled(a, camp, idx, totals) {
   const ov = duesOverrides[a.id] || {};
@@ -365,6 +405,7 @@ function duesRowFilled(a, camp, idx, totals) {
   const acctLink = duesAccountLink(creator);
   const stg = a.stage || 1;
   const ps = a.payment_status || 'unpaid';
+  const fix = getDuesFixInfo(a);
 
   let statusHtml, statusPlain, dateDisp = '—', dateCopy = '', action = '';
   {
@@ -389,6 +430,18 @@ function duesRowFilled(a, camp, idx, totals) {
     }
   }
 
+  // تجاوز الحالة عند وجود طلب تصحيح: بانتظار تعديل المعلن (كهرماني) → عُدّل جاهز للمراجعة (أخضر)
+  if (fix.requested) {
+    if (stg < 9) {
+      statusPlain = 'بانتظار تعديل المعلن';
+      statusHtml = '<span class="dp dp-fixwait">🔧 بانتظار تعديل المعلن</span>';
+    } else {
+      statusPlain = 'عُدّل - جاهز للمراجعة';
+      statusHtml = '<span class="dp dp-fixdone">✅ عُدّل — جاهز للمراجعة</span>';
+      action = '<button class="dues-mark" style="background:#1D9E75" onclick="clearFix(\'' + a.id + '\',' + fix.stage + ')">✓ راجعت</button>' + (action || '');
+    }
+  }
+
   const nameCell = '<td class="cell dues-editable" data-appid="' + a.id + '" data-field="name" data-copy="' + escHtml(nameRaw) + '" onclick="duesCopy(this)">' + name + '</td>';
   const phoneCell = phoneRaw
     ? '<td><div style="display:flex;gap:8px;align-items:center;justify-content:center;white-space:nowrap;"><a class="dues-link" href="' + escHtml(duesWaLink(phoneRaw)) + '" target="_blank" rel="noopener">واتساب ↗</a><span style="color:var(--line,#ddd);">|</span><span class="dues-link" data-copy="' + escHtml(phoneRaw) + '" onclick="duesCopy(this)" style="cursor:pointer;">' + escHtml(phoneRaw) + '</span></div></td>'
@@ -403,15 +456,17 @@ function duesRowFilled(a, camp, idx, totals) {
   const promoCell = '<td class="cell dues-editable dues-masklabel" data-appid="' + a.id + '" data-field="promo" data-copy="' + escHtml(promo) + '" data-real="' + escHtml(promo) + '" onclick="duesCopy(this)">' + (promo ? '<span class="dues-link">انسخ كود الترويج ⎘</span>' : '') + '</td>';
   const ibanBad = (ibanRaw && !ibanLooksValid(ibanRaw)) ? ' iban-bad' : '';
   const ibanCell = '<td class="cell xl-iban dues-editable' + ibanBad + '" data-appid="' + a.id + '" data-field="iban" data-copy="' + escHtml(ibanRaw) + '" onclick="duesCopy(this)">' + escHtml(ibanRaw || '') + '</td>';
+  const bankName = bankFromIban(ibanRaw);
+  const bankCell = '<td class="cell dim" style="white-space:nowrap;">' + escHtml(bankName || '—') + '</td>';
   const holderCell = '<td class="cell dues-editable" data-appid="' + a.id + '" data-field="holder" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw || '') + '</td>';
   const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
   const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
   const fixBtn = (stg >= 9) ? '<button class="dues-fix" onclick="requestFix(\'' + a.id + '\')">↩︎ طلب تصحيح</button>' : '';
   const actionCell = '<td><div style="display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap;">' + (action || '') + fixBtn + ((action || fixBtn) ? '' : '<span class="dim">—</span>') + '</div></td>';
 
-  const rowTSV = [nameRaw, phoneRaw || '—', acctLink || '—', dateCopy || '—', pub || '—', promo || '—', ibanRaw || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
+  const rowTSV = [nameRaw, phoneRaw || '—', acctLink || '—', dateCopy || '—', pub || '—', promo || '—', ibanRaw || '—', bankName || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
   return '<tr><td class="xl-rowh xl-rowcopy" data-copy="' + escHtml(rowTSV) + '" onclick="duesCopyRow(this)" title="نسخ الصف كامل">' + toArabic(idx) + '</td>'
-    + nameCell + phoneCell + acctCell + dateCell + videoCell + promoCell + ibanCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
+    + nameCell + phoneCell + acctCell + dateCell + videoCell + promoCell + ibanCell + bankCell + holderCell + amountCell + statusCell + actionCell + '</tr>';
 }
 
 // نسخ الصف كامل (مفصول بـ Tab — جاهز للّصق في إكسل)
@@ -432,9 +487,10 @@ function csvCell(v) {
   const s = String(v == null ? '' : v);
   return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
-function exportDuesCSV() {
-  const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const header = ['الحملة', 'تاريخ انطلاق الحملة', 'الاسم', 'الجوال', 'رابط الحساب', 'تاريخ النشر', 'رابط الفيديو', 'كود الترويج', 'الآيبان', 'الاسم بالبنك', 'المبلغ', 'حالة الدفع'];
+function exportDuesCSV(onlyCampId) {
+  let camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  if (onlyCampId) camps = camps.filter(c => c.id === onlyCampId);
+  const header = ['الحملة', 'تاريخ انطلاق الحملة', 'الاسم', 'الجوال', 'رابط الحساب', 'تاريخ النشر', 'رابط الفيديو', 'كود الترويج', 'الآيبان', 'البنك', 'الاسم بالبنك', 'المبلغ', 'حالة الدفع'];
   const lines = [header];
   let count = 0;
   camps.forEach(c => {
@@ -464,7 +520,7 @@ function exportDuesCSV() {
       const ibanOut = cleanIban(ov.iban != null ? ov.iban : (bank.iban || ''));
       const holderOut = cleanField(ov.holder != null ? ov.holder : (bank.account_holder || ''));
       lines.push([cleanField(c.title || 'حملة'), launch, nameOut, cleanField(creator.whatsapp || creator.phone || ''), cleanField(duesAccountLink(creator) || ''), dateCsv,
-        cleanUrl(st7.publish_link || ''), cleanField(ov.promo != null ? ov.promo : (st7.promo_code || '')), ibanOut, holderOut, amountNum, statusPlain]);
+        cleanUrl(st7.publish_link || ''), cleanField(ov.promo != null ? ov.promo : (st7.promo_code || '')), ibanOut, bankFromIban(ibanOut), holderOut, amountNum, statusPlain]);
       count++;
     });
   });
@@ -474,7 +530,8 @@ function exportDuesCSV() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-  link.href = url; link.download = 'مستحقات-سيمبل-' + today + '.csv';
+  const _fn = onlyCampId ? String((camps[0]&&camps[0].title)||'حملة').replace(/[\\/:*?"<>|]/g,'') : 'الكل';
+  link.href = url; link.download = 'مستحقات-' + _fn + '-' + today + '.csv';
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('تم تصدير ' + toArabic(count) + ' صف ✓');
@@ -483,7 +540,7 @@ function exportDuesCSV() {
 // صف فاضي (مقعد معلن لم يُملأ بعد)
 function duesRowEmpty(idx) {
   let tds = '';
-  for (let k = 0; k < 8; k++) tds += '<td>&nbsp;</td>';
+  for (let k = 0; k < 11; k++) tds += '<td>&nbsp;</td>';
   return '<tr class="xl-empty"><td class="xl-rowh">' + toArabic(idx) + '</td>' + tds
     + '<td><span class="dim">—</span></td></tr>';
 }
@@ -513,7 +570,7 @@ function renderCampaignBlock(camp, deals) {
     body += deals[i] ? duesRowFilled(deals[i], camp, i + 1, totals) : duesRowEmpty(i + 1);
   }
 
-  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
+  const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
   const launch = duesDateText(camp.created_at);
   const sumChips =
     '<span class="dues-chip due">المتبقّي: ' + totals.due.toLocaleString('ar-SA') + ' ر.س</span>' +
@@ -529,12 +586,12 @@ function renderCampaignBlock(camp, deals) {
     +       '<span>✅ معتمد: <strong>' + toArabic(deals.length) + (size ? '/' + toArabic(size) : '') + '</strong></span>'
     +     '</div>'
     +   '</div>'
-    +   '<div class="dues-sum">' + sumChips + '</div>'
+    +   '<div class="dues-sum">' + sumChips + '<div class="camp-exports"><button class="camp-exp-btn pay" onclick="exportPaySheetCSV(\'' + camp.id + '\')">💳 شيت الدفع</button><button class="camp-exp-btn xls" onclick="exportDuesCSV(\'' + camp.id + '\')">📥 Excel</button></div></div>'
     + '</div>'
     + '<div class="dues-grid-wrap"><table class="xl">'
     + '<thead>'
     + '<tr><th class="xl-corner"></th>' + colLetters + '</tr>'
-    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">الجوال</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">كود الترويج</th><th class="xl-label">الآيبان</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
+    + '<tr><th class="xl-rowh"></th><th class="xl-label">الاسم</th><th class="xl-label">الجوال</th><th class="xl-label">رابط الحساب</th><th class="xl-label">تاريخ النشر</th><th class="xl-label">رابط الفيديو</th><th class="xl-label">كود الترويج</th><th class="xl-label">الآيبان</th><th class="xl-label">البنك</th><th class="xl-label">الاسم بالبنك</th><th class="xl-label">المبلغ</th><th class="xl-label">حالة الدفع</th><th class="xl-label">إجراء</th></tr>'
     + '</thead><tbody>' + body + '</tbody></table></div>'
     + '</div>';
 }
@@ -568,9 +625,10 @@ function renderDues() {
 
 // ============ تصدير شيت الدفع المختصر: رابط الفيديو + الاسم بالبنك + الآيبان ============
 // يُبنى لحظة الضغط من أحدث البيانات (يشمل أي تنظيف/تعديل سويته) — فهو محدّث تلقائيًا.
-function exportPaySheetCSV() {
-  const camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  const header = ['#', 'رابط الفيديو', 'الاسم بالبنك', 'الآيبان', 'المبلغ'];
+function exportPaySheetCSV(onlyCampId) {
+  let camps = (myCampaigns || []).slice().sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  if (onlyCampId) camps = camps.filter(c => c.id === onlyCampId);
+  const header = ['#', 'رابط الفيديو', 'الاسم بالبنك', 'الآيبان', 'البنك', 'المبلغ'];
   const lines = [header];
   let count = 0;
   camps.forEach(c => {
@@ -586,7 +644,7 @@ function exportPaySheetCSV() {
       const iban = cleanIban(ov.iban != null ? ov.iban : (bank.iban || ''));
       const amount = Number(a.final_price || a.price || 0);
       count++;
-      lines.push([count, videoCell, holder, iban, amount]);
+      lines.push([count, videoCell, holder, iban, bankFromIban(iban), amount]);
     });
   });
   if (!count) { showToast('ما فيه صفقات معتمدة للتصدير', 'error'); return; }
@@ -595,10 +653,24 @@ function exportPaySheetCSV() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-  link.href = url; link.download = 'شيت-الدفع-سيمبل-' + today + '.csv';
+  const _fn = onlyCampId ? String((camps[0]&&camps[0].title)||'حملة').replace(/[\\/:*?"<>|]/g,'') : 'الكل';
+  link.href = url; link.download = 'شيت-الدفع-' + _fn + '-' + today + '.csv';
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('تم تصدير شيت الدفع المختصر (' + toArabic(count) + ' صف) ✓');
+}
+
+async function clearFix(appId, stage){
+  try{
+    const { data: row, error:e1 } = await supabaseClient.from('applications').select('stage_data').eq('id', appId).single();
+    if(e1) throw e1;
+    const sd = (row && typeof row.stage_data==='object' && row.stage_data) ? { ...row.stage_data } : {};
+    if (sd[stage]) sd[stage] = { ...sd[stage], _fix_cleared:true };
+    const { error:e2 } = await supabaseClient.from('applications').update({ stage_data: sd }).eq('id', appId);
+    if(e2) throw e2;
+    showToast('تمّت المراجعة ✓', 'success');
+    if (typeof loadData==='function') loadData();
+  }catch(err){ console.error('clearFix failed:', err); showToast('حصل خطأ، حاول مرة أخرى', 'error'); }
 }
 
 async function setBrandPaid(applicationId) {

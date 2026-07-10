@@ -2570,6 +2570,15 @@ async function submitStageForm(applicationId) {
   // ادمج مع stage_data الحالي
   const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
   existing[oldStage] = { ...data, _at: new Date().toISOString() };
+  if (_fixPending) {
+    // نُبقي أثر طلب التصحيح عشان مالك الحملة يعرف إن المعلن صحّح (يظهر «عُدّل — جاهز للمراجعة»)
+    const _prev = (app.stage_data && app.stage_data[oldStage]) || {};
+    existing[oldStage]._fix_requested = true;
+    if (_prev._fix_at) existing[oldStage]._fix_at = _prev._fix_at;
+    if (_prev._fix_note) existing[oldStage]._fix_note = _prev._fix_note;
+    existing[oldStage]._fix_done = true;
+    existing[oldStage]._fix_done_at = new Date().toISOString();
+  }
 
   const submitBtn = form.querySelector('button[type="submit"]');
   const original = submitBtn.textContent;
