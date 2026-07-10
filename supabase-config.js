@@ -20,11 +20,14 @@ window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON
 // القاعدة: لا دولة على الحملة → الجميع · دولة بلا مدينة أو «all» → كل معلني الدولة ·
 // دولة + مدينة محددة → نفس المدينة + معلني الدولة اللي مدينتهم غير مسجّلة (NULL).
 function simblLocationMatch(creator, campaign) {
-  if (!campaign || !campaign.country) return true;                     // ما حُددت دولة → توصل للجميع
-  if (!creator || creator.country !== campaign.country) return false;  // لازم نفس الدولة
-  if (!campaign.city || campaign.city === 'all') return true;          // كل مدن الدولة
-  if (!creator.city) return true;                                      // معلن بدون مدينة → ضمن دولته
-  return creator.city === campaign.city;                              // تطابق المدينة
+  // استهداف صارم: لا دولة على الحملة → الجميع · دولة → لازم نفس الدولة ·
+  // مدينة محددة (غير all) → لازم نفس المدينة بالضبط (معلن بلا مدينة مسجّلة يُحجب).
+  const norm = v => (v == null ? '' : String(v).trim().toLowerCase());
+  if (!campaign || !campaign.country) return true;                                 // لا دولة → الجميع
+  if (!creator || norm(creator.country) !== norm(campaign.country)) return false;  // لازم نفس الدولة
+  const campCity = norm(campaign.city);
+  if (!campCity || campCity === 'all') return true;                                // كل مدن الدولة
+  return norm(creator.city) === campCity;                                          // تطابق المدينة الصارم
 }
 
 // ============ تجديد جلسة الدخول استباقيًا ============
@@ -48,6 +51,27 @@ if (typeof document !== 'undefined') {
   });
   setInterval(simblKeepSessionFresh, 4 * 60 * 1000);
   setTimeout(simblKeepSessionFresh, 1500);
+}
+
+// ============ ضمان جلسة Auth طازجة قبل تحميل البيانات ============
+// إصلاح "اختفاء الحملات/الأسماء على الجوال بعد يوم": الهوية محفوظة لكن توكن الجلسة
+// ينتهي أو يتأخر تحميله عند الفتح البارد، فتُرفض القراءات (RLS) وتبان فاضية.
+// هنا نتأكد إن التوكن محمّل ومجدّد قبل أي قراءة.
+async function simblEnsureFreshSession() {
+  try {
+    if (!window.supabaseClient) return;
+    const { data } = await supabaseClient.auth.getSession();
+    const s = data && data.session;
+    if (!s) {
+      // ما فيه جلسة محمّلة (توكن راح مؤقتًا على الجوال) → جرّب تجديدها من refresh token المخزّن
+      try { await supabaseClient.auth.refreshSession(); } catch (e) { /* تجاهل */ }
+      return;
+    }
+    const msLeft = (s.expires_at ? s.expires_at * 1000 : 0) - Date.now();
+    if (msLeft < 90000) { // منتهٍ أو قريب الانتهاء → جدّد الآن قبل تحميل البيانات
+      try { await supabaseClient.auth.refreshSession(); } catch (e) { /* تجاهل */ }
+    }
+  } catch (e) { /* نكمّل حتى لو فشل الفحص */ }
 }
 
 async function dbSignup(userData) {
@@ -205,6 +229,10 @@ function clearCurrentUser() {
 // محاولة استعادة الجلسة من cookie لو localStorage راح — مع إعادة محاولة
 // (إصلاح تذبذب الجلسة: قبل كانت تحاول مرة وحدة وتستسلم بصمت لو فشلت لحظيًا)
 async function tryRestoreSession() {
+  // ٠) تأكيد جلسة Auth طازجة قبل أي تحميل بيانات
+  //    (إصلاح اختفاء الحملات/الأسماء على الجوال بعد يوم: نجدّد التوكن أولًا فلا تُرفض القراءات)
+  await simblEnsureFreshSession();
+
   // لو الجلسة موجودة في localStorage، خلاص
   if (localStorage.getItem('simbl_current_user')) return true;
 
