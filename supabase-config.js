@@ -30,28 +30,26 @@ function simblLocationMatch(creator, campaign) {
   return norm(creator.city) === campCity;                                          // تطابق المدينة الصارم
 }
 
-// ============ تجديد جلسة الدخول استباقيًا ============
-// يتفادى رفض العمليات (حذف/تعديل/إضافة) بسبب انتهاء التوكن مؤقتًا قبل تجديده.
-// يشتغل عند العودة لتبويب الصفحة + كل ٤ دقائق + فحص أوّلي. إضافة فقط — ما تغيّر أي سلوك موجود.
-async function simblKeepSessionFresh() {
-  try {
-    if (!window.supabaseClient) return;
-    const { data } = await supabaseClient.auth.getSession();
-    const s = data && data.session;
-    if (!s) return; // ما فيه جلسة (المستخدم غير مسجّل) — نتركه
-    const msLeft = (s.expires_at ? s.expires_at * 1000 : 0) - Date.now();
-    if (msLeft > 0 && msLeft < 120000) { // أقل من دقيقتين على الانتهاء → جدّد الآن
-      await supabaseClient.auth.refreshSession();
-    }
-  } catch (e) { /* تجاهل بصمت */ }
-}
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') simblKeepSessionFresh();
-  });
-  setInterval(simblKeepSessionFresh, 4 * 60 * 1000);
-  setTimeout(simblKeepSessionFresh, 1500);
-}
+// ============ إدارة الجلسة: نعتمد على autoRefreshToken المدمج فقط ============
+// أزلنا التجديد اليدوي المتعدد (كان يستدعي refreshSession عند تبديل التبويب + كل ٤ دقائق + عند الفتح)
+// لأنه يسبّب "refresh token already used" → تسجيل خروج مفاجئ وعشوائي (خصوصًا مع تعدد التبويبات/الأجهزة).
+// المكتبة تجدّد الجلسة لحالها مرة وحدة وبتنسيق آمن بين التبويبات. ونكتفي بالإصغاء لحدث الخروج
+// لعرض شاشة "انتهت جلستك" بدل صفحة فاضية — بلا أي استفزاز للتوكن.
+try {
+  if (window.supabaseClient && window.supabaseClient.auth && window.supabaseClient.auth.onAuthStateChange) {
+    window.supabaseClient.auth.onAuthStateChange(function (event) {
+      if (event === 'SIGNED_OUT' && !window.__simblLoggingOut) {
+        try {
+          if (localStorage.getItem('simbl_current_user')
+              && typeof simblOnLoginPage === 'function' && !simblOnLoginPage()
+              && typeof simblShowSessionExpired === 'function') {
+            simblShowSessionExpired();
+          }
+        } catch (e) { /* تجاهل */ }
+      }
+    });
+  }
+} catch (e) { /* تجاهل */ }
 
 // ============ ضمان جلسة Auth طازجة قبل تحميل البيانات ============
 // إصلاح "اختفاء الحملات/الأسماء على الجوال بعد يوم": الهوية محفوظة لكن توكن الجلسة
@@ -64,13 +62,10 @@ async function simblEnsureFreshSession() {
     const s = data && data.session;
     if (!s) {
       // ما فيه جلسة محمّلة (توكن راح مؤقتًا على الجوال) → جرّب تجديدها من refresh token المخزّن
-      try { await supabaseClient.auth.refreshSession(); } catch (e) { /* تجاهل */ }
-      return;
+      return; // لا نجدّد يدويًا (autoRefreshToken يتكفّل) — نتفادى 'refresh token already used'
     }
     const msLeft = (s.expires_at ? s.expires_at * 1000 : 0) - Date.now();
-    if (msLeft < 90000) { // منتهٍ أو قريب الانتهاء → جدّد الآن قبل تحميل البيانات
-      try { await supabaseClient.auth.refreshSession(); } catch (e) { /* تجاهل */ }
-    }
+    // لا نجدّد يدويًا — المكتبة تتكفّل بالتجديد بأمان.
   } catch (e) { /* نكمّل حتى لو فشل الفحص */ }
 }
 
@@ -220,6 +215,7 @@ function clearCurrentUser() {
 
   // نسجّل خروج من Supabase Auth كذلك عشان الجلسة تنتهي كاملة
   try {
+    window.__simblLoggingOut = true;   // خروج متعمّد → لا تعرض شاشة "انتهت جلستك"
     if (window.supabaseClient && window.supabaseClient.auth) {
       window.supabaseClient.auth.signOut();
     }
@@ -228,10 +224,53 @@ function clearCurrentUser() {
 
 // محاولة استعادة الجلسة من cookie لو localStorage راح — مع إعادة محاولة
 // (إصلاح تذبذب الجلسة: قبل كانت تحاول مرة وحدة وتستسلم بصمت لو فشلت لحظيًا)
+// ============ كشف الجلسة الميتة وإعادة المصادقة تلقائيًا ============
+// المشكلة: الهوية المخزّنة (simbl_current_user) تبقى حتى لو ماتت جلسة Auth،
+// فالصفحة تحسبك "داخل" وتحمّل بيانات فاضية (RLS يرفض بلا جلسة) → تبان الحملات/الأسماء اختفت.
+// الحل: نتأكد إن الجلسة حيّة فعلًا؛ لو ماتت نعرض "انتهت جلستك — سجّل دخول" (يؤتمت خطوة الخروج/الدخول اليدوية).
+function simblOnLoginPage() {
+  const p = (location.pathname || '').toLowerCase();
+  return p === '/' || p === '' || p.indexOf('signup') >= 0 || p.indexOf('login') >= 0 || p.indexOf('index') >= 0;
+}
+
+async function simblSessionAlive() {
+  try {
+    if (!window.supabaseClient) return true;               // ما نقدر نتأكد → لا نمنع
+    const { data } = await supabaseClient.auth.getSession();
+    // فيه جلسة مخزّنة؟ (حتى لو التوكن قريب الانتهاء، autoRefreshToken يتكفّل بالتجديد لحاله بأمان).
+    // لا نستدعي refreshSession يدويًا هنا — التجديد اليدوي يسبّب "refresh token already used".
+    return !!(data && data.session);
+  } catch (e) { return true; }                             // عند الشك لا نمنع
+}
+
+function simblShowSessionExpired() {
+  try {
+    if (document.getElementById('simbl-session-expired')) return;
+    const o = document.createElement('div');
+    o.id = 'simbl-session-expired';
+    o.setAttribute('style', 'position:fixed;inset:0;z-index:99999;background:#ffffff;display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit;');
+    o.innerHTML = '<div style="max-width:420px;text-align:center;">'
+      + '<div style="width:76px;height:76px;border-radius:50%;background:rgba(19,185,178,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:34px;">\uD83D\uDD12</div>'
+      + '<h2 style="font-size:24px;margin:0 0 10px;color:#0a0a0a;font-weight:700;">انتهت جلستك</h2>'
+      + '<p style="font-size:15px;color:#6b6b6b;line-height:1.8;margin:0 0 22px;">حسابك سليم، بس الجلسة انتهت. سجّل دخول من جديد وترجع بياناتك مباشرة.</p>'
+      + '<button id="simbl-relogin-btn" style="padding:13px 34px;border-radius:100px;border:0;background:#13B9B2;color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;">سجّل دخول</button>'
+      + '<div style="margin-top:14px;"><span id="simbl-retry-link" style="font-size:13px;color:#6b6b6b;cursor:pointer;text-decoration:underline;">إعادة المحاولة</span></div>'
+      + '</div>';
+    document.body.appendChild(o);
+    const btn = document.getElementById('simbl-relogin-btn');
+    if (btn) btn.onclick = function () { try { if (typeof clearCurrentUser === 'function') clearCurrentUser(); } catch (e) {} window.location.href = '/signup.html'; };
+    const rt = document.getElementById('simbl-retry-link');
+    if (rt) rt.onclick = function () { window.location.reload(); };
+  } catch (e) { window.location.href = '/signup.html'; }
+}
+
 async function tryRestoreSession() {
-  // ٠) تأكيد جلسة Auth طازجة قبل أي تحميل بيانات
-  //    (إصلاح اختفاء الحملات/الأسماء على الجوال بعد يوم: نجدّد التوكن أولًا فلا تُرفض القراءات)
-  await simblEnsureFreshSession();
+  // ٠) تأكّد إن جلسة Auth حيّة فعلًا؛ لو ماتت والهوية محفوظة → اعرض "انتهت جلستك"
+  const __alive = await simblSessionAlive();
+  if (!__alive) {
+    const __hasIdentity = !!localStorage.getItem('simbl_current_user') || /simbl_user_id=/.test(document.cookie);
+    if (__hasIdentity && !simblOnLoginPage()) { simblShowSessionExpired(); return false; }
+  }
 
   // لو الجلسة موجودة في localStorage، خلاص
   if (localStorage.getItem('simbl_current_user')) return true;
