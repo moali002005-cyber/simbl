@@ -413,7 +413,7 @@ function getDuesFixInfo(a){
   for (const k of Object.keys(sd)) {
     const s = sd[k];
     if (s && s._fix_requested === true && !s._fix_cleared) {
-      return { requested:true, stage:(parseInt(k,10)||k), at:(s._fix_at||''), note:(s._fix_note||'') };
+      return { requested:true, stage:(parseInt(k,10)||k), at:(s._fix_at||''), note:(s._fix_note||''), done:(s._fix_done===true) };
     }
   }
   return { requested:false };
@@ -466,7 +466,7 @@ function duesRowFilled(a, camp, idx, totals) {
 
   // تجاوز الحالة عند وجود طلب تصحيح: بانتظار تعديل المعلن (كهرماني) → عُدّل جاهز للمراجعة (أخضر)
   if (fix.requested) {
-    if (stg < 9) {
+    if (!fix.done) {
       statusPlain = 'بانتظار تعديل المعلن';
       statusHtml = '<span class="dp dp-fixwait">🔧 بانتظار تعديل المعلن</span>';
     } else {
@@ -817,7 +817,7 @@ async function submitFix() {
     if (e1) throw e1;
     const existing = (row && typeof row.stage_data === 'object' && row.stage_data) ? { ...row.stage_data } : {};
     existing[_fixStage] = { ...(existing[_fixStage] || {}), _fix_requested: true, _fix_note: note, _fix_at: new Date().toISOString() };
-    const { error: e2 } = await supabaseClient.from('applications').update({ stage: _fixStage, stage_data: existing }).eq('id', applicationId).select();
+    const { error: e2 } = await supabaseClient.from('applications').update({ stage_data: existing }).eq('id', applicationId).select();
     if (e2) throw e2;
     const creatorId = row && row.creator_id;
     const body = 'صحّح بيانات مرحلة «' + label + '»' + (note ? ' — ' + note : '') + '، وبتكمل الصفقة تلقائيًا.';
