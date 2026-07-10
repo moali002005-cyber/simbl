@@ -136,6 +136,20 @@ table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
   .logo-eye { width: 36px; height: 36px; }
   .logo-mark { font-size: 14px; }
 }
+
+.dues-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:14px; }
+.dues-card { background:#fff; border:1px solid var(--line,#e7edeb); border-radius:16px; padding:18px; cursor:pointer; transition:border-color .12s, transform .08s; }
+.dues-card:hover { border-color:var(--accent,#13b5a3); transform:translateY(-1px); }
+.dues-card-h { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.dues-card-ic { width:38px; height:38px; border-radius:11px; background:var(--cream-darker,#eef7f5); display:inline-flex; align-items:center; justify-content:center; font-size:19px; }
+.dues-card-name { font-size:16px; font-weight:700; color:var(--ink,#0f1512); }
+.dues-card-meta { display:flex; align-items:center; gap:16px; color:var(--ink-muted,#5b6b66); font-size:13px; flex-wrap:wrap; }
+.dues-search-wrap { margin-top:14px; }
+.dues-search { width:100%; max-width:340px; padding:11px 14px; border:1px solid var(--line,#e7edeb); border-radius:12px; font-family:inherit; font-size:14px; box-sizing:border-box; }
+.dues-search:focus { outline:none; border-color:var(--accent,#13b5a3); }
+.dues-back { cursor:pointer; border:1px solid var(--line,#e7edeb); background:#fff; border-radius:100px; padding:8px 16px; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink,#0f1512); }
+.dues-back:hover { border-color:var(--accent,#13b5a3); }
+.dues-noresult { padding:30px; text-align:center; color:var(--ink-muted,#5b6b66); }
 </style>
 </head>
 <body>
@@ -613,6 +627,44 @@ function renderCampaignBlock(camp, deals) {
     + '</div>';
 }
 
+// ============ عرض المستحقات: شبكة بطاقات (افتراضي) ↔ شيت حملة واحدة ============
+let duesView = 'grid';   // 'grid' أو معرّف الحملة المفتوحة
+
+function duesCampStats(c) {
+  const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+  const creators = deals.length;
+  const total = deals.reduce((s, a) => s + Number(a.final_price || a.price || 0), 0);
+  return { deals, creators, total };
+}
+
+function duesCardHTML(c) {
+  const st = duesCampStats(c);
+  const name = escHtml(c.title || 'حملة');
+  return '<div class="dues-card" data-name="' + name + '" onclick="openDuesCamp(\'' + c.id + '\')">'
+    + '<div class="dues-card-h"><span class="dues-card-ic">📦</span><span class="dues-card-name">' + name + '</span></div>'
+    + '<div class="dues-card-meta">'
+    +   '<span>👥 ' + toArabic(st.creators) + ' معلن</span>'
+    +   '<span>💰 ' + st.total.toLocaleString('ar-SA') + ' ر.س</span>'
+    + '</div></div>';
+}
+
+function filterDuesCards(q) {
+  q = (q || '').trim().toLowerCase();
+  const cards = document.querySelectorAll('#dues-cards .dues-card');
+  let shown = 0;
+  cards.forEach(card => {
+    const name = (card.getAttribute('data-name') || '').toLowerCase();
+    const on = !q || name.indexOf(q) >= 0;
+    card.style.display = on ? '' : 'none';
+    if (on) shown++;
+  });
+  const nr = document.getElementById('dues-noresult');
+  if (nr) nr.style.display = shown ? 'none' : 'block';
+}
+
+function openDuesCamp(campId) { duesView = campId; renderDues(); try { window.scrollTo(0, 0); } catch (e) {} }
+function backToDuesCards() { duesView = 'grid'; renderDues(); try { window.scrollTo(0, 0); } catch (e) {} }
+
 function renderDues() {
   const host = document.getElementById('dues-section');
   if (!host) return;
@@ -622,22 +674,39 @@ function renderDues() {
 
   if (!camps.length) {
     host.innerHTML =
-      '<div class="dues-wrap"><div class="dues-empty">ما عندك حملات بعد. أنشئ حملة من اللوحة وبتظهر هنا بكل صفقاتها ومقاعد المعلنين.</div></div>';
+      '<div class="dues-wrap"><div class="dues-empty">ما عندك حملات بعد. أنشئ حملة من اللوحة وبتظهر هنا.</div></div>';
     return;
   }
 
-  const blocks = camps.map(c => {
-    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
-    return renderCampaignBlock(c, deals);
-  }).join('');
+  // عرض شيت حملة واحدة
+  if (duesView !== 'grid') {
+    const c = camps.find(x => x.id === duesView);
+    if (c) {
+      const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+      host.innerHTML =
+        '<div class="dues-wrap">'
+        + '<div class="dues-head" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
+        +   '<button class="dues-back" onclick="backToDuesCards()">← رجوع للبطاقات</button>'
+        +   '<h3 style="margin:0">📋 ' + escHtml(c.title || 'حملة') + '</h3>'
+        + '</div>'
+        + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 «رابط الحساب» أو «رابط الفيديو» للفتح · الصفوف الفاضية = مقاعد لم تُعتمد بعد</p>'
+        + renderCampaignBlock(c, deals)
+        + '</div>';
+      autoCleanIbans();
+      return;
+    }
+    duesView = 'grid';   // الحملة غير موجودة → رجوع للشبكة
+  }
 
+  // شبكة البطاقات
+  const cards = camps.map(duesCardHTML).join('');
   host.innerHTML =
     '<div class="dues-wrap">'
-    + '<div class="dues-head"><h3>📋 الحملات</h3></div>'
-    + '<p class="dues-hint">👆 اضغط أي خانة لنسخها · 🔗 اضغط «رابط الحساب» أو «رابط الفيديو» للفتح · الصفوف الفاضية = مقاعد معلنين لم تُعتمد بعد</p>'
-    + blocks
+    + '<div class="dues-head"><h3>📋 الحملات (' + toArabic(camps.length) + ')</h3></div>'
+    + '<div class="dues-search-wrap"><input id="dues-search" type="text" placeholder="🔍 ابحث باسم الحملة..." oninput="filterDuesCards(this.value)" class="dues-search"></div>'
+    + '<div class="dues-cards" id="dues-cards">' + cards + '</div>'
+    + '<div class="dues-noresult" id="dues-noresult" style="display:none">ما فيه حملة بهذا الاسم.</div>'
     + '</div>';
-  autoCleanIbans();   // تنظيف تلقائي صامت بعد كل رسم
 }
 
 // ============ تصدير شيت الدفع المختصر: رابط الفيديو + الاسم بالبنك + الآيبان ============
