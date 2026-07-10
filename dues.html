@@ -137,13 +137,16 @@ table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
   .logo-mark { font-size: 14px; }
 }
 
-.dues-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:14px; }
-.dues-card { background:#fff; border:1px solid var(--line,#e7edeb); border-radius:16px; padding:18px; cursor:pointer; transition:border-color .12s, transform .08s; }
-.dues-card:hover { border-color:var(--accent,#13b5a3); transform:translateY(-1px); }
-.dues-card-h { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-.dues-card-ic { width:38px; height:38px; border-radius:11px; background:var(--cream-darker,#eef7f5); display:inline-flex; align-items:center; justify-content:center; font-size:19px; }
-.dues-card-name { font-size:16px; font-weight:700; color:var(--ink,#0f1512); }
-.dues-card-meta { display:flex; align-items:center; gap:16px; color:var(--ink-muted,#5b6b66); font-size:13px; flex-wrap:wrap; }
+.dues-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-top:16px; }
+.dues-card { position:relative; background:linear-gradient(135deg, rgba(19,185,178,0.10), #ffffff 72%); border:1px solid rgba(19,185,178,0.26); border-radius:16px; padding:18px 20px; cursor:pointer; transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.dues-card:hover { transform:translateY(-3px); border-color:var(--accent); box-shadow:0 10px 26px rgba(19,185,178,0.18); }
+.dues-card-h { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:16px; }
+.dues-card-name { font-family:var(--font-display); font-size:17px; font-weight:700; color:var(--ink); }
+.dues-card-go { color:var(--accent); font-size:16px; opacity:.65; transition:opacity .16s ease, transform .16s ease; }
+.dues-card:hover .dues-card-go { opacity:1; transform:translateX(-3px); }
+.dues-card-meta { display:flex; align-items:center; gap:16px; font-size:13px; flex-wrap:wrap; }
+.dues-card-meta .m-users { color:var(--ink-muted); display:inline-flex; align-items:center; gap:5px; }
+.dues-card-meta .m-amount { color:var(--accent-ink); font-weight:700; display:inline-flex; align-items:center; gap:5px; }
 .dues-search-wrap { margin-top:14px; }
 .dues-search { width:100%; max-width:340px; padding:11px 14px; border:1px solid var(--line,#e7edeb); border-radius:12px; font-family:inherit; font-size:14px; box-sizing:border-box; }
 .dues-search:focus { outline:none; border-color:var(--accent,#13b5a3); }
@@ -641,10 +644,10 @@ function duesCardHTML(c) {
   const st = duesCampStats(c);
   const name = escHtml(c.title || 'حملة');
   return '<div class="dues-card" data-name="' + name + '" onclick="openDuesCamp(\'' + c.id + '\')">'
-    + '<div class="dues-card-h"><span class="dues-card-ic">📦</span><span class="dues-card-name">' + name + '</span></div>'
+    + '<div class="dues-card-h"><span class="dues-card-name">' + name + '</span><span class="dues-card-go">\u2190</span></div>'
     + '<div class="dues-card-meta">'
-    +   '<span>👥 ' + toArabic(st.creators) + ' معلن</span>'
-    +   '<span>💰 ' + st.total.toLocaleString('ar-SA') + ' ر.س</span>'
+    +   '<span class="m-users">\uD83D\uDC65 ' + toArabic(st.creators) + ' معلن</span>'
+    +   '<span class="m-amount">\uD83D\uDCB0 ' + st.total.toLocaleString('ar-SA') + ' ر.س</span>'
     + '</div></div>';
 }
 
