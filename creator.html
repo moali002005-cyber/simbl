@@ -1244,6 +1244,28 @@ async function simblExitImpersonation(){
   </div>
 </div>
 
+<!-- ===== مودال دعوة قروب واتساب ===== -->
+<style>
+  #group-modal{position:fixed;inset:0;z-index:10001;background:rgba(12,26,24,.55);display:none;align-items:center;justify-content:center;padding:20px}
+  #group-modal.on{display:flex}
+  #group-modal .gm-box{background:#fff;border-radius:20px;max-width:400px;width:100%;padding:28px 24px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;font-family:inherit}
+  #group-modal .gm-ic{font-size:44px;margin-bottom:10px}
+  #group-modal h3{margin:0 0 10px;font-size:20px;color:#141414}
+  #group-modal p{margin:0 0 20px;font-size:14px;color:#5b5b5b;line-height:1.8}
+  #group-modal .gm-join{width:100%;padding:14px;border:0;border-radius:100px;background:#25D366;color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
+  #group-modal .gm-join:hover{filter:brightness(.97)}
+  #group-modal .gm-skip{display:inline-block;margin-top:14px;font-size:13px;color:#8a8a8a;cursor:pointer;text-decoration:underline}
+</style>
+<div id="group-modal">
+  <div class="gm-box">
+    <div class="gm-ic">💬</div>
+    <h3>انضم لمجتمع سِمبل على واتساب</h3>
+    <p>كل الحملات الجديدة والأخبار توصلك أول بأول 🌿 وتكون أول من يعرف عن الحملات قبل غيرك.</p>
+    <button class="gm-join" onclick="joinGroup()">انضم للقروب الآن</button>
+    <div class="gm-skip" onclick="skipGroup()">لاحقًا</div>
+  </div>
+</div>
+
 <nav class="nav">
   <div class="container nav-inner">
     <a href="/" class="logo">
@@ -1556,6 +1578,28 @@ function skipCity(){
   var m=document.getElementById('city-modal'); if(m) m.classList.remove('on');
 }
 
+// ===== دعوة قروب واتساب: تظهر مرة، تحترم الإغلاق (المنضمّ لا تعود له، والمؤجِّل تظهر له الجلسة الجاية) =====
+const SIMBL_GROUP_URL = 'https://chat.whatsapp.com/DRTU4vQD4vD0cmiJJeCmzE?mode=gi_t';
+function maybePromptGroup(){
+  try{
+    if(!currentUser) return;
+    if(localStorage.getItem('simbl_group_joined')==='1') return;      // انضم من قبل → لا نعيد
+    if(sessionStorage.getItem('simbl_group_skip')==='1') return;      // أجّلها هذي الجلسة
+    var cm=document.getElementById('city-modal');
+    if(cm && cm.classList.contains('on')) return;                    // لا نكدّس فوق مودال المدينة
+    var m=document.getElementById('group-modal'); if(m) m.classList.add('on');
+  }catch(e){ /* تجاهل */ }
+}
+function joinGroup(){
+  try{ localStorage.setItem('simbl_group_joined','1'); }catch(e){}
+  try{ window.open(SIMBL_GROUP_URL, '_blank'); }catch(e){ window.location.href = SIMBL_GROUP_URL; }
+  var m=document.getElementById('group-modal'); if(m) m.classList.remove('on');
+}
+function skipGroup(){
+  try{ sessionStorage.setItem('simbl_group_skip','1'); }catch(e){}
+  var m=document.getElementById('group-modal'); if(m) m.classList.remove('on');
+}
+
 async function init() {
   await tryRestoreSession();
 
@@ -1615,6 +1659,7 @@ async function init() {
   }
 
   maybePromptCity();
+  maybePromptGroup();
 
   initNotifications('user-menu');
 
