@@ -1805,9 +1805,9 @@ function campaignWaitlistMode(c) {
   if (!c || c._targetMatch === false) return false;
   if (c.status === 'closed' || c.status === 'completed') return false;
   const target = campaignTargetSize(c);
+  const batchSize = target ? target * 2 : 0; // الحجم + الاحتياط = 2×الحجم، نطابق عتبة الوكيل
   return ((campaignWaitlistCount[c.id] || 0) > 0)
-      || (target && (campaignClosedCount[c.id] || 0) >= target)
-      || campaignIsFull(c);
+      || (batchSize && (campaignClosedCount[c.id] || 0) >= batchSize);
 }
 // عرض متوقف/منتهٍ لا يظهر للمعلن (مرفوض يدويًا أو متوقف لاكتمال الحملة)
 function isDeadApp(a) {
@@ -2837,11 +2837,16 @@ async function enterNegotiation(campaignId, btn) {
     return registerWaitlist(campaign, btn);
   }
 
-  // منع الدخول لو الحملة مكتملة (تحقق محلي سريع)
-  if (campaignIsFull(campaign)) {
-    showToast('الحملة مكتملة — اكتمل العدد المطلوب.', 'error');
-    await loadData();
-    return;
+  // منع الدخول فقط لو الحملة مقفلة/منتهية أو امتلأ الاحتياط (المقفول ≥ 2×الحجم) — نطابق بوابة الوكيل
+  {
+    const _t = campaignTargetSize(campaign);
+    const _batch = _t ? _t * 2 : 0;
+    if (campaign.status === 'closed' || campaign.status === 'completed'
+        || (_batch && (campaignClosedCount[campaign.id] || 0) >= _batch)) {
+      showToast('الحملة مكتملة — اكتمل العدد المطلوب.', 'error');
+      await loadData();
+      return;
+    }
   }
 
   if (btn) { btn.disabled = true; btn.textContent = 'جاري الفتح...'; }
@@ -2853,19 +2858,19 @@ async function enterNegotiation(campaignId, btn) {
     if (fresh) {
       campaign.status = fresh.status; // حدّث الحالة محليًا
       const target = campaignTargetSize(fresh);
+      const batchSize = target ? target * 2 : 0; // عتبة الوكيل = 2×الحجم (الحجم + الاحتياط)
       let full = (fresh.status === 'closed' || fresh.status === 'completed');
-      if (!full && target) {
-        // أعِد عدّ المعتمدين لحظيًا (أفضل جهد)
+      if (!full && batchSize) {
+        // أعِد عدّ المقفول لحظيًا (نطابق عتبة الوكيل، أفضل جهد)
         try {
           const { count } = await supabaseClient
             .from('applications')
             .select('id', { count: 'exact', head: true })
             .eq('campaign_id', campaignId)
-            .eq('status', 'closed')
-            .eq('brand_approved', true);
+            .eq('status', 'closed');
           if (typeof count === 'number') {
-            campaignApprovedCount[campaignId] = count;
-            full = count >= target;
+            campaignClosedCount[campaignId] = count;
+            full = count >= batchSize;
           }
         } catch (e) { /* نعتمد على status */ }
       }
