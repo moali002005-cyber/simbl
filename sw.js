@@ -1,21 +1,22 @@
 // Service Worker لسيمبل
-// يستقبل الإشعارات Push ويعرضها حتى لو المتصفح مقفول
+// (١) يستقبل إشعارات Push ويعرضها حتى لو المتصفح مقفول
+// (٢) يجلب الصفحات من الشبكة مباشرة (no-store) — فأي تحديث يوصل كل الأجهزة فورًا بلا كاش قديم
 
-const CACHE_VERSION = 'simbl-v2';
+const CACHE_VERSION = 'simbl-v3';
 
-// التثبيت
+// التثبيت — نفعّل النسخة الجديدة فورًا
 self.addEventListener('install', (event) => {
   console.log('Simbl SW installed', CACHE_VERSION);
   self.skipWaiting();
 });
 
-// التفعيل — نحذف أي كاش قديم لضمان عدم ظهور نسخة قديمة
+// التفعيل — نحذف أي كاش قديم ونسيطر على كل التبويبات مباشرة
 self.addEventListener('activate', (event) => {
   console.log('Simbl SW activated', CACHE_VERSION);
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
-      .then(() => clients.claim())
+      .then(() => self.clients.claim())
   );
 });
 
@@ -62,14 +63,12 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // لو الموقع مفتوح، نركز عليه
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
             client.navigate(targetUrl);
             return client.focus();
           }
         }
-        // غير كذا، نفتح تبويب جديد
         if (clients.openWindow) {
           return clients.openWindow(targetUrl);
         }
@@ -77,7 +76,22 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// fetch event (نترك المتصفح يتعامل عادي - لا تخزين للصفحات)
+// fetch — للصفحات (navigation) نجلب من الشبكة مباشرة بلا كاش، فيوصل آخر تحديث دايمًا لكل الأجهزة.
+// باقي الطلبات (js/css/صور) نتركها للمتصفح (لها كاش-باستينج تلقائي بالفعل).
 self.addEventListener('fetch', (event) => {
-  // لا نسوي كاش للصفحات، عشان دايم يطلع آخر تحديث
+  const req = event.request;
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).catch(() =>
+        caches.match(req).then((cached) =>
+          cached || new Response(
+            '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="2">' +
+            '<body style="font-family:sans-serif;text-align:center;padding:40px;color:#555">جارٍ إعادة المحاولة…</body>',
+            { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          )
+        )
+      )
+    );
+  }
+  // غير الصفحات: لا نتدخّل
 });
