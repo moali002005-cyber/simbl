@@ -2770,6 +2770,36 @@ function initialPriceFromBudget(campaign) {
 }
 
 // دخول التفاوض مباشرة: ينشئ العرض (بدون سعر من المعلن)، يشغّل أول رسالة للوكيل، ثم يفتح المحادثة
+// تسجيل مباشر في قائمة الانتظار: ينشئ صفقة بحالة waitlisted ويعطي تأكيدًا + الترتيب، بلا محادثة
+async function registerWaitlist(campaign, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري التسجيل...'; }
+  try {
+    const saved = await dbApply({
+      campaign_id: campaign.id,
+      creator_id: currentUser.id,
+      price: initialPriceFromBudget(campaign),
+      note: null,
+      status: 'waitlisted'
+    });
+    let pos = null;
+    try {
+      const { data } = await supabaseClient.rpc('waitlist_position', { p_application_id: saved.id });
+      if (data != null) pos = data;
+    } catch (e) { /* الترتيب اختياري */ }
+    showToast(
+      pos != null
+        ? `تم تسجيلك في قائمة الانتظار 🌿 ترتيبك رقم ${toArabic(pos)} — بننبّهك أول ما ينفتح مكان.`
+        : 'تم تسجيلك في قائمة الانتظار 🌿 بننبّهك أول ما ينفتح مكان.',
+      'success', 5000
+    );
+    await loadData();
+  } catch (err) {
+    console.error('registerWaitlist failed:', err);
+    if (btn) { btn.disabled = false; btn.textContent = '🕓 سجّل في قائمة الانتظار'; }
+    showToast('حصل خطأ أثناء التسجيل، حاول مرة أخرى 🙏', 'error');
+  }
+}
+
 async function enterNegotiation(campaignId, btn) {
   const _lc = (typeof allCampaigns !== 'undefined' ? allCampaigns : []).find(x => x.id === campaignId);
   if (_lc && _lc._targetMatch === false) {
@@ -2800,6 +2830,11 @@ async function enterNegotiation(campaignId, btn) {
         return;
       }
     } catch (e) { /* لو تعذّر التحقق نكمل — القيود الأخرى تبقى تحمي */ }
+  }
+
+  // تسجيل مباشر في قائمة الانتظار (بلا فتح محادثة الوكيل) لو اكتمل عدد الحملة
+  if (campaignWaitlistMode(campaign)) {
+    return registerWaitlist(campaign, btn);
   }
 
   // منع الدخول لو الحملة مكتملة (تحقق محلي سريع)
