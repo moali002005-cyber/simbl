@@ -240,6 +240,31 @@ function simblLocationMatchSrv(creator, campaign) {
   return uCity.toLowerCase() === cCity.toLowerCase();
 }
 
+// ===== بوابة المنصة + المتابعين (السيرفر يرفض فقط عند تعارض مؤكّد؛ الفلترة عند العرض هي الصرامة الأولى) =====
+const SIMBL_FOLLOWER_BUCKETS_SRV = {
+  '10000':[10000,20000], '20000':[20000,50000], '50000':[50000,100000],
+  '100000':[100000,200000], '200000':[200000,300000], '300000':[300000,500000],
+  '500000':[500000,700000], '700000':[700000,1000000], '1000000':[1000000,2000000],
+  '2000000':[2000000,Infinity], '3000000':[3000000,Infinity], '4000000':[4000000,Infinity]
+};
+function simblPlatformMismatchSrv(creatorPlatform, campaign) {
+  const cp = (campaign && campaign.platform != null) ? String(campaign.platform).trim().toLowerCase() : '';
+  if (!cp) return false;                          // لا منصة على الحملة → لا تعارض
+  const up = String(creatorPlatform || '').trim().toLowerCase();
+  if (!up) return false;                          // منصة المعلن غير معروفة → لا نمنع من السيرفر
+  return up !== cp;                               // معروفة ومختلفة → تعارض
+}
+function simblFollowerMismatchSrv(creatorFollowers, campaign) {
+  const raw = (campaign && campaign.follower_range != null) ? String(campaign.follower_range).trim() : '';
+  if (!raw) return false;
+  const buckets = raw.split(',').map(s => s.trim()).filter(Boolean);
+  if (!buckets.length) return false;
+  const f = Number(creatorFollowers);
+  if (!isFinite(f) || f <= 0) return false;       // غير معروف → لا نمنع من السيرفر
+  const inRange = buckets.some(b => { const r = SIMBL_FOLLOWER_BUCKETS_SRV[b]; return r ? (f >= r[0] && f < r[1]) : false; });
+  return !inRange;                                // معروف وخارج كل النطاقات → تعارض
+}
+
 function creatorAcceptedExplicit(text) {
   if (!text) return false;
   const t = toAsciiDigits(String(text)).trim();
@@ -340,6 +365,24 @@ export default async function handler(req, res) {
         dealDetails: null
       });
     }
+  }
+
+  // ============ فحص المنصة (يقفل تفاوض معلن على منصة مختلفة عن الحملة) ============
+  if (simblPlatformMismatchSrv(application.platform, campaign)) {
+    return res.status(200).json({
+      reply: 'نعتذر منك، هذي الحملة مخصّصة لمنصة مختلفة عن منصتك، فما نقدر نكمل التفاوض. نتمنى نشوفك في حملة تناسب منصتك 🌿',
+      dealClosed: false,
+      dealDetails: null
+    });
+  }
+
+  // ============ فحص نطاق المتابعين (يقفل تفاوض معلن خارج النطاق المطلوب) ============
+  if (simblFollowerMismatchSrv(application.followers, campaign)) {
+    return res.status(200).json({
+      reply: 'نعتذر منك، متطلّب المتابعين لهذي الحملة مختلف عن نطاقك الحالي، فما نقدر نكمل التفاوض. نتمنى نشوفك في حملة تناسب نطاقك 🌿',
+      dealClosed: false,
+      dealDetails: null
+    });
   }
 
   // ============ حساب الأرقام المحدّدة قبل البرومبت ============
