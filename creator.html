@@ -400,6 +400,8 @@ body {
 .ac-card.campaign-locked { opacity: 0.72; }
 .lock-badge { background:#f2f2f0; color:#6b6b6b; border:1px solid #e2e2df; border-radius:100px; padding:7px 14px; font-size:13px; font-weight:600; white-space:nowrap; }
 .ac-lockreason { margin-top:8px; background:#fbf3f3; border:1px solid #f0d9d9; color:#a15a5a; border-radius:9px; padding:8px 11px; font-size:12.5px; line-height:1.6; }
+.ac-applybtn.wl { background:#FCE9D2; color:#9A4B06; border:1px solid #F0C79A; }
+.wl-note { margin-top:9px; background:#FFF6EC; border:1px solid #f3e0c6; color:#9A4B06; border-radius:9px; padding:9px 12px; font-size:12.5px; line-height:1.7; }
 .campaign-card .top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
 .brand-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-muted); }
 .brand-avatar {
@@ -1358,6 +1360,8 @@ let myApplications = [];
 let currentFilter = 'all';
 let expandedAppId = null;
 let campaignApprovedCount = {}; // عدد الصفقات المعتمدة لكل حملة (أفضل جهد — قد تحدّه سياسات الحماية)
+let campaignClosedCount = {};   // عدد الصفقات المقفولة (معتمدة أو لا) لكل حملة
+let campaignWaitlistCount = {}; // عدد المسجّلين في قائمة الانتظار لكل حملة
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
@@ -1755,20 +1759,24 @@ async function loadData() {
 // ====== اكتمال الحملة: إخفاء الحملات المكتملة ومنع الدخول ======
 // يُحسب ضمن العدد: الصفقة المقفلة والمعتمدة من الشركة فقط
 async function loadCampaignApprovedCounts() {
-  campaignApprovedCount = {};
+  campaignApprovedCount = {}; campaignClosedCount = {}; campaignWaitlistCount = {};
   try {
     const ids = (allCampaigns || []).map(c => c.id);
     if (!ids.length) return;
     // أفضل جهد: قد تحدّ سياسات الحماية (RLS) رؤية عروض الآخرين — وفي هذه الحالة نعتمد على حالة الحملة (status)
     const { data, error } = await supabaseClient
       .from('applications')
-      .select('campaign_id')
-      .eq('status', 'closed')
-      .eq('brand_approved', true)
+      .select('campaign_id, status, brand_approved')
+      .in('status', ['closed', 'waitlisted'])
       .in('campaign_id', ids);
     if (error) return;
     (data || []).forEach(a => {
-      campaignApprovedCount[a.campaign_id] = (campaignApprovedCount[a.campaign_id] || 0) + 1;
+      if (a.status === 'closed') {
+        campaignClosedCount[a.campaign_id] = (campaignClosedCount[a.campaign_id] || 0) + 1;
+        if (a.brand_approved) campaignApprovedCount[a.campaign_id] = (campaignApprovedCount[a.campaign_id] || 0) + 1;
+      } else if (a.status === 'waitlisted') {
+        campaignWaitlistCount[a.campaign_id] = (campaignWaitlistCount[a.campaign_id] || 0) + 1;
+      }
     });
   } catch (e) { /* صامت — نعتمد على status */ }
 }
@@ -1784,6 +1792,15 @@ function campaignIsFull(c) {
   const target = campaignTargetSize(c);
   if (!target) return false;
   return (campaignApprovedCount[c.id] || 0) >= target;
+}
+// وضع قائمة الانتظار: الحملة شغّالة لكن اكتمل عددها/فيها منتظرون → التسجيل يدخل قائمة الانتظار
+function campaignWaitlistMode(c) {
+  if (!c || c._targetMatch === false) return false;
+  if (c.status === 'closed' || c.status === 'completed') return false;
+  const target = campaignTargetSize(c);
+  return ((campaignWaitlistCount[c.id] || 0) > 0)
+      || (target && (campaignClosedCount[c.id] || 0) >= target)
+      || campaignIsFull(c);
 }
 // عرض متوقف/منتهٍ لا يظهر للمعلن (مرفوض يدويًا أو متوقف لاكتمال الحملة)
 function isDeadApp(a) {
@@ -1953,7 +1970,8 @@ function renderUnified() {
   const openAll = filtered.filter(c => !appliedCampIds.has(c.id) && !blockedCampIds.has(c.id));
   openAll.sort((a, b) => {
     const la = (a._targetMatch === false) ? 1 : 0, lb = (b._targetMatch === false) ? 1 : 0;
-    return (la - lb) || ((campaignIsFull(a) ? 1 : 0) - (campaignIsFull(b) ? 1 : 0));
+    const wa = campaignWaitlistMode(a) ? 1 : 0, wb = campaignWaitlistMode(b) ? 1 : 0;
+    return (la - lb) || (wa - wb) || ((campaignIsFull(a) ? 1 : 0) - (campaignIsFull(b) ? 1 : 0));
   });
   const openItems = openAll.map(c => ({ c }));
 
@@ -2078,15 +2096,18 @@ function renderBrowseCard(c) {
   const brandName = c.brand || 'شركة';
   const brandInitial = brandName[0] || '؟';
   const pledge = paymentPledgeText(c);
-  const full = campaignIsFull(c);
   const locked = c._targetMatch === false; // غير مطابق للاستهداف → للاطّلاع فقط
-  const sideHtml = full
-    ? `<span class="full-badge">اكتمل العدد</span>`
-    : (locked
-        ? `<span class="lock-badge">🔒 غير متاح لك</span>`
-        : `<button class="ac-applybtn" onclick="enterNegotiation('${c.id}', this)">💬 التفاوض مع الوكيل</button>`);
+  const isDone = (c.status === 'closed' || c.status === 'completed');
+  const waitlistMode = campaignWaitlistMode(c); // اكتمل عددها/فيها منتظرون → التسجيل يدخل قائمة الانتظار
+  const sideHtml = locked
+    ? `<span class="lock-badge">🔒 غير متاح لك</span>`
+    : isDone
+      ? `<span class="full-badge">اكتمل العدد</span>`
+      : waitlistMode
+        ? `<button class="ac-applybtn wl" onclick="enterNegotiation('${c.id}', this)">🕓 سجّل في قائمة الانتظار</button>`
+        : `<button class="ac-applybtn" onclick="enterNegotiation('${c.id}', this)">💬 التفاوض مع الوكيل</button>`;
   return `
-    <div class="ac-card no-expand${full ? ' campaign-full' : ''}${locked ? ' campaign-locked' : ''}">
+    <div class="ac-card no-expand${isDone ? ' campaign-full' : ''}${locked ? ' campaign-locked' : ''}">
       <div class="ac-head" style="cursor:default;">
         <div class="ac-avatar">${brandInitial}</div>
         <div class="ac-main">
@@ -2098,13 +2119,14 @@ function renderBrowseCard(c) {
         </div>
       </div>
       <div class="ac-metarow">
-        ${full ? '<span class="meta-item">✓ اكتمل العدد المطلوب لهذي الحملة</span>' : `
+        ${isDone ? '<span class="meta-item">✓ اكتمل العدد المطلوب لهذي الحملة</span>' : `
         ${c.publish_timing ? `<span class="meta-item">⏱ ${publishTimingText(c)}</span>` : ''}
         ${c.platform ? `<span class="meta-item">◇ ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
         ${c.follower_range ? `<span class="meta-item">◯ ${followerRangeText(c)}</span>` : ''}
         ${c.city ? `<span class="meta-item">📍 ${CITY_LABELS[c.city] || c.city}</span>` : ''}
         ${pledge ? `<span class="pay-pledge">💸 ${pledge}</span>` : ''}`}
       </div>
+      ${waitlistMode ? `<div class="wl-note">🕓 اكتمل العدد الحالي — تسجيلك يدخلك قائمة الانتظار، ونرقّيك أول ما ينفتح مكان 🌿</div>` : ''}
       ${locked ? `<div class="ac-lockreason">🔒 ${escHtml(c._lockReason || 'هذي الحملة لا تطابق ملفك — للاطّلاع فقط')}</div>` : ''}
     </div>
   `;
