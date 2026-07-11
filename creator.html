@@ -397,6 +397,9 @@ body {
   gap: 16px;
 }
 .campaign-card:hover { transform: translateY(-3px); border-color: var(--ink-soft); }
+.ac-card.campaign-locked { opacity: 0.72; }
+.lock-badge { background:#f2f2f0; color:#6b6b6b; border:1px solid #e2e2df; border-radius:100px; padding:7px 14px; font-size:13px; font-weight:600; white-space:nowrap; }
+.ac-lockreason { margin-top:8px; background:#fbf3f3; border:1px solid #f0d9d9; color:#a15a5a; border-radius:9px; padding:8px 11px; font-size:12.5px; line-height:1.6; }
 .campaign-card .top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
 .brand-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-muted); }
 .brand-avatar {
@@ -1313,7 +1316,7 @@ async function simblExitImpersonation(){
 </main>
 
 <script>document.write('<script src="supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
-<script src="notifications.js?v=2"></script>
+<script>document.write('<script src="notifications.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 let currentUser = null;
 let allCampaigns = [];
@@ -1872,7 +1875,10 @@ function renderUnified() {
     ? allCampaigns
     : allCampaigns.filter(c => c.brand_industry === currentFilter);
   const openAll = filtered.filter(c => !appliedCampIds.has(c.id) && !blockedCampIds.has(c.id));
-  openAll.sort((a, b) => (campaignIsFull(a) ? 1 : 0) - (campaignIsFull(b) ? 1 : 0));
+  openAll.sort((a, b) => {
+    const la = (a._targetMatch === false) ? 1 : 0, lb = (b._targetMatch === false) ? 1 : 0;
+    return (la - lb) || ((campaignIsFull(a) ? 1 : 0) - (campaignIsFull(b) ? 1 : 0));
+  });
   const openItems = openAll.map(c => ({ c }));
 
   const myDeals = document.getElementById('my-deals');
@@ -1997,11 +2003,14 @@ function renderBrowseCard(c) {
   const brandInitial = brandName[0] || '؟';
   const pledge = paymentPledgeText(c);
   const full = campaignIsFull(c);
+  const locked = c._targetMatch === false; // غير مطابق للاستهداف → للاطّلاع فقط
   const sideHtml = full
     ? `<span class="full-badge">اكتمل العدد</span>`
-    : `<button class="ac-applybtn" onclick="enterNegotiation('${c.id}', this)">💬 التفاوض مع الوكيل</button>`;
+    : (locked
+        ? `<span class="lock-badge">🔒 غير متاح لك</span>`
+        : `<button class="ac-applybtn" onclick="enterNegotiation('${c.id}', this)">💬 التفاوض مع الوكيل</button>`);
   return `
-    <div class="ac-card no-expand${full ? ' campaign-full' : ''}">
+    <div class="ac-card no-expand${full ? ' campaign-full' : ''}${locked ? ' campaign-locked' : ''}">
       <div class="ac-head" style="cursor:default;">
         <div class="ac-avatar">${brandInitial}</div>
         <div class="ac-main">
@@ -2020,6 +2029,7 @@ function renderBrowseCard(c) {
         ${c.city ? `<span class="meta-item">📍 ${CITY_LABELS[c.city] || c.city}</span>` : ''}
         ${pledge ? `<span class="pay-pledge">💸 ${pledge}</span>` : ''}`}
       </div>
+      ${locked ? `<div class="ac-lockreason">🔒 ${escHtml(c._lockReason || 'هذي الحملة لا تطابق ملفك — للاطّلاع فقط')}</div>` : ''}
     </div>
   `;
 }
@@ -2654,6 +2664,11 @@ function initialPriceFromBudget(campaign) {
 
 // دخول التفاوض مباشرة: ينشئ العرض (بدون سعر من المعلن)، يشغّل أول رسالة للوكيل، ثم يفتح المحادثة
 async function enterNegotiation(campaignId, btn) {
+  const _lc = (typeof allCampaigns !== 'undefined' ? allCampaigns : []).find(x => x.id === campaignId);
+  if (_lc && _lc._targetMatch === false) {
+    showToast(_lc._lockReason || 'هذي الحملة لا تطابق ملفك — للاطّلاع فقط 🌿', 'error');
+    return;
+  }
   const campaign = allCampaigns.find(c => c.id === campaignId);
   if (!campaign) return;
 

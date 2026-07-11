@@ -30,6 +30,68 @@ function simblLocationMatch(creator, campaign) {
   return norm(creator.city) === campCity;                                          // تطابق المدينة الصارم
 }
 
+// ===== استهداف المنصة + نطاق المتابعين (استهداف صارم) =====
+// شرائح المتابعين: بداية الشريحة → [الحد الأدنى, الحد الأعلى)
+const SIMBL_FOLLOWER_BUCKETS = {
+  '10000':[10000,20000], '20000':[20000,50000], '50000':[50000,100000],
+  '100000':[100000,200000], '200000':[200000,300000], '300000':[300000,500000],
+  '500000':[500000,700000], '700000':[700000,1000000], '1000000':[1000000,2000000],
+  '2000000':[2000000,Infinity], '3000000':[3000000,Infinity], '4000000':[4000000,Infinity]
+};
+
+// المنصة: لا منصة على الحملة → الجميع · منصة محددة → لازم نفس منصة المعلن (معلن بلا منصة يُحجب)
+function simblPlatformMatch(creator, campaign) {
+  const cp = (campaign && campaign.platform != null) ? String(campaign.platform).trim().toLowerCase() : '';
+  if (!cp) return true;
+  const up = (creator && creator.platform != null) ? String(creator.platform).trim().toLowerCase() : '';
+  return up === cp;
+}
+
+// المتابعون: لا نطاق على الحملة → الجميع · نطاق محدد → متابعو المعلن ضمن إحدى الشرائح المختارة
+// (معلن متابعوه غير معروفين/صفر يُحجب من الحملات المحددة النطاق)
+function simblFollowerMatch(creator, campaign) {
+  const raw = (campaign && campaign.follower_range != null) ? String(campaign.follower_range).trim() : '';
+  if (!raw) return true;
+  const buckets = raw.split(',').map(s => s.trim()).filter(Boolean);
+  if (!buckets.length) return true;
+  const f = Number(creator && creator.followers);
+  if (!isFinite(f) || f <= 0) return false;
+  return buckets.some(b => {
+    const rng = SIMBL_FOLLOWER_BUCKETS[b];
+    return rng ? (f >= rng[0] && f < rng[1]) : false;
+  });
+}
+
+// مطابقة موحّدة للأربعة: الدولة + المدينة + المنصة + نطاق المتابعين
+function simblTargetMatch(creator, campaign) {
+  return simblLocationMatch(creator, campaign)
+      && simblPlatformMatch(creator, campaign)
+      && simblFollowerMatch(creator, campaign);
+}
+
+// سبب قفل الحملة للمعلن غير المطابق (أول بُعد غير مطابق) — تُعرض الحملة للاطّلاع لكن بلا دخول
+function simblLockReason(creator, campaign) {
+  const norm = v => (v == null ? '' : String(v).trim().toLowerCase());
+  if (!simblLocationMatch(creator, campaign)) {
+    const COUNTRY = { sa:'السعودية', ae:'الإمارات', qa:'قطر', kw:'الكويت', bh:'البحرين' };
+    if (campaign && campaign.country && norm(creator && creator.country) === norm(campaign.country)
+        && campaign.city && norm(campaign.city) !== 'all') {
+      return 'هذي الحملة لمعلني مدينة محدّدة';
+    }
+    const cc = campaign && campaign.country ? (COUNTRY[norm(campaign.country)] || campaign.country) : '';
+    return cc ? ('هذي الحملة لمعلني ' + cc) : 'هذي الحملة لمنطقة مختلفة';
+  }
+  if (!simblPlatformMatch(creator, campaign)) {
+    const P = { tiktok:'تيك توك', snapchat:'سناب شات', x:'إكس', instagram:'انستقرام', youtube:'يوتيوب' };
+    const p = P[norm(campaign.platform)] || campaign.platform;
+    return 'هذي الحملة للنشر على ' + p;
+  }
+  if (!simblFollowerMatch(creator, campaign)) {
+    return 'هذي الحملة لنطاق متابعين مختلف عن نطاقك';
+  }
+  return '';
+}
+
 // ============ إدارة الجلسة: نعتمد على autoRefreshToken المدمج فقط ============
 // أزلنا التجديد اليدوي المتعدد (كان يستدعي refreshSession عند تبديل التبويب + كل ٤ دقائق + عند الفتح)
 // لأنه يسبّب "refresh token already used" → تسجيل خروج مفاجئ وعشوائي (خصوصًا مع تعدد التبويبات/الأجهزة).
@@ -95,19 +157,21 @@ async function dbGetCampaigns() {
   let __me = getCurrentUser();
   let __rows = data || [];
   if (__me && __me.role === 'creator') {
-    if (!__me.country && __me.id) {
+    if (!__me.country || !__me.platform || __me.followers == null) {
       try {
         const { data: __fresh } = await supabaseClient
-          .from('users').select('country, city').eq('id', __me.id).maybeSingle();
+          .from('users').select('country, city, platform, followers').eq('id', __me.id).maybeSingle();
         if (__fresh) {
-          __me = { ...__me, country: __fresh.country, city: __fresh.city };
+          __me = { ...__me, ...__fresh };
           if (typeof saveCurrentUser === 'function') saveCurrentUser(__me); // حدّث الكائن المخزّن للمرات الجاية
         }
       } catch (e) { /* تجاهل — نفلتر بالمتاح */ }
     }
-    if (typeof simblLocationMatch === 'function') {
-      __rows = __rows.filter(c => simblLocationMatch(__me, c));
-    }
+    // نُظهر كل الحملات للمعلن (شفافية)، ونعلّم غير المطابقة بقفل + سبب بدل إخفائها
+    __rows = __rows.map(c => {
+      const ok = (typeof simblTargetMatch === 'function') ? simblTargetMatch(__me, c) : true;
+      return { ...c, _targetMatch: ok, _lockReason: ok ? '' : (typeof simblLockReason === 'function' ? simblLockReason(__me, c) : 'غير متاحة لك') };
+    });
   }
   return __rows.map(c => ({
     ...c,

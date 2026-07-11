@@ -512,12 +512,17 @@ async function notifyMatchedCreators(campaign, brandName) {
     const { data: creators } = await q;
     if (!creators || creators.length === 0) return [];
 
-    // فلتر ٢ — نطاق المتابعين (يتم في الكود لأن النطاق مخزّن كنص)
-    // فلتر ٣ — الموقع (دولة/مدينة) عبر المصدر الموحّد simblLocationMatch
-    const locMatch = (typeof simblLocationMatch === 'function') ? simblLocationMatch : () => true;
-    const matched = creators.filter(c =>
-      simblFollowersMatch(c.followers, campaign.follower_range) && locMatch(c, campaign)
-    );
+    // فلتر موحّد — نفس منطق العرض والدخول والوكيل (الدولة + المدينة + المنصة + نطاق المتابعين)
+    // مصدر واحد للحقيقة: simblTargetMatch من supabase-config.js (يُحمّل قبل هذا الملف).
+    let matched;
+    if (typeof simblTargetMatch === 'function') {
+      matched = creators.filter(c => simblTargetMatch(c, campaign));
+    } else {
+      const locMatch = (typeof simblLocationMatch === 'function') ? simblLocationMatch : () => true;
+      matched = creators.filter(c =>
+        simblFollowersMatch(c.followers, campaign.follower_range) && locMatch(c, campaign)
+      );
+    }
     if (matched.length === 0) return [];
 
     const notifications = matched.map(c => ({
