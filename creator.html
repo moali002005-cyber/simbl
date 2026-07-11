@@ -1803,7 +1803,7 @@ function campaignIsFull(c) {
 // وضع قائمة الانتظار: الحملة شغّالة لكن اكتمل عددها/فيها منتظرون → التسجيل يدخل قائمة الانتظار
 function campaignWaitlistMode(c) {
   if (!c || c._targetMatch === false) return false;
-  if (c.status === 'closed' || c.status === 'completed') return false;
+  if (campaignIsFull(c)) return false; // مقفولة أو اكتمل عدد المعتمدين المطلوب → الحملة منتهية، لا تسجيل انتظار جديد
   const target = campaignTargetSize(c);
   const batchSize = target ? target * 2 : 0; // الحجم + الاحتياط = 2×الحجم، نطابق عتبة الوكيل
   return ((campaignWaitlistCount[c.id] || 0) > 0)
@@ -1847,7 +1847,8 @@ function renderCreatorDealCard(c, a) {
   const isNegotiating = !isClosed;
   const isWaitlisted = a.status === 'waitlisted';
   const campClosed = !!(c && (c.status === 'closed' || c.status === 'completed'));
-  const didntWin = campClosed && !isClosed;
+  const campFilled = !!(c && campaignIsFull(c)); // مقفولة أو اكتمل عدد المعتمدين المطلوب
+  const didntWin = campFilled && !isApproved;    // اكتملت الحملة وهو ليس من المعتمدين → خرج (يشمل الاحتياط والمنتظر)
   const _pendFix = pendingFixStage(a); // لو فيه طلب تصحيح معلّق، نعرض تلك المرحلة بدل "مكتمل"
   const stageNow = (_pendFix != null) ? _pendFix : ((a.stage === 4) ? 5 : (a.stage || 1)); // البريف (٤) مُلغى — نعرضه كمرحلة المحتوى (٥)
   const price = (a.final_price || a.price || 0);
@@ -1882,7 +1883,7 @@ function renderCreatorDealCard(c, a) {
 
   let body = '';
   if (didntWin) {
-    body = `<div class="dc-note full">اكتمل العدد المطلوب لهذي الحملة قبل ما يوصل دورك. تابع الحملات الجديدة وقدّم بسرعة — حظ أوفر 🌟</div>`;
+    body = `<div class="dc-note full">اكتمل العدد المطلوب لهذي الحملة واعتمدت الشركة معلنيها. نشكر لك مشاركتك — تابع الحملات الجديدة وقدّم بسرعة، حظ أوفر 🌟</div>`;
   } else if (isWaitlisted) {
     body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🕓 أنت في قائمة الانتظار لهذي الحملة<span data-wpos="${a.id}"></span>. العدد المطلوب اكتمل حالياً، وبمجرد ما ينفتح مكان بننبّهك فورًا ويبدأ الوكيل يفاوضك. خلّك متابع 🌿</div>`;
   } else if (isApproved) {
@@ -2106,7 +2107,7 @@ function renderBrowseCard(c) {
   const brandInitial = brandName[0] || '؟';
   const pledge = paymentPledgeText(c);
   const locked = c._targetMatch === false; // غير مطابق للاستهداف → للاطّلاع فقط
-  const isDone = (c.status === 'closed' || c.status === 'completed');
+  const isDone = campaignIsFull(c); // مقفولة أو اكتمل عدد المعتمدين المطلوب → منتهية، لا تسجيل/انتظار جديد
   const waitlistMode = campaignWaitlistMode(c); // اكتمل عددها/فيها منتظرون → التسجيل يدخل قائمة الانتظار
   const sideHtml = locked
     ? `<span class="lock-badge">🔒 غير متاح لك</span>`
@@ -2837,11 +2838,11 @@ async function enterNegotiation(campaignId, btn) {
     return registerWaitlist(campaign, btn);
   }
 
-  // منع الدخول فقط لو الحملة مقفلة/منتهية أو امتلأ الاحتياط (المقفول ≥ 2×الحجم) — نطابق بوابة الوكيل
+  // منع الدخول لو اكتمل عدد المعتمدين المطلوب، أو الحملة مقفلة/منتهية، أو امتلأ الاحتياط (المقفول ≥ 2×الحجم)
   {
     const _t = campaignTargetSize(campaign);
     const _batch = _t ? _t * 2 : 0;
-    if (campaign.status === 'closed' || campaign.status === 'completed'
+    if (campaignIsFull(campaign)
         || (_batch && (campaignClosedCount[campaign.id] || 0) >= _batch)) {
       showToast('الحملة مكتملة — اكتمل العدد المطلوب.', 'error');
       await loadData();
