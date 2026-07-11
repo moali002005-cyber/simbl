@@ -1968,11 +1968,13 @@ function renderUnified() {
     ? allCampaigns
     : allCampaigns.filter(c => c.brand_industry === currentFilter);
   const openAll = filtered.filter(c => !appliedCampIds.has(c.id) && !blockedCampIds.has(c.id));
-  openAll.sort((a, b) => {
-    const la = (a._targetMatch === false) ? 1 : 0, lb = (b._targetMatch === false) ? 1 : 0;
-    const wa = campaignWaitlistMode(a) ? 1 : 0, wb = campaignWaitlistMode(b) ? 1 : 0;
-    return (la - lb) || (wa - wb) || ((campaignIsFull(a) ? 1 : 0) - (campaignIsFull(b) ? 1 : 0));
-  });
+  const browseRank = (c) => {
+    if (c._targetMatch === false) return 3;                                   // غير متاحة → الأسفل
+    if (c.status === 'closed' || c.status === 'completed') return 2;          // مكتملة/منتهية
+    if (campaignWaitlistMode(c)) return 1;                                    // قائمة انتظار (فوق المكتملة)
+    return 0;                                                                 // مفتوحة → الأعلى
+  };
+  openAll.sort((a, b) => browseRank(a) - browseRank(b));
   const openItems = openAll.map(c => ({ c }));
 
   const myDeals = document.getElementById('my-deals');
@@ -2126,7 +2128,7 @@ function renderBrowseCard(c) {
         ${c.city ? `<span class="meta-item">📍 ${CITY_LABELS[c.city] || c.city}</span>` : ''}
         ${pledge ? `<span class="pay-pledge">💸 ${pledge}</span>` : ''}`}
       </div>
-      ${waitlistMode ? `<div class="wl-note">🕓 اكتمل العدد الحالي — تسجيلك يدخلك قائمة الانتظار، ونرقّيك أول ما ينفتح مكان 🌿</div>` : ''}
+      ${waitlistMode ? `<div class="wl-note">🕓 اكتمل العدد الحالي${(campaignWaitlistCount[c.id] || 0) > 0 ? ` — <b>${toArabic(campaignWaitlistCount[c.id])}</b> في قائمة الانتظار حاليًا` : ''}. تسجيلك يدخلك القائمة، ونرقّيك أول ما ينفتح مكان 🌿</div>` : ''}
       ${locked ? `<div class="ac-lockreason">🔒 ${escHtml(c._lockReason || 'هذي الحملة لا تطابق ملفك — للاطّلاع فقط')}</div>` : ''}
     </div>
   `;
