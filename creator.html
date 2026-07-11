@@ -1763,14 +1763,21 @@ async function loadCampaignApprovedCounts() {
   try {
     const ids = (allCampaigns || []).map(c => c.id);
     if (!ids.length) return;
-    // أفضل جهد: قد تحدّ سياسات الحماية (RLS) رؤية عروض الآخرين — وفي هذه الحالة نعتمد على حالة الحملة (status)
-    const { data, error } = await supabaseClient
-      .from('applications')
-      .select('campaign_id, status, brand_approved')
-      .in('status', ['closed', 'waitlisted'])
-      .in('campaign_id', ids);
-    if (error) return;
-    (data || []).forEach(a => {
+    // دالة تجميع (SECURITY DEFINER) تتجاوز RLS وترجّع أعدادًا فقط — عشان يشوف المعلن اكتمال الحملة/الانتظار
+    const { data, error } = await supabaseClient.rpc('campaign_fill_counts', { p_ids: ids });
+    if (!error && Array.isArray(data)) {
+      data.forEach(r => {
+        campaignApprovedCount[r.campaign_id] = r.approved || 0;
+        campaignClosedCount[r.campaign_id]   = r.closed || 0;
+        campaignWaitlistCount[r.campaign_id] = r.waitlisted || 0;
+      });
+      return;
+    }
+    // احتياط: لو الدالة غير منشورة بعد — قراءة مباشرة (قد تحدّها RLS فتظهر أصفار)
+    const { data: d2 } = await supabaseClient
+      .from('applications').select('campaign_id, status, brand_approved')
+      .in('status', ['closed', 'waitlisted']).in('campaign_id', ids);
+    (d2 || []).forEach(a => {
       if (a.status === 'closed') {
         campaignClosedCount[a.campaign_id] = (campaignClosedCount[a.campaign_id] || 0) + 1;
         if (a.brand_approved) campaignApprovedCount[a.campaign_id] = (campaignApprovedCount[a.campaign_id] || 0) + 1;
