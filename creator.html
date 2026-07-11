@@ -1841,7 +1841,9 @@ function renderCreatorDealCard(c, a) {
     else if (isCreatorTurn(stageNow)) badge = `<span class="dc-badge mine">دورك</span>`;
     else badge = `<span class="dc-badge wait">بانتظار الشركة</span>`;
   } else if (awaitingApproval) {
-    badge = `<span class="dc-badge amber">بانتظار التعميد</span>`;
+    badge = a.is_reserve
+      ? `<span class="dc-badge" style="background:#FCE9D2;color:#9A4B06;border:1px solid #F0C79A;">🕓 احتياط جاهز</span>`
+      : `<span class="dc-badge amber">بانتظار التعميد</span>`;
   } else if (a.status === 'rejected') {
     badge = `<span class="dc-badge" style="background:#FDECEA;color:#a93226;border:1px solid #f0b4b4;">⌛ انتهت مشاركتك</span>`;
   } else {
@@ -1875,7 +1877,9 @@ function renderCreatorDealCard(c, a) {
     });
     body = `${isCompleted ? '<div class="dc-done-banner">🎉 تمّت الحملة بنجاح — شكرًا لجهودك!</div>' : ''}<div class="dc-strip">${strip}</div><div class="dc-action">${renderStageAction(a.id, stageNow, 'creator')}</div>`;
   } else if (awaitingApproval) {
-    body = `<div class="dc-note amber">⏳ بانتظار الشركة لاعتماد الصفقة وبدء التنفيذ.</div>`;
+    body = a.is_reserve
+      ? `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🕓 أنت ضمن قائمة الاحتياط الجاهزة لهذي الحملة. اكتمل العدد المطلوب حاليًا، وبمجرد ما ينفتح مكان بنرقّيك للتعميد فورًا 🌿</div>`
+      : `<div class="dc-note amber">⏳ بانتظار الشركة لاعتماد الصفقة وبدء التنفيذ.</div>`;
   } else if (a.status === 'rejected') {
     const _rr = a.rejection_reason || 'انتهت مهلتك أو تم تمرير دورك لمعلن آخر في هذي الحملة.';
     body = `<div class="dc-note" style="background:#FDECEA;color:#a93226;border-right:3px solid #c0392b;">⌛ <b>انتهت مشاركتك في هذي الحملة.</b><br>${escHtml(_rr)}<br>ما يمكن إعادة التقديم على نفس الحملة — تابع الحملات الجديدة وقدّم بسرعة 🌿</div>`;
@@ -2139,7 +2143,7 @@ function renderOfferCard(c, a) {
   const isNegotiating = !isClosed && !isDeadApp(a);
   const statusLabels = { pending: 'قيد المراجعة', active: 'تفاوض نشط', closed: 'مقفلة', rejected: 'مرفوضة' };
   const statusKey = awaitingApproval ? 'pending_approval' : a.status;
-  const statusLabel = awaitingApproval ? '⏳ بانتظار التعميد' : statusLabels[a.status];
+  const statusLabel = awaitingApproval ? (a.is_reserve ? '🕓 احتياط جاهز' : '⏳ بانتظار التعميد') : statusLabels[a.status];
   const isExpanded = expandedAppId === a.id;
   const price = (a.final_price && isClosed) ? a.final_price : a.price;
   const priceLabel = (a.final_price && isClosed) ? 'السعر النهائي' : 'عرضك';
@@ -2164,7 +2168,7 @@ function renderOfferCard(c, a) {
       <div class="approval-gate" onclick="event.stopPropagation()">
         <div class="ag-info">
           <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</span></div>
-          <div class="ag-desc">تم التوصّل لاتفاق، بانتظار تعميد الشركة لبدء التنفيذ.</div>
+          <div class="ag-desc">${a.is_reserve ? 'أنت ضمن قائمة الاحتياط الجاهزة — اكتمل العدد حاليًا، وبمجرد ما ينفتح مكان بنرقّيك للتعميد فورًا 🌿' : 'تم التوصّل لاتفاق، بانتظار تعميد الشركة لبدء التنفيذ.'}</div>
         </div>
       </div>`;
   } else if (isApproved) {
