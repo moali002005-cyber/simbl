@@ -237,6 +237,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
     <button class="tab" data-tab="users">المستخدمون</button>
     <button class="tab" data-tab="photos">المؤثرون</button>
     <button class="tab" data-tab="campaigns">الحملات</button>
+    <button class="tab" data-tab="companies">الشركات</button>
     <button class="tab" data-tab="deals">الصفقات</button>
   </div>
 
@@ -254,6 +255,25 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
           <tbody id="top-campaigns"></tbody></table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- companies -->
+  <div class="panel" id="panel-companies">
+    <div class="kpi-row" id="co-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px"></div>
+    <div class="section">
+      <h2><i class="ti ti-building-store"></i> الشركات — الوضع المالي وحقوق المؤثرين</h2>
+      <div class="search" style="margin-bottom:12px"><input id="co-search" placeholder="ابحث باسم الشركة…"><i class="ti ti-search"></i></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>الشركة</th><th>القطاع</th><th>الحملات</th><th>صفقات معتمدة</th><th>مكتملة</th>
+            <th>GMV</th><th>مدفوع</th><th>مستحق للمؤثرين</th><th>متأخر</th>
+          </tr></thead>
+          <tbody id="companies-rows"></tbody>
+        </table>
+      </div>
+      <div class="hint" style="font-size:12px;color:var(--muted);margin-top:10px">اضغط على أي شركة لعرض المستحقات غير المدفوعة (المؤثر + المبلغ + التأخّر). مرتّبة بالأكثر استحقاقًا أولًا.</div>
     </div>
   </div>
 
@@ -518,7 +538,7 @@ async function loadAll(silent){
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
     $('#err-box').style.display='none';
-    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderOverdue(); renderUsers(); renderCampaigns(); renderDeals();
+    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderOverdue(); renderUsers(); renderCampaigns(); renderDeals(); renderCompanies();
     updateUpd();
   }catch(err){
     console.error(err);
@@ -627,6 +647,99 @@ function barPct(entries){
     const w=Math.max(0,Math.min(100,Math.round(pct)));
     return '<div class="bar-row"><span class="bl">'+esc(lbl)+'</span><span class="bt"><span class="bf" style="width:'+w+'%"></span></span><span class="bn">'+w+'%</span></div>';
   }).join('');
+}
+
+// ============ الشركات: الوضع المالي وحقوق المؤثرين ============
+function companyStats(b){
+  const camps = CAMPAIGNS.filter(c => c.brand_id === b.id);
+  const campIds = new Set(camps.map(c => c.id));
+  const apps = APPS.filter(a => campIds.has(a.campaign_id));
+  const val = a => Number(a.final_price || a.price) || 0;
+  const approved = apps.filter(a => a.status === 'closed' && a.brand_approved === true);
+  const completed = approved.filter(a => (a.stage || 1) >= 9);          // مكتملة = جاهزة للدفع
+  const gmv = approved.reduce((s,a) => s + val(a), 0);
+  const paid = approved.filter(a => a.payment_status === 'confirmed').reduce((s,a) => s + val(a), 0);
+  const unpaid = completed.filter(a => a.payment_status !== 'confirmed'); // مستحقة وغير مدفوعة
+  const owed = unpaid.reduce((s,a) => s + val(a), 0);
+  const overdue = unpaid.filter(a => { try { return isOverdue(a); } catch(e){ return false; } });
+  const overdueAmt = overdue.reduce((s,a) => s + val(a), 0);
+  return { b, camps, apps, approved, completed, gmv, paid, unpaid, owed, overdue, overdueAmt };
+}
+
+function renderCompanies(){
+  const rowsBox = $('#companies-rows'); if(!rowsBox) return;
+  const q = ($('#co-search') && $('#co-search').value || '').trim().toLowerCase();
+  const brands = USERS.filter(u => u.role === 'brand');
+  let stats = brands.map(companyStats);
+
+  // مؤشرات علوية
+  const kpi = $('#co-kpis');
+  if(kpi){
+    const totOwed = stats.reduce((s,r) => s + r.owed, 0);
+    const totOverdue = stats.reduce((s,r) => s + r.overdueAmt, 0);
+    const owingCos = stats.filter(r => r.owed > 0).length;
+    const totGmv = stats.reduce((s,r) => s + r.gmv, 0);
+    kpi.innerHTML =
+      mini('إجمالي GMV', money(totGmv), 'ti-coin') +
+      mini('مستحق للمؤثرين', money(totOwed), 'ti-wallet', totOwed>0) +
+      mini('متأخر عن السداد', money(totOverdue), 'ti-clock-exclamation') +
+      mini('شركات عليها مستحقات', num(owingCos)+'<small> / '+num(brands.length)+'</small>', 'ti-building-store');
+  }
+
+  if(q) stats = stats.filter(r => String(r.b.company_name || r.b.name || '').toLowerCase().includes(q));
+  // الترتيب: الأكثر استحقاقًا أولًا (لضمان حقوق المؤثرين)، ثم المتأخر، ثم GMV
+  stats.sort((a,b) => b.owed - a.owed || b.overdueAmt - a.overdueAmt || b.gmv - a.gmv);
+
+  if(!stats.length){ rowsBox.innerHTML = '<tr><td colspan="9" class="empty">ما فيه شركات</td></tr>'; return; }
+
+  rowsBox.innerHTML = stats.map(r => {
+    const b = r.b;
+    const name = esc(b.company_name || b.name || '—');
+    const suspended = b.approval_status === 'suspended';
+    const owedCell = r.owed > 0
+      ? '<td style="color:#9A4B06;font-weight:600">'+money(r.owed)+'</td>'
+      : '<td class="dim">—</td>';
+    const overdueCell = r.overdueAmt > 0
+      ? '<td style="color:#c0392b;font-weight:600">'+money(r.overdueAmt)+' <small>('+num(r.overdue.length)+')</small></td>'
+      : '<td class="dim">—</td>';
+    // صفّ التفاصيل: قائمة المستحقات غير المدفوعة
+    let det;
+    if(!r.unpaid.length){
+      det = '<div style="color:#1D9E75;padding:6px 2px">✓ لا مستحقات معلّقة — كل الصفقات المكتملة مدفوعة.</div>';
+    } else {
+      det = '<div style="display:flex;flex-direction:column;gap:6px;padding:4px 2px">'
+        + '<div style="font-weight:600;margin-bottom:2px">مستحقات غير مدفوعة ('+num(r.unpaid.length)+'):</div>'
+        + r.unpaid.slice().sort((x,y)=>{ let dx=0,dy=0; try{dx=daysOverdue(x)||0;}catch(e){} try{dy=daysOverdue(y)||0;}catch(e){} return dy-dx; }).map(a => {
+            const camp = campsById[a.campaign_id];
+            let dOver = null; try { dOver = daysOverdue(a); } catch(e){}
+            const state = (dOver && dOver > 0)
+              ? '<span style="color:#c0392b">متأخر '+num(dOver)+' يوم</span>'
+              : (a.payment_status === 'marked_paid' ? '<span style="color:#185fa5">حُوّل — بانتظار تأكيد المعلن</span>' : '<span style="color:#9A4B06">بانتظار الدفع</span>');
+            return '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;border-top:1px solid var(--line);padding-top:6px">'
+              + '<span style="min-width:130px"><i class="ti ti-user"></i> '+esc(creatorName(a))+'</span>'
+              + '<span style="font-weight:600">'+money(a.final_price || a.price || 0)+'</span>'
+              + '<span class="dim">'+esc(camp ? (camp.title || '—') : '—')+'</span>'
+              + state + '</div>';
+          }).join('')
+        + '</div>';
+    }
+    return '<tr class="clickable" onclick="toggleCompany(\''+esc(String(b.id))+'\')">'
+      + '<td><span class="badge b-brand">شركة</span> '+name+(suspended?' <span class="badge b-suspended">موقوف</span>':'')+'</td>'
+      + '<td>'+esc(INDUSTRY[b.industry] || b.industry || '—')+'</td>'
+      + '<td>'+num(r.camps.length)+'</td>'
+      + '<td>'+num(r.approved.length)+'</td>'
+      + '<td>'+num(r.completed.length)+'</td>'
+      + '<td>'+money(r.gmv)+'</td>'
+      + '<td>'+money(r.paid)+'</td>'
+      + owedCell + overdueCell
+      + '</tr>'
+      + '<tr id="co-det-'+esc(String(b.id))+'" style="display:none"><td colspan="9" style="background:var(--panel2)">'+det+'</td></tr>';
+  }).join('');
+}
+
+function toggleCompany(id){
+  const el = document.getElementById('co-det-'+id);
+  if(el) el.style.display = (el.style.display === 'none') ? '' : 'none';
 }
 
 function renderInsights(){
@@ -1223,6 +1336,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   t.classList.add('active'); $('#panel-'+t.getAttribute('data-tab')).classList.add('active');
 }));
 $('#u-search').addEventListener('input',renderUsers);
+{ const _cs=$('#co-search'); if(_cs) _cs.addEventListener('input',renderCompanies); }
 $('#u-role').addEventListener('change',renderUsers);
 $('#c-search').addEventListener('input',renderCampaigns);
 $('#c-status').addEventListener('change',renderCampaigns);
