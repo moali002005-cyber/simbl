@@ -222,6 +222,13 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 .dsh-feed .fi:first-child{border-top:0}
 .dsh-feed .fic{width:26px;height:26px;border-radius:7px;background:rgba(19,185,178,.12);color:#0c4f4b;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .dsh-feed .ft{flex:1;color:#14201e}.dsh-feed .fw{font-size:11px;color:var(--faint);flex-shrink:0}
+.dsh-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:600px){.dsh-tiles{grid-template-columns:1fr}}
+.dsh-tile{background:#f3faf9;border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.dsh-tile.warn{background:rgba(19,185,178,.09);border-color:rgba(19,185,178,.3)}
+.dsh-tile .tl{font-size:11.5px;color:var(--muted);margin-bottom:6px}
+.dsh-tile .tv{font-size:21px;font-weight:700;color:#0c4f4b;line-height:1}
+.dsh-tile .ts{font-size:11px;color:var(--faint);margin-top:5px}
 </style>
 </head>
 <body>
@@ -1194,6 +1201,19 @@ function renderOverview(){
   ev.sort((x,y)=>new Date(y.t||0)-new Date(x.t||0));
   const feed = ev.slice(0,8);
 
+  // متابعة الدفع والاستلام
+  const nowD = new Date();
+  const sameMonth = d => { if(!d) return false; const x=new Date(d); return x.getMonth()===nowD.getMonth() && x.getFullYear()===nowD.getFullYear(); };
+  const confMonth = approved.filter(a=>a.payment_status==='confirmed' && sameMonth(a.received_confirmed_at));
+  const confMonthAmt = confMonth.reduce((s,a)=>s+val(a),0);
+  const awaiting = APPS.filter(a=>a.payment_status==='marked_paid');
+  const awaitingAmt = awaiting.reduce((s,a)=>s+val(a),0);
+  const cutoff = new Date(nowD.getTime()-14*86400000);
+  const dayMap={};
+  APPS.forEach(a=>{ if(!a.paid_marked_at) return; const d=new Date(a.paid_marked_at); if(d<cutoff) return; const k=d.toLocaleDateString('en-CA'); dayMap[k]=(dayMap[k]||0)+val(a); });
+  const days = Object.entries(dayMap).sort((a,b)=> a[0]<b[0]?-1:1);
+  const maxD = Math.max(1, ...days.map(d=>d[1]));
+
   const pct = (x,base)=> Math.max(3, Math.round(x/(base||1)*100));
   const compName = n => String(n||'').replace(/^شركة\s*/,'').trim();
 
@@ -1213,6 +1233,13 @@ function renderOverview(){
   +   '<div class="dsh-leg"><div class="dsh-lg"><span class="sw" style="background:#0c4f4b"></span><b>'+money(paid)+'</b><span>✓ مدفوع</span></div>'
   +   '<div class="dsh-lg"><span class="sw" style="background:#13B9B2"></span><b>'+money(owed)+'</b><span>⚠ مستحق غير مدفوع</span></div>'
   +   '<div class="dsh-lg"><span class="sw" style="background:#83d7d2"></span><b>'+money(inprog)+'</b><span>قيد التنفيذ</span></div></div></div></div>'
+  // PAYMENTS & RECEIPT
+  + '<div class="dsh-grid"><div class="dsh-card"><h4>💳 المدفوعات ومتابعة الاستلام</h4><div class="hint">التحويلات وتأكيد المؤثرين لاستلام حقوقهم</div>'
+  +   '<div class="dsh-tiles"><div class="dsh-tile"><div class="tl">✓ مؤكّد الاستلام هذا الشهر</div><div class="tv">'+money(confMonthAmt)+'</div><div class="ts">'+num(confMonth.length)+' مؤثر أكّدوا استلامهم</div></div>'
+  +   '<div class="dsh-tile warn"><div class="tl">⏳ حُوّل — بانتظار تأكيد الاستلام</div><div class="tv">'+money(awaitingAmt)+'</div><div class="ts">'+num(awaiting.length)+' مؤثر ما أكّدوا رغم إن الشركة حوّلت</div></div></div>'
+  +   '<div class="hint" style="margin:2px 0 9px">💸 التحويلات اليومية (آخر 14 يوم)</div>'
+  +   '<div class="dsh-vb">'+(days.length?days.map(d=>'<div class="dsh-vbi"><div class="dsh-vbc" style="height:'+Math.max(4,Math.round(d[1]/maxD*100))+'%"><span class="v">'+num(d[1])+'</span></div><span class="dsh-vbcap">'+d[0].slice(5)+'</span></div>').join(''):'<div class="hint">لا تحويلات في آخر 14 يوم</div>')+'</div>'
+  + '</div></div>'
   // FUNNEL + GROWTH
   + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>🎯 قمع التنفيذ</h4><div class="hint">من المؤثرين لأول دفعة — وين يتسرّب الناس</div><div class="dsh-fun">'
   +   '<div class="dsh-fr"><span class="dsh-fl">مؤثرون</span><div class="dsh-fb" style="width:100%">'+num(creators.length)+'</div></div>'
