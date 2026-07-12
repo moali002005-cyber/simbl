@@ -32,29 +32,48 @@ async function sbInsert(table, data) {
   return res.json();
 }
 
+// يتحقق من توكن جلسة Supabase (Authorization: Bearer …) ويُرجّع صف المستخدم المطابق — أو null.
+// الهوية تُشتقّ من التوكن الموثّق فقط، لا من جسم الطلب (يمنع انتحال أي شركة).
+async function getAuthedUser(req) {
+  try {
+    const authz = req.headers['authorization'] || req.headers['Authorization'] || '';
+    const token = authz.startsWith('Bearer ') ? authz.slice(7).trim() : '';
+    if (!token) return null;
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` }
+    });
+    if (!r.ok) return null;
+    const authUser = await r.json();
+    if (!authUser || !authUser.id) return null; // authUser.id = UUID موثّق من Supabase Auth
+    const rows = await sbGet(`users?auth_id=eq.${authUser.id}&select=id,role,company_name,industry,is_test`);
+    return (rows && rows[0]) || null;
+  } catch (e) {
+    console.error('getAuthedUser error:', e);
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { brandId, items } = req.body || {};
-  if (!brandId || !Array.isArray(items) || items.length === 0) {
+  // ===== مصادقة: هوية الشركة تُشتقّ من توكن الجلسة، لا من جسم الطلب =====
+  const brand = await getAuthedUser(req);
+  if (!brand) {
+    return res.status(401).json({ error: 'يلزم تسجيل الدخول من جديد' });
+  }
+  if (brand.role !== 'brand') {
+    return res.status(403).json({ error: 'غير مصرّح' });
+  }
+  const brandId = brand.id;
+
+  const { items } = req.body || {};
+  if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'بيانات ناقصة' });
   }
   if (items.length > 50) {
     return res.status(400).json({ error: 'الحد الأقصى ٥٠ مؤثر في المرة' });
-  }
-
-  // تحقق إن المرسِل شركة فعلاً
-  let brand;
-  try {
-    const brands = await sbGet(`users?id=eq.${brandId}&select=id,role,company_name,industry,is_test`);
-    brand = brands && brands[0];
-  } catch (e) {
-    return res.status(500).json({ error: 'تعذّر التحقق من الحساب' });
-  }
-  if (!brand || brand.role !== 'brand') {
-    return res.status(403).json({ error: 'غير مصرّح' });
   }
 
   let created = 0;

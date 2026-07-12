@@ -164,7 +164,9 @@ async function confirmCart(){
   var user=getCurrentUser();
   var items=CREATORS.map(function(c){ var cfg=CFG[c.id]||{}; return { creatorId:c.id, budget:cfg.budget, timing:cfg.timing, date:cfg.date||null, brief:cfg.brief||'' }; });
   try{
-    var res=await fetch('/api/start-campaign',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ brandId:user.id, items:items }) });
+    var _sess=null; try{ var _r=await supabaseClient.auth.getSession(); _sess=_r&&_r.data&&_r.data.session; }catch(e){}
+    if(!_sess||!_sess.access_token){ btn.disabled=false; btn.innerHTML=orig; showToast('انتهت جلستك، سجّل الدخول من جديد وحاول مرة ثانية'); return; }
+    var res=await fetch('/api/start-campaign',{ method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_sess.access_token}, body:JSON.stringify({ items:items }) });
     var data=await res.json();
     if(!res.ok) throw new Error(data.error||'فشل الإرسال');
     var n=data.created||0;
