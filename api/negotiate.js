@@ -158,7 +158,7 @@ async function supabaseGetApplication(appId) {
   if (!appId) return null;
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/applications?id=eq.${appId}&select=id,campaign_id,status`,
+      `${SUPABASE_URL}/rest/v1/applications?id=eq.${appId}&select=id,campaign_id,status,price,creator_id,is_reserve`,
       { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
     );
     if (!res.ok) return null;
@@ -166,6 +166,40 @@ async function supabaseGetApplication(appId) {
     return Array.isArray(rows) && rows.length ? rows[0] : null;
   } catch (err) {
     console.error('Get application failed:', err);
+    return null;
+  }
+}
+
+// جلب الحملة الحقيقية من القاعدة — لاعتماد الميزانية/الاستهداف/الحجم من مصدر موثوق (لا من جسم الطلب)
+async function supabaseGetCampaignSrv(campaignId) {
+  if (!campaignId) return null;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/campaigns?id=eq.${campaignId}&select=id,budget,country,city,platform,follower_range,campaign_size`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) { console.error('Get campaign error:', await res.text()); return null; }
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length ? rows[0] : null;
+  } catch (err) {
+    console.error('Get campaign failed:', err);
+    return null;
+  }
+}
+
+// جلب استهداف المؤثر الحقيقي (المنصة/المتابعين) من صفّه — لبوابات الاستهداف
+async function supabaseGetCreatorTargeting(creatorId) {
+  if (!creatorId) return null;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${creatorId}&select=platform,followers`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    );
+    if (!res.ok) { console.error('Get creator targeting error:', await res.text()); return null; }
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length ? rows[0] : null;
+  } catch (err) {
+    console.error('Get creator targeting failed:', err);
     return null;
   }
 }
@@ -350,6 +384,28 @@ export default async function handler(req, res) {
       dealClosed: false,
       dealDetails: null
     });
+  }
+
+  // ===== حماية: استبدل الحقول الحسّاسة بقيم القاعدة (لا نثق بجسم الطلب من المتصفح) =====
+  // الميزانية والسعر والاستهداف والحجم تُقرأ من الحملة والطلب الحقيقيين — فيستحيل تزوير السقف السعري
+  // أو تجاوز بوابات الاستهداف عبر التلاعب بجسم الطلب.
+  const realCampaign = await supabaseGetCampaignSrv(realApp.campaign_id);
+  if (!realCampaign) {
+    return res.status(404).json({ error: 'Campaign not found' });
+  }
+  const realCreator = await supabaseGetCreatorTargeting(realApp.creator_id);
+  campaign.id = realCampaign.id;
+  campaign.budget = realCampaign.budget;
+  campaign.country = realCampaign.country;
+  campaign.city = realCampaign.city;
+  campaign.platform = realCampaign.platform;
+  campaign.follower_range = realCampaign.follower_range;
+  campaign.campaign_size = realCampaign.campaign_size;
+  application.price = realApp.price;
+  application.campaign_id = realApp.campaign_id;
+  if (realCreator) {
+    application.platform = realCreator.platform;
+    application.followers = realCreator.followers;
   }
 
   // ============ فحص استهداف الدولة/المدينة (يقفل تفاوض معلن خارج نطاق الحملة) ============
