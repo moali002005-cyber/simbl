@@ -469,6 +469,7 @@ function duesRowFilled(a, camp, idx, totals) {
     if (!fix.done) {
       statusPlain = 'بانتظار تعديل المعلن';
       statusHtml = '<span class="dp dp-fixwait">🔧 بانتظار تعديل المعلن</span>';
+      action = ''; // إخفاء زر "تم التحويل" حتى يصحّح المؤثر بياناته (منع الدفع على بيانات قديمة/غلط)
     } else {
       statusPlain = 'عُدّل - جاهز للمراجعة';
       statusHtml = '<span class="dp dp-fixdone">✅ عُدّل — جاهز للمراجعة</span>';
