@@ -844,11 +844,23 @@ async function loadData() {
     if (campIds.length) {
       const { data, error } = await supabaseClient
         .from('applications')
-        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website, whatsapp, phone)')
+        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website)')
         .in('campaign_id', campIds)
         .order('created_at', { ascending: false });
       if (error) throw error;
       allApps = data || [];
+      // بيانات التواصل (واتساب/جوال) تُجلب عبر دالة آمنة deal-scoped بدل قراءة الأعمدة الحسّاسة مباشرة
+      try {
+        const { data: contacts } = await supabaseClient.rpc('simbl_deal_contacts');
+        if (Array.isArray(contacts)) {
+          const cmap = {};
+          contacts.forEach(function (r) { cmap[r.creator_id] = r; });
+          allApps.forEach(function (a) {
+            const ct = cmap[a.creator_id];
+            if (ct && a.users) { a.users.whatsapp = ct.whatsapp; a.users.phone = ct.phone; }
+          });
+        }
+      } catch (e) { console.error('deal contacts load failed:', e); }
     }
     const grouped = {};
     myCampaigns.forEach(c => { grouped[c.id] = []; });

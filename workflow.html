@@ -278,7 +278,7 @@ async function init() {
   try {
     const { data: appData, error: appErr } = await supabaseClient
       .from('applications')
-      .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, whatsapp), campaigns(*, users!campaigns_brand_id_fkey(company_name, name, phone))')
+      .select('*, users!applications_creator_id_fkey(name, platform, handle, followers), campaigns(*, users!campaigns_brand_id_fkey(company_name, name))')
       .eq('id', applicationId)
       .single();
 
@@ -292,17 +292,24 @@ async function init() {
       return;
     }
 
+    // بيانات التواصل تُجلب عبر دالة آمنة (طرفَي الصفقة فقط) بدل قراءة الأعمدة الحسّاسة مباشرة
+    let _wfContacts = { creator_whatsapp: null, brand_phone: null };
+    try {
+      const { data: _cc } = await supabaseClient.rpc('simbl_app_contacts', { p_app_id: applicationId });
+      if (Array.isArray(_cc) && _cc[0]) _wfContacts = _cc[0];
+    } catch (e) { console.error('app contacts failed:', e); }
+
     application = {
       ...appData,
       creator_name: appData.users?.name,
-      creator_whatsapp: appData.users?.whatsapp,
+      creator_whatsapp: _wfContacts.creator_whatsapp,
       platform: appData.users?.platform,
       handle: appData.users?.handle
     };
     campaign = {
       ...appData.campaigns,
       brand_name: appData.campaigns?.users?.company_name,
-      brand_phone: appData.campaigns?.users?.phone
+      brand_phone: _wfContacts.brand_phone
     };
 
     const isOwner = (currentUser.role === 'brand' && currentUser.id === campaign.brand_id) ||

@@ -840,12 +840,8 @@ async function submitForm(event, role) {
     // ١) فحص مبدئي: هل الإيميل موجود مسبقاً في جدول users؟
     //    (خط دفاع أول — يكشف المكرر مبكراً قبل إنشاء حساب المصادقة، بقدر ما تسمح به سياسات الحماية)
     try {
-      const { data: pre } = await supabaseClient
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-      if (pre) {
+      const { data: pre } = await supabaseClient.rpc('simbl_email_exists', { p_email: email });
+      if (pre === true) {
         throw new Error('EMAIL_EXISTS');
       }
     } catch (preErr) {

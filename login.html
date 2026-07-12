@@ -358,11 +358,10 @@ async function finishLogin(email, authUser) {
       .from('users').select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test').eq('auth_id', authUser.id).maybeSingle();
     profile = data || null;
   }
-  // احتياطي: عبر الإيميل (ونربط auth_id لو ناقص)
+  // احتياطي: عبر دالة آمنة تُرجّع ملف المتصل نفسه فقط (ونربط auth_id لو ناقص)
   if (!profile && email) {
-    const { data } = await supabaseClient
-      .from('users').select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test').eq('email', email).maybeSingle();
-    profile = data || null;
+    const { data } = await supabaseClient.rpc('simbl_find_own_profile');
+    profile = (Array.isArray(data) && data[0]) ? data[0] : null;
     if (profile && authUser && authUser.id && !profile.auth_id) {
       try {
         await supabaseClient.from('users').update({ auth_id: authUser.id }).eq('id', profile.id);

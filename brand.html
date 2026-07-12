@@ -1858,10 +1858,12 @@ async function openTeamMembers() {
       ? currentUser
       : (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
     let email = (u && u.email) ? u.email : null;
-    if (!email && u && u.id && typeof supabaseClient !== 'undefined') {
-      const { data } = await supabaseClient
-        .from('users').select('email').eq('id', u.id).maybeSingle();
-      email = data && data.email ? data.email : null;
+    if (!email && typeof supabaseClient !== 'undefined') {
+      // إيميل المستخدم نفسه من جلسة المصادقة (بدل قراءة عمود email المحجوب)
+      try {
+        const { data: au } = await supabaseClient.auth.getUser();
+        email = (au && au.user && au.user.email) ? au.user.email : null;
+      } catch (e) {}
     }
     if (email && TEAM_ADMIN_EMAILS.includes(email.toLowerCase())) {
       window.location.href = 'team.html';
