@@ -480,7 +480,7 @@ const SIMBL_FOLLOWER_BOUNDS = {
   '500k+':    [500000, Infinity]
 };
 
-// المطابقة ١٠٠٪: نطاقات الحملة الآن نفس قيم شرائح المؤثر الرقمية (10000، 20000 ...).
+// المطابقة 100٪: نطاقات الحملة الآن نفس قيم شرائح المؤثر الرقمية (10000، 20000 ...).
 // القاعدة: شريحة المؤثر (followers) لازم تساوي إحدى الشرائح اللي اختارتها الشركة — تطابق تام.
 // مع دعم خلفي: لو الحملة قديمة وفيها نطاق نصّي (مثل 200-500k) نرجع لفحص الحدود.
 function simblFollowersMatch(followers, followerRange) {
@@ -496,7 +496,7 @@ function simblFollowersMatch(followers, followerRange) {
   });
 }
 
-// إشعار المؤثرين المطابقين فقط (فلتر ١: المنصة مطابقة · فلتر ٢: المتابعون ضمن النطاق)
+// إشعار المؤثرين المطابقين فقط (فلتر 1: المنصة مطابقة · فلتر 2: المتابعون ضمن النطاق)
 async function notifyMatchedCreators(campaign, brandName) {
   if (!window.supabaseClient || !campaign) return [];
   try {
@@ -506,7 +506,7 @@ async function notifyMatchedCreators(campaign, brandName) {
       .eq('role', 'creator')
       .eq('is_test', !!(getCurrentUser()?.is_test));
 
-    // فلتر ١ — المنصة: مطابقة تامة لو الحملة محددة منصة
+    // فلتر 1 — المنصة: مطابقة تامة لو الحملة محددة منصة
     if (campaign.platform) q = q.eq('platform', campaign.platform);
 
     const { data: creators } = await q;

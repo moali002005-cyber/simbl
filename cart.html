@@ -107,7 +107,7 @@ function saveCfg(){ localStorage.setItem('simbl_cart_cfg', JSON.stringify(CFG));
 function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtFollowers(n){ n=Number(n)||0; if(n>=1000000) return (n/1000000).toFixed(n%1000000?1:0)+'M'; if(n>=1000) return (n/1000).toFixed(n%1000?1:0)+'K'; return String(n); }
 var PLAT={tiktok:'تيك توك',snapchat:'سناب شات',instagram:'انستقرام',x:'إكس',youtube:'يوتيوب'};
-var TIMINGS=[['24h','خلال ٢٤ ساعة (مستعجل)'],['3d','خلال ٣ أيام'],['1w','خلال أسبوع'],['2w','خلال أسبوعين'],['custom','تاريخ محدّد']];
+var TIMINGS=[['24h','خلال 24 ساعة (مستعجل)'],['3d','خلال 3 أيام'],['1w','خلال أسبوع'],['2w','خلال أسبوعين'],['custom','تاريخ محدّد']];
 
 function showToast(msg){ var w=document.getElementById('toast-wrap'); var t=document.createElement('div'); t.className='toast'; t.innerHTML='<span>'+escHtml(msg)+'</span>'; w.appendChild(t); if(window.simblI18n&&document.documentElement.lang==='en')simblI18n.apply(); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),300); },2200); }
 

@@ -301,16 +301,16 @@ input::placeholder { color: var(--ink-faint); }
 
     <!-- طريقة كود الإيميل (OTP) -->
     <div class="pane" id="pane-otp">
-      <!-- الخطوة ١: إدخال الإيميل -->
+      <!-- الخطوة 1: إدخال الإيميل -->
       <form onsubmit="sendOtp(event)" id="otp-email-form">
         <div class="field">
           <label data-i18n="login_email">البريد الإلكتروني</label>
           <input type="email" id="otp-email" required placeholder="example@email.com" autocomplete="email">
-          <div class="field-hint" data-i18n="login_otp_hint">نرسل لك كود مكوّن من ٦ أرقام على بريدك.</div>
+          <div class="field-hint" data-i18n="login_otp_hint">نرسل لك كود مكوّن من 6 أرقام على بريدك.</div>
         </div>
         <button type="submit" class="btn-submit" id="otp-send-btn" data-i18n="login_send_code">إرسال الكود</button>
       </form>
-      <!-- الخطوة ٢: إدخال الكود -->
+      <!-- الخطوة 2: إدخال الكود -->
       <form onsubmit="verifyOtp(event)" id="otp-code-form" style="display:none">
         <div class="field">
           <label><span data-i18n="login_code_to">الكود المرسل إلى</span> <span id="otp-email-label" style="color:var(--accent-ink)"></span></label>

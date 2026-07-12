@@ -659,7 +659,7 @@ textarea { resize: vertical; min-height: 80px; }
 
       <div class="field">
         <label>كلمة السر</label>
-        <input type="password" name="password" required minlength="6" placeholder="٦ أحرف على الأقل" autocomplete="new-password">
+        <input type="password" name="password" required minlength="6" placeholder="6 أحرف على الأقل" autocomplete="new-password">
         <div class="hint">تستخدمها لتسجيل الدخول لاحقاً.</div>
       </div>
 
@@ -748,7 +748,7 @@ textarea { resize: vertical; min-height: 80px; }
 
       <div class="field">
         <label>كلمة السر</label>
-        <input type="password" name="password" required minlength="6" placeholder="٦ أحرف على الأقل" autocomplete="new-password">
+        <input type="password" name="password" required minlength="6" placeholder="6 أحرف على الأقل" autocomplete="new-password">
         <div class="hint">تستخدمها لتسجيل الدخول لاحقاً.</div>
       </div>
 
@@ -837,7 +837,7 @@ async function submitForm(event, role) {
   }
 
   try {
-    // ١) فحص مبدئي: هل الإيميل موجود مسبقاً في جدول users؟
+    // 1) فحص مبدئي: هل الإيميل موجود مسبقاً في جدول users؟
     //    (خط دفاع أول — يكشف المكرر مبكراً قبل إنشاء حساب المصادقة، بقدر ما تسمح به سياسات الحماية)
     try {
       const { data: pre } = await supabaseClient.rpc('simbl_email_exists', { p_email: email });
@@ -849,7 +849,7 @@ async function submitForm(event, role) {
       // أي خطأ آخر في الفحص (مثل منع القراءة من RLS) نتجاهله — القاعدة هي الحَكَم النهائي
     }
 
-    // ٢) إنشاء حساب المصادقة
+    // 2) إنشاء حساب المصادقة
     //    مع تفعيل تأكيد الإيميل، Supabase يرجّع identities فاضية لكل إيميل،
     //    لذلك لا نعتمد على identities إطلاقاً للكشف عن التكرار (كان يسبب رفض كل إيميل جديد).
     const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
@@ -862,12 +862,12 @@ async function submitForm(event, role) {
       throw authErr;
     }
 
-    // ٣) ربط الملف الشخصي بحساب المصادقة
+    // 3) ربط الملف الشخصي بحساب المصادقة
     if (authData && authData.user) {
       userData.auth_id = authData.user.id;
     }
 
-    // ٣.١) رفع مستند السجل التجاري (للشركات فقط) إلى تخزين Supabase
+    // 3.1) رفع مستند السجل التجاري (للشركات فقط) إلى تخزين Supabase
     if (role === 'brand') {
       const crFile = fd.get('cr_file');
       if (crFile && crFile.size > 0) {
@@ -887,7 +887,7 @@ async function submitForm(event, role) {
       }
     }
 
-    // ٣.٢) رفع صورة حساب المعلن إلى تخزين Supabase
+    // 3.2) رفع صورة حساب المعلن إلى تخزين Supabase
     if (role === 'creator') {
       const avatarFile = fd.get('avatar_file');
       if (avatarFile && avatarFile.size > 0) {
@@ -908,7 +908,7 @@ async function submitForm(event, role) {
       }
     }
 
-    // ٤) حفظ بيانات المستخدم في جدول users
+    // 4) حفظ بيانات المستخدم في جدول users
     //    القاعدة هي الحَكَم النهائي للتكرار: لو عمود email فريد (unique)،
     //    أي إيميل مكرر يُرفض هنا بخطأ duplicate نلتقطه ونعرضه برسالة واضحة.
     let savedUser;
@@ -947,7 +947,7 @@ async function submitForm(event, role) {
     } else if (msg.includes('duplicate') && msg.includes('email')) {
       alert('هذا البريد الإلكتروني مسجل مسبقاً. سجّل الدخول أو استخدم بريداً آخر.');
     } else if (msg.includes('password')) {
-      alert('كلمة السر ضعيفة. استخدم ٦ أحرف على الأقل.');
+      alert('كلمة السر ضعيفة. استخدم 6 أحرف على الأقل.');
     } else if (msg.includes('rate limit') || msg.includes('too many')) {
       alert('تم تجاوز عدد المحاولات. انتظر دقيقة وحاول مرة أخرى.');
     } else if (msg.includes('network') || msg.includes('failed to fetch')) {

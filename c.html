@@ -235,7 +235,7 @@ function render(c){
     rankBlock = '<div class="mk-medal">'+medallion(rank)+'</div>'
       + '<div class="mk-rank-t">'+['المركز الأول','المركز الثاني','المركز الثالث'][rank-1]+' على سيمبل هذا الأسبوع</div>';
   } else if(rank>=1 && rank<=100){
-    rankBlock = '<div class="mk-rankpill">ضمن أفضل ١٠٠ مؤثر · المركز '+toArabic(rank)+'</div>';
+    rankBlock = '<div class="mk-rankpill">ضمن أفضل 100 مؤثر · المركز '+toArabic(rank)+'</div>';
   }
   document.getElementById('mk').innerHTML =
     '<div class="mk-card">'
@@ -244,7 +244,7 @@ function render(c){
     + '<div class="mk-name">'+flagOf(c.country||'SA')+' '+escHtml(c.name||'')+' '+badgeHtml(c)+'</div>'
     + (c.handle?'<div class="mk-handle">'+escHtml(c.handle)+'</div>':'')
     + rankBlock
-    + '<div class="mk-score"><span class="mk-score-n">'+Math.round(c.score)+'</span><span class="mk-score-l">درجة الثقة من ١٠٠</span></div>'
+    + '<div class="mk-score"><span class="mk-score-n">'+Math.round(c.score)+'</span><span class="mk-score-l">درجة الثقة من 100</span></div>'
     + '<div class="mk-stars">'+starsHtml(c)+'</div>'
     + '<div class="mk-stats">'
     +   '<div class="mk-stat"><div class="n">'+fmtFollowers(c.followers)+'</div><div class="l">متابع</div></div>'

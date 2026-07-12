@@ -433,13 +433,13 @@ document.addEventListener('DOMContentLoaded', async function () {
       ? simblI18n.t(dashKey)
       : (user.role === 'creator' ? 'الانتقال إلى لوحتي ←' : 'الانتقال إلى حملاتي الإعلانية ←');
 
-    // ١) أزرار النافبار — استبدل بزر واحد
+    // 1) أزرار النافبار — استبدل بزر واحد
     const navActions = document.getElementById('nav-actions');
     if (navActions) {
       navActions.innerHTML = `<a href="${dashboardUrl}" class="btn btn-primary" data-i18n="${dashKey}">${dashLabel}</a>`;
     }
 
-    // ٢) أزرار الهيرو — استبدل بزر واحد
+    // 2) أزرار الهيرو — استبدل بزر واحد
     const heroCtas = document.getElementById('hero-ctas');
     if (heroCtas) {
       heroCtas.innerHTML = `<a href="${dashboardUrl}" class="btn btn-primary hero-cta-lg" data-i18n="${dashKey}">${dashLabel}</a>`;

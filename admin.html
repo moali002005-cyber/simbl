@@ -282,7 +282,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
     <div class="section">
       <h2><i class="ti ti-clock-bolt"></i> الحركة الزمنية</h2>
       <div class="tbl-wrap">
-        <table class="tw-table"><thead><tr><th>المؤشر</th><th>آخر ٢٤ ساعة</th><th>آخر ٧ أيام</th><th>آخر ٣٠ يوم</th><th>الإجمالي</th></tr></thead>
+        <table class="tw-table"><thead><tr><th>المؤشر</th><th>آخر 24 ساعة</th><th>آخر 7 أيام</th><th>آخر 30 يوم</th><th>الإجمالي</th></tr></thead>
         <tbody id="tw-body"></tbody></table>
       </div>
     </div>
@@ -519,7 +519,7 @@ function showGate(state, email){
   $('#gate').style.display='flex'; $('#dash').style.display='none';
 }
 
-// جلب كل الصفوف بتجاوز سقف PostgREST الافتراضي (١٠٠٠ صف) عبر التصفّح
+// جلب كل الصفوف بتجاوز سقف PostgREST الافتراضي (1000 صف) عبر التصفّح
 async function fetchAll(table, select){
   const pageSize = 1000;
   let from = 0, all = [];
@@ -992,7 +992,7 @@ function paymentDeadline(a){
   d.setDate(d.getDate()+days);
   return d;
 }
-// متأخرة = صفقة مكتملة (مرحلة ٩) عدّت مهلتها بدون تأكيد استلام، أو حالتها نزاع
+// متأخرة = صفقة مكتملة (مرحلة 9) عدّت مهلتها بدون تأكيد استلام، أو حالتها نزاع
 function isOverdue(a){
   if(!a || a.status!=='closed' || (Number(a.stage)||0) < 9) return false;
   if(a.payment_status==='confirmed') return false;

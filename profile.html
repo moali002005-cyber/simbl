@@ -696,7 +696,7 @@ body {
   font-weight: 500;
 }
 
-/* ============ Workflow progress (الخيار ١: حلقة + شريط رفيع) ============ */
+/* ============ Workflow progress (الخيار 1: حلقة + شريط رفيع) ============ */
 .wf-card {
   background: #fff;
   border: 1px solid var(--line);
@@ -1059,8 +1059,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 
     <div style="display:flex;justify-content:center;max-width:340px;margin:16px auto 0;">
       <div style="flex:1;text-align:center;"><div id="stat-followers" style="font-weight:700;font-size:18px;">—</div><div style="font-size:11.5px;color:var(--ink-muted);">متابعين</div></div>
-      <div style="flex:1;text-align:center;border-right:1px solid var(--line);border-left:1px solid var(--line);"><div id="stat-deals" style="font-weight:700;font-size:18px;">٠</div><div style="font-size:11.5px;color:var(--ink-muted);">صفقات</div></div>
-      <div style="flex:1;text-align:center;"><div id="stat-active" style="font-weight:700;font-size:18px;">٠</div><div style="font-size:11.5px;color:var(--ink-muted);">عروض نشطة</div></div>
+      <div style="flex:1;text-align:center;border-right:1px solid var(--line);border-left:1px solid var(--line);"><div id="stat-deals" style="font-weight:700;font-size:18px;">0</div><div style="font-size:11.5px;color:var(--ink-muted);">صفقات</div></div>
+      <div style="flex:1;text-align:center;"><div id="stat-active" style="font-weight:700;font-size:18px;">0</div><div style="font-size:11.5px;color:var(--ink-muted);">عروض نشطة</div></div>
     </div>
 
     <div id="profile-bio" style="text-align:center;font-size:12.5px;color:var(--ink-soft);padding:12px 22px 0;line-height:1.7;"></div>
@@ -1082,7 +1082,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   <div id="tab-earnings">
     <div style="background:var(--cream);border-radius:16px;padding:22px;text-align:center;margin-bottom:16px;">
       <div style="font-size:12.5px;color:var(--ink-muted);">إجمالي أرباحك</div>
-      <div style="font-weight:700;font-size:32px;color:var(--ink);margin-top:6px;"><span id="earn-total">٠</span> <span style="font-size:15px;color:var(--accent);">ر.س</span></div>
+      <div style="font-weight:700;font-size:32px;color:var(--ink);margin-top:6px;"><span id="earn-total">0</span> <span style="font-size:15px;color:var(--accent);">ر.س</span></div>
       <div id="earn-sub" style="font-size:12px;color:var(--ink-muted);margin-top:6px;"></div>
     </div>
     <div id="earn-list"></div>
@@ -1124,8 +1124,8 @@ function showToast(message, type = 'success', duration = 3500) {
 
 // ====== خرائط عرض الحقول الجديدة ======
 const PUBLISH_TIMING_LABELS = {
-  '24h': 'خلال ٢٤ ساعة (مستعجل)',
-  '3d': 'خلال ٣ أيام',
+  '24h': 'خلال 24 ساعة (مستعجل)',
+  '3d': 'خلال 3 أيام',
   '1w': 'خلال أسبوع',
   '2w': 'خلال أسبوعين',
   'custom': 'تاريخ محدّد'
@@ -1134,22 +1134,22 @@ const PLATFORM_LABELS = {
   tiktok: 'تيك توك', snapchat: 'سناب شات', x: 'إكس', instagram: 'انستقرام', youtube: 'يوتيوب'
 };
 const FOLLOWER_RANGE_LABELS = {
-  '20-50k': 'من ٢٠ ألف إلى ٥٠ ألف متابع',
-  '50-200k': 'من ٥٠ ألف إلى ٢٠٠ ألف متابع',
-  '200-500k': 'من ٢٠٠ ألف إلى ٥٠٠ ألف متابع',
-  '500k+': 'أكثر من ٥٠٠ ألف متابع',
-  '10000': 'من ١٠ آلاف إلى ٢٠ ألف متابع',
-  '20000': 'من ٢٠ ألف إلى ٥٠ ألف متابع',
-  '50000': 'من ٥٠ ألف إلى ١٠٠ ألف متابع',
-  '100000': 'من ١٠٠ ألف إلى ٢٠٠ ألف متابع',
-  '200000': 'من ٢٠٠ ألف إلى ٣٠٠ ألف متابع',
-  '300000': 'من ٣٠٠ ألف إلى ٥٠٠ ألف متابع',
-  '500000': 'من ٥٠٠ ألف إلى ٧٠٠ ألف متابع',
-  '700000': 'من ٧٠٠ ألف إلى مليون متابع',
+  '20-50k': 'من 20 ألف إلى 50 ألف متابع',
+  '50-200k': 'من 50 ألف إلى 200 ألف متابع',
+  '200-500k': 'من 200 ألف إلى 500 ألف متابع',
+  '500k+': 'أكثر من 500 ألف متابع',
+  '10000': 'من 10 آلاف إلى 20 ألف متابع',
+  '20000': 'من 20 ألف إلى 50 ألف متابع',
+  '50000': 'من 50 ألف إلى 100 ألف متابع',
+  '100000': 'من 100 ألف إلى 200 ألف متابع',
+  '200000': 'من 200 ألف إلى 300 ألف متابع',
+  '300000': 'من 300 ألف إلى 500 ألف متابع',
+  '500000': 'من 500 ألف إلى 700 ألف متابع',
+  '700000': 'من 700 ألف إلى مليون متابع',
   '1000000': 'من مليون إلى مليونين',
-  '2000000': 'فوق ٢ مليون',
-  '3000000': 'فوق ٣ مليون',
-  '4000000': 'فوق ٤ مليون'
+  '2000000': 'فوق 2 مليون',
+  '3000000': 'فوق 3 مليون',
+  '4000000': 'فوق 4 مليون'
 };
 const CITY_LABELS = { riyadh: 'الرياض', jeddah: 'جدة', dammam: 'الدمام', all: 'كل المناطق' };
 function publishTimingText(c) {
@@ -1795,7 +1795,7 @@ function paymentDeadlineText(app) {
   try { return d.toLocaleDateString('ar-SA'); } catch (e) { return ''; }
 }
 
-// بطاقة الدفع (تظهر بعد المرحلة ٩) — جهة المعلن
+// بطاقة الدفع (تظهر بعد المرحلة 9) — جهة المعلن
 function renderPaymentCard(app) {
   if (!app) {
     return `<div class="stage-action complete" onclick="event.stopPropagation()"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
@@ -1910,7 +1910,7 @@ async function submitStageForm(applicationId) {
   submitBtn.disabled = true;
   submitBtn.textContent = 'جاري الحفظ...';
 
-  // عند الوصول للمرحلة ٩ (مكتمل) نسجّل وقت الإكمال — منه تُحسب مهلة الدفع
+  // عند الوصول للمرحلة 9 (مكتمل) نسجّل وقت الإكمال — منه تُحسب مهلة الدفع
   const stageUpdate = { stage: newStage, stage_data: existing };
   if (newStage >= 9) {
     stageUpdate.completed_at = new Date().toISOString();

@@ -93,7 +93,7 @@ function simblLockReason(creator, campaign) {
 }
 
 // ============ إدارة الجلسة: نعتمد على autoRefreshToken المدمج فقط ============
-// أزلنا التجديد اليدوي المتعدد (كان يستدعي refreshSession عند تبديل التبويب + كل ٤ دقائق + عند الفتح)
+// أزلنا التجديد اليدوي المتعدد (كان يستدعي refreshSession عند تبديل التبويب + كل 4 دقائق + عند الفتح)
 // لأنه يسبّب "refresh token already used" → تسجيل خروج مفاجئ وعشوائي (خصوصًا مع تعدد التبويبات/الأجهزة).
 // المكتبة تجدّد الجلسة لحالها مرة وحدة وبتنسيق آمن بين التبويبات. ونكتفي بالإصغاء لحدث الخروج
 // لعرض شاشة "انتهت جلستك" بدل صفحة فاضية — بلا أي استفزاز للتوكن.
@@ -266,7 +266,7 @@ function saveCurrentUser(user) {
   // نحفظ في localStorage (الأساسي) - يبقى للأبد إلا لو المستخدم مسح بيانات المتصفح
   localStorage.setItem('simbl_current_user', JSON.stringify(user));
 
-  // نحفظ id في cookie لمدة ١٠ سنوات كاحتياطي
+  // نحفظ id في cookie لمدة 10 سنوات كاحتياطي
   const expires = new Date();
   expires.setFullYear(expires.getFullYear() + 10);
   document.cookie = `simbl_user_id=${user.id}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
@@ -329,7 +329,7 @@ function simblShowSessionExpired() {
 }
 
 async function tryRestoreSession() {
-  // ٠) تأكّد إن جلسة Auth حيّة فعلًا؛ لو ماتت والهوية محفوظة → اعرض "انتهت جلستك"
+  // 0) تأكّد إن جلسة Auth حيّة فعلًا؛ لو ماتت والهوية محفوظة → اعرض "انتهت جلستك"
   const __alive = await simblSessionAlive();
   if (!__alive) {
     const __hasIdentity = !!localStorage.getItem('simbl_current_user') || /simbl_user_id=/.test(document.cookie);
@@ -345,7 +345,7 @@ async function tryRestoreSession() {
 
   const userId = cookieMatch[1];
 
-  // نعيد المحاولة حتى ٥ مرات مع تراجع تدريجي (نتفادى فشل الشبكة البطيئة عند الفتح البارد)
+  // نعيد المحاولة حتى 5 مرات مع تراجع تدريجي (نتفادى فشل الشبكة البطيئة عند الفتح البارد)
   const backoff = [400, 700, 1100, 1600, 2200];
   for (let attempt = 0; attempt < 5; attempt++) {
     try {

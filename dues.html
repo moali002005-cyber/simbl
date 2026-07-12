@@ -722,7 +722,7 @@ function exportPaySheetCSV(onlyCampId) {
   const lines = [header];
   let count = 0;
   camps.forEach(c => {
-    // شيت الدفع = الصفقات الجاهزة للدفع فقط (مكتملة: المرحلة ≥ ٩ وبياناتها البنكية مُدخلة)،
+    // شيت الدفع = الصفقات الجاهزة للدفع فقط (مكتملة: المرحلة ≥ 9 وبياناتها البنكية مُدخلة)،
     // نستبعد الصفقات المعتمدة اللي لسّا قيد التنفيذ حتى ما تُدفع مبكرًا ببيانات ناقصة.
     const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true && (a.stage || 1) >= 9);
     deals.forEach(a => {

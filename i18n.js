@@ -12,7 +12,7 @@
   function keyedDict() { return (window.I18N && window.I18N[getLang()]) || {}; }
   function textMap() { return window.I18N_TEXT || {}; }
 
-  // (١) العناصر المعلّمة بمفتاح
+  // (1) العناصر المعلّمة بمفتاح
   function applyKeyed(lang) {
     var t = keyedDict();
     var titleKey = document.documentElement.getAttribute('data-i18n-title');
@@ -29,7 +29,7 @@
     });
   }
 
-  // (٢) القاموس التلقائي
+  // (2) القاموس التلقائي
   function skip(node) {
     var p = node.parentNode; if (!p) return true;
     var tag = p.nodeName;

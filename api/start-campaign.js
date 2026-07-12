@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'بيانات ناقصة' });
   }
   if (items.length > 50) {
-    return res.status(400).json({ error: 'الحد الأقصى ٥٠ مؤثر في المرة' });
+    return res.status(400).json({ error: 'الحد الأقصى 50 مؤثر في المرة' });
   }
 
   let created = 0;
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     const creatorId = it && it.creatorId;
     try {
       // نقرأ الجزء الصحيح فقط: نُبقي الأرقام والنقطة العشرية ثم نأخذ القيمة الصحيحة
-      // (يمنع تضخّم السقف ١٠× لو أُدخلت ميزانية بفاصلة عشرية مثل "3000.5" → 3000).
+      // (يمنع تضخّم السقف 10× لو أُدخلت ميزانية بفاصلة عشرية مثل "3000.5" → 3000).
       const ceiling = Math.floor(parseFloat(String((it && it.budget) || '').replace(/[^\d.]/g, '')) || 0);
       if (!creatorId || !ceiling || ceiling <= 0) {
         results.push({ creatorId, ok: false, reason: 'ميزانية غير صحيحة' });
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // الميزانية المُدخلة = السقف. نعطي الوكيل مجالاً يفتح أقل (≈٧٠٪) ويقفل تحت السقف.
+      // الميزانية المُدخلة = السقف. نعطي الوكيل مجالاً يفتح أقل (≈70٪) ويقفل تحت السقف.
       const low = Math.max(50, Math.round(ceiling * 0.7));
       const budgetRange = (low < ceiling) ? (low + ' - ' + ceiling) : String(ceiling);
 

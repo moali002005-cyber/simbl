@@ -191,7 +191,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
 
 <main class="container">
   <section class="hero">
-    <h1 class="hero-title">أفضل ٥٠٠ مؤثر هذا الأسبوع</h1>
+    <h1 class="hero-title">أفضل 500 مؤثر هذا الأسبوع</h1>
     <p class="hero-sub">مرتّبون بأداء الصفقات الحقيقي: سرعة الإنجاز، عدد الحملات المكتملة، والاستمرارية.</p>
     <div class="count-pill"><span class="count-dot"></span><span id="count-text">جاري التحميل...</span></div>
 
@@ -510,7 +510,7 @@ function render(list){
   const el = document.getElementById('list');
   const ct = document.getElementById('count-text');
   let rows = list;
-  if (ct) ct.textContent = (scope === 'sa') ? 'أفضل ٥٠٠ مؤثر محليًا' : 'أفضل ٥٠٠ مؤثر في الشرق الأوسط';
+  if (ct) ct.textContent = (scope === 'sa') ? 'أفضل 500 مؤثر محليًا' : 'أفضل 500 مؤثر في الشرق الأوسط';
 
   if (!rows.length){
     el.innerHTML = '<div class="empty"><div class="ic">○</div><h3>لا يوجد مطابقون</h3><p>جرّب تغيير الفلاتر أو البحث</p></div>';
