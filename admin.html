@@ -534,6 +534,21 @@ async function fetchAll(table, select){
   return all;
 }
 
+// نفس التصفّح لكن على دالة RPC (تُرجّع مجموعة صفوف مرتّبة ترتيبًا ثابتًا)
+async function fetchAllRpc(fn){
+  const pageSize = 1000;
+  let from = 0, all = [];
+  for(;;){
+    const { data, error } = await sb.rpc(fn).range(from, from + pageSize - 1);
+    if(error) throw error;
+    if(!data || !data.length) break;
+    all = all.concat(data);
+    if(data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 async function loadAll(silent){
   if(!silent){
     $('#gate').style.display='flex'; $('#dash').style.display='none';
@@ -541,13 +556,12 @@ async function loadAll(silent){
   }
   try{
     const [u,c,a,n] = await Promise.all([
-      sb.rpc('admin_list_users'),
+      fetchAllRpc('admin_list_users'),
       fetchAll('campaigns','*'),
       fetchAll('applications','*'),
       fetchAll('negotiations','*')
     ]);
-    if(u.error) throw u.error;
-    USERS=u.data||[]; CAMPAIGNS=c; APPS=a; NEGS=n;
+    USERS=u; CAMPAIGNS=c; APPS=a; NEGS=n;
     usersById={}; USERS.forEach(x=>usersById[x.id]=x);
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
