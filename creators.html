@@ -364,7 +364,7 @@ async function init(){
   initChips();
   try{
     var [dirRes, trustRes]=await Promise.all([
-      supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url').order('followers',{ascending:false}),
+      supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url, country').order('followers',{ascending:false}),
       supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating, avg_content, avg_punctuality, avg_communication, avg_results')
     ]);
     if(dirRes.error) throw dirRes.error;

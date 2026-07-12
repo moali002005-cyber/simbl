@@ -370,7 +370,7 @@ async function init(){
 
   try{
     const [dirRes, trustRes, perfRes] = await Promise.all([
-      supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url'),
+      supabaseClient.from('creator_directory').select('id, name, handle, platform, followers, category, bio, website, avatar_url, country'),
       supabaseClient.from('creator_trust').select('creator_id, deals_count, ratings_count, avg_rating, avg_content, avg_punctuality, avg_communication, avg_results'),
       supabaseClient.from('simbl_creator_performance').select('creator_id, completed_deals, active_deals, avg_hours, speed_points, achievement')
     ]);
