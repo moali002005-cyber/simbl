@@ -583,17 +583,10 @@ function duesRowEmpty(idx) {
 function renderCampaignBlock(camp, deals) {
   const totals = { due: 0, paid: 0 };
 
-  // ترتيب: المتأخر/النزاع أولًا، ثم بانتظار التأكيد، ثم قيد التنفيذ، ثم المدفوع
-  function groupRank(a) {
-    const stg = a.stage || 1;
-    const ps = a.payment_status || 'unpaid';
-    if (stg >= 9) { if (ps === 'confirmed') return 4; if (ps === 'marked_paid') return 1; return 0; }
-    return 2;
-  }
+  // ترتيب ثابت لا يتغيّر مع حالة الدفع — عشان ما يقفز الصف لمّا يُعلَّم "تم التحويل".
+  // روستر ثابت حسب وقت إتمام الصفقة (الأقدم أولًا)، وتغيير الدفع يعدّل البادج في مكانه فقط.
   deals = deals.slice().sort((a, b) => {
-    const ra = groupRank(a), rb = groupRank(b);
-    if (ra !== rb) return ra - rb;
-    return new Date(b.completed_at || b.created_at || 0) - new Date(a.completed_at || a.created_at || 0);
+    return new Date(a.completed_at || a.created_at || 0) - new Date(b.completed_at || b.created_at || 0);
   });
 
   const size = parseInt(camp.campaign_size, 10) || 0;
