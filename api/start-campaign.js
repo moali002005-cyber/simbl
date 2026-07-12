@@ -82,7 +82,9 @@ export default async function handler(req, res) {
   for (const it of items) {
     const creatorId = it && it.creatorId;
     try {
-      const ceiling = parseInt(String((it && it.budget) || '').replace(/[^\d]/g, ''), 10);
+      // نقرأ الجزء الصحيح فقط: نُبقي الأرقام والنقطة العشرية ثم نأخذ القيمة الصحيحة
+      // (يمنع تضخّم السقف ١٠× لو أُدخلت ميزانية بفاصلة عشرية مثل "3000.5" → 3000).
+      const ceiling = Math.floor(parseFloat(String((it && it.budget) || '').replace(/[^\d.]/g, '')) || 0);
       if (!creatorId || !ceiling || ceiling <= 0) {
         results.push({ creatorId, ok: false, reason: 'ميزانية غير صحيحة' });
         continue;
