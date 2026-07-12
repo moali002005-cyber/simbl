@@ -519,6 +519,21 @@ function showGate(state, email){
   $('#gate').style.display='flex'; $('#dash').style.display='none';
 }
 
+// جلب كل الصفوف بتجاوز سقف PostgREST الافتراضي (١٠٠٠ صف) عبر التصفّح
+async function fetchAll(table, select){
+  const pageSize = 1000;
+  let from = 0, all = [];
+  for(;;){
+    const { data, error } = await sb.from(table).select(select).range(from, from + pageSize - 1);
+    if(error) throw error;
+    if(!data || !data.length) break;
+    all = all.concat(data);
+    if(data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 async function loadAll(silent){
   if(!silent){
     $('#gate').style.display='flex'; $('#dash').style.display='none';
@@ -527,13 +542,12 @@ async function loadAll(silent){
   try{
     const [u,c,a,n] = await Promise.all([
       sb.rpc('admin_list_users'),
-      sb.from('campaigns').select('*'),
-      sb.from('applications').select('*'),
-      sb.from('negotiations').select('*')
+      fetchAll('campaigns','*'),
+      fetchAll('applications','*'),
+      fetchAll('negotiations','*')
     ]);
-    const firstErr = u.error||c.error||a.error||n.error;
-    if(firstErr) throw firstErr;
-    USERS=u.data||[]; CAMPAIGNS=c.data||[]; APPS=a.data||[]; NEGS=n.data||[];
+    if(u.error) throw u.error;
+    USERS=u.data||[]; CAMPAIGNS=c; APPS=a; NEGS=n;
     usersById={}; USERS.forEach(x=>usersById[x.id]=x);
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
