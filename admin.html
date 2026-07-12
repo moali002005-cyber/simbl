@@ -167,6 +167,61 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 .msg.creator{background:var(--accent-bg);border:1px solid rgba(19,185,178,.3);align-self:flex-end;border-bottom-inline-end-radius:3px}
 .msg .who{font-size:11px;color:var(--faint);margin-bottom:3px}
 .err-box{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:#ff9d97;border-radius:11px;padding:14px 16px;font-size:13.5px;margin-bottom:18px;display:none}
+/* ===== لوحة القيادة (نظرة عامة) — ألوان سيمبل الرسمية ===== */
+.dsh-hero{position:relative;background:linear-gradient(135deg,#0c4f4b,#0e6560 55%,#13857e);border-radius:22px;padding:24px 26px;color:#fff;overflow:hidden;margin-bottom:16px;box-shadow:0 22px 50px -30px rgba(12,79,75,.6)}
+.dsh-hero::after{content:'';position:absolute;top:-40%;inset-inline-start:-8%;width:320px;height:320px;background:radial-gradient(circle,rgba(19,185,178,.4),transparent 70%);pointer-events:none}
+.dsh-htop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
+.dsh-htop .t{font-size:20px;font-weight:700}.dsh-htop .s{font-size:12px;color:rgba(255,255,255,.7)}
+.dsh-live{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);padding:6px 13px;border-radius:100px;font-size:12px;font-weight:600}
+.dsh-live .d{width:7px;height:7px;border-radius:50%;background:#13B9B2;box-shadow:0 0 10px 1px rgba(19,185,178,.9);animation:dshp 1.6s infinite}
+@keyframes dshp{0%,100%{opacity:1}50%{opacity:.4}}
+.dsh-figs{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:14px;margin-top:20px;position:relative;z-index:1}
+@media(max-width:820px){.dsh-figs{grid-template-columns:1fr 1fr}}
+.dsh-fig .l{font-size:11.5px;color:rgba(255,255,255,.72);margin-bottom:5px}
+.dsh-fig .v{font-size:26px;font-weight:700;line-height:1;letter-spacing:-.5px}
+.dsh-fig .v small{font-size:13px;font-weight:600;opacity:.75}
+.dsh-fig .sub{font-size:11px;margin-top:5px;color:rgba(255,255,255,.6)}
+.dsh-fig.alert{background:rgba(19,185,178,.18);border:1px solid rgba(127,214,210,.45);border-radius:13px;padding:11px 13px;margin:-9px -2px}
+.dsh-fig.alert .v{color:#bff0ec}
+.dsh-up{color:#5fe6d0;font-weight:700}
+.dsh-grid{display:grid;gap:16px;margin-bottom:16px}.dsh-g2{grid-template-columns:1fr 1fr}
+@media(max-width:820px){.dsh-g2{grid-template-columns:1fr}}
+.dsh-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:17px 19px}
+.dsh-card h4{font-size:13.5px;font-weight:700;color:#0c4f4b;margin-bottom:2px;display:flex;align-items:center;gap:7px}
+.dsh-card .hint{font-size:11px;color:var(--faint);margin-bottom:13px}
+.dsh-flow{display:flex;height:36px;border-radius:10px;overflow:hidden;gap:2px;margin:4px 0 12px}
+.dsh-flow div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;min-width:44px;white-space:nowrap}
+.dsh-leg{display:flex;gap:16px;flex-wrap:wrap}
+.dsh-lg{display:flex;align-items:center;gap:7px;font-size:12px}.dsh-lg .sw{width:11px;height:11px;border-radius:3px}
+.dsh-lg b{font-weight:700;color:#14201e}.dsh-lg span{color:var(--muted)}
+.dsh-fun{display:flex;flex-direction:column;gap:8px}.dsh-fr{display:flex;align-items:center;gap:10px}
+.dsh-fl{width:90px;font-size:12px;color:var(--muted);flex-shrink:0}
+.dsh-fb{height:24px;border-radius:6px;background:linear-gradient(90deg,#0c4f4b,#13B9B2);display:flex;align-items:center;padding:0 9px;color:#fff;font-size:12px;font-weight:700;min-width:34px}
+.dsh-fp{font-size:11px;color:var(--faint);flex-shrink:0}
+.dsh-vb{display:flex;align-items:flex-end;gap:20px;height:140px;padding:0 6px}
+.dsh-vbi{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:100%}
+.dsh-vbc{width:100%;max-width:64px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,#13B9B2,#0c4f4b);position:relative;min-height:3px}
+.dsh-vbc .v{position:absolute;top:-21px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:#0c4f4b;white-space:nowrap}
+.dsh-vbcap{font-size:11.5px;color:var(--muted)}
+.dsh-hb{display:flex;flex-direction:column;gap:10px}
+.dsh-hr{display:grid;grid-template-columns:88px 1fr auto;align-items:center;gap:9px}
+.dsh-hn{font-size:12px;font-weight:500;color:#14201e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dsh-ht{background:#e3f4f2;border-radius:6px;height:20px;overflow:hidden}
+.dsh-hf{height:100%;border-radius:6px;background:linear-gradient(90deg,#13B9B2,#0c4f4b)}
+.dsh-hf.lite{background:linear-gradient(90deg,#83d7d2,#13B9B2)}
+.dsh-hv{font-size:11.5px;font-weight:700;color:#0c4f4b;white-space:nowrap}.dsh-ho{font-size:10.5px;color:#13B9B2;font-weight:700}
+.dsh-dwrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.dsh-donut{width:120px;height:120px;border-radius:50%;flex-shrink:0;position:relative}
+.dsh-donut::after{content:'';position:absolute;inset:19px;background:#fff;border-radius:50%}
+.dsh-dc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1}
+.dsh-dc b{font-size:20px;font-weight:700;color:#0c4f4b}.dsh-dc s{font-size:10px;color:var(--muted);text-decoration:none}
+.dsh-alert{display:flex;align-items:center;gap:11px;background:linear-gradient(90deg,rgba(19,185,178,.12),rgba(19,185,178,.02));border:1px solid rgba(19,185,178,.3);border-radius:13px;padding:12px 15px;margin-bottom:4px}
+.dsh-alert .ic{width:34px;height:34px;border-radius:9px;background:#0c4f4b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.dsh-alert .tx{font-size:12.5px;color:#14201e}.dsh-alert .tx b{color:#0c4f4b}
+.dsh-feed .fi{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
+.dsh-feed .fi:first-child{border-top:0}
+.dsh-feed .fic{width:26px;height:26px;border-radius:7px;background:rgba(19,185,178,.12);color:#0c4f4b;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dsh-feed .ft{flex:1;color:#14201e}.dsh-feed .fw{font-size:11px;color:var(--faint);flex-shrink:0}
 </style>
 </head>
 <body>
@@ -243,19 +298,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 
   <!-- overview -->
   <div class="panel active" id="panel-overview">
-    <div class="two-col">
-      <div class="section">
-        <h2><i class="ti ti-activity"></i> نشاط حديث</h2>
-        <div id="feed"></div>
-      </div>
-      <div class="section">
-        <h2><i class="ti ti-flame"></i> أبرز الحملات (بعدد العروض)</h2>
-        <div class="tbl-wrap">
-          <table><thead><tr><th>الحملة</th><th>الشركة</th><th>العروض</th><th>المقفلة</th></tr></thead>
-          <tbody id="top-campaigns"></tbody></table>
-        </div>
-      </div>
-    </div>
+    <div id="dash-body"></div>
   </div>
 
   <!-- companies -->
@@ -1094,23 +1137,110 @@ function renderKPIs(){
   ).join('');
 }
 
-// ===== overview =====
+// ===== لوحة القيادة (نظرة عامة) — كل شي بمكان واحد =====
+const DSH_CITY = { riyadh:'الرياض', jeddah:'جدة', dammam:'الدمام', khobar:'الخبر', abha:'أبها', makkah:'مكة', madinah:'المدينة', taif:'الطائف', jazan:'جازان', khamis:'خميس مشيط', hofuf:'الهفوف', jubail:'الجبيل', tabuk:'تبوك', buraidah:'بريدة', qassim:'القصيم', other:'أخرى' };
+const DSH_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const DSH_STATUS = { campaign_full:'اكتمال الحملة', waitlisted:'قائمة انتظار', closed:'صفقات مقفلة', rejected:'مرفوضة', pending:'قيد المراجعة', active:'تفاوض نشط', campaign_full_ar:'' };
+
 function renderOverview(){
+  const box = $('#dash-body'); if(!box) return;
+  const val = a => Number(a.final_price||a.price)||0;
+  const brands = USERS.filter(u=>u.role==='brand' && u.company_name!=='agentsimpleai');
+  const creators = USERS.filter(u=>u.role==='creator');
+  const activeCamps = CAMPAIGNS.filter(c=>c.status==='active').length;
+  const approved = APPS.filter(a=>a.status==='closed' && a.brand_approved===true);
+  const completed = approved.filter(a=>(a.stage||1)>=9);
+  const gmv = approved.reduce((s,a)=>s+val(a),0);
+  const paid = approved.filter(a=>a.payment_status==='confirmed').reduce((s,a)=>s+val(a),0);
+  const owed = completed.filter(a=>a.payment_status!=='confirmed').reduce((s,a)=>s+val(a),0);
+  const inprog = Math.max(0, gmv - paid - owed);
+  const closedCount = APPS.filter(a=>a.status==='closed').length;
+  const appliedCreators = new Set(APPS.filter(a=>a.creator_id).map(a=>a.creator_id)).size;
+  const waitlisted = APPS.filter(a=>a.status==='waitlisted').length;
+
+  // GMV شهريًا
+  const byMonth = {};
+  approved.forEach(a=>{ const d=a.closed_at||a.created_at; if(!d) return; const m=String(d).slice(0,7); byMonth[m]=(byMonth[m]||0)+val(a); });
+  const months = Object.entries(byMonth).sort((a,b)=> a[0]<b[0]?-1:1).slice(-6);
+  const maxM = Math.max(1, ...months.map(m=>m[1]));
+  let growthSub = '';
+  if(months.length>=2){ const prev=months[months.length-2][1]||1, last=months[months.length-1][1]; const x=(last/prev); if(x>=1.15) growthSub='<span class="dsh-up">▲ '+(x>=2?Math.round(x)+'×':'+'+Math.round((x-1)*100)+'%')+'</span> نمو هذا الشهر'; }
+
+  // الشركات
+  const comp = brands.map(companyStats).sort((a,b)=>b.gmv-a.gmv).slice(0,5).filter(r=>r.gmv>0 || r.camps>0);
+  const maxG = Math.max(1, ...comp.map(r=>r.gmv));
+  const topOwed = comp.slice().sort((a,b)=>b.owed-a.owed);
+
+  // حالة الطلبات (دونات)
+  const sc = {}; APPS.forEach(a=>{ sc[a.status]=(sc[a.status]||0)+1; });
+  const scOrder = Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+  const shades = ['#0c4f4b','#13B9B2','#4ec5bf','#83d7d2'];
+  let acc=0, stops=[], dleg=[]; const totApps=APPS.length||1;
+  scOrder.slice(0,4).forEach((e,i)=>{ const pct=e[1]/totApps*100; stops.push(shades[i]+' '+acc.toFixed(2)+'% '+(acc+pct).toFixed(2)+'%'); acc+=pct; dleg.push({c:shades[i],n:DSH_STATUS[e[0]]||e[0],v:e[1]}); });
+  if(acc<100) stops.push('#b6e7e4 '+acc.toFixed(2)+'% 100%');
+  const donutBg = 'conic-gradient('+stops.join(',')+')';
+  const topStatus = scOrder[0] || ['—',0];
+
+  // المدن
+  const cc={}; creators.forEach(u=>{ const c=(u.city||'').trim().toLowerCase(); if(!c) return; cc[c]=(cc[c]||0)+1; });
+  const cities = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxC = Math.max(1, ...cities.map(c=>c[1]));
+
+  // نشاط حديث
   const ev=[];
   USERS.forEach(u=>ev.push({t:u.created_at,ic:'ti-user-plus',txt:'تسجيل '+roleLabel(u.role)+' «'+esc(u.company_name||u.name||'—')+'»'}));
-  CAMPAIGNS.forEach(c=>ev.push({t:c.created_at,ic:'ti-rocket',txt:'حملة جديدة «'+esc(c.title||'—')+'» — '+esc(brandOfCampaign(c))}));
-  APPS.filter(isClosed).forEach(a=>ev.push({t:a.closed_at||a.created_at,ic:'ti-circle-check',txt:'صفقة مقفلة: '+esc(creatorName(a))+' ⟷ '+esc(brandNameForApp(a))+' · '+money(a.final_price)}));
+  CAMPAIGNS.forEach(c=>ev.push({t:c.created_at,ic:'ti-rocket',txt:'حملة جديدة «'+esc(c.title||'—')+'»'}));
+  approved.forEach(a=>ev.push({t:a.closed_at||a.created_at,ic:'ti-circle-check',txt:'صفقة معتمدة · '+money(val(a))}));
   ev.sort((x,y)=>new Date(y.t||0)-new Date(x.t||0));
-  const top = ev.slice(0,12);
-  $('#feed').innerHTML = top.length ? top.map(e=>
-    '<div class="feed-item"><div class="feed-ic"><i class="ti '+e.ic+'"></i></div><div class="feed-txt">'+e.txt+'</div><div class="feed-time">'+ago(e.t)+'</div></div>'
-  ).join('') : '<div class="empty">لا يوجد نشاط بعد</div>';
+  const feed = ev.slice(0,8);
 
-  const ranked = [...CAMPAIGNS].map(c=>({c,n:appsOfCampaign(c.id).length,cl:closedOfCampaign(c.id).length}))
-    .sort((a,b)=>b.n-a.n).slice(0,8);
-  $('#top-campaigns').innerHTML = ranked.length ? ranked.map(r=>
-    '<tr><td>'+esc(r.c.title||'—')+'</td><td class="dim">'+esc(brandOfCampaign(r.c))+'</td><td class="mono">'+num(r.n)+'</td><td class="mono">'+num(r.cl)+'</td></tr>'
-  ).join('') : '<tr><td colspan="4" class="empty">لا توجد حملات</td></tr>';
+  const pct = (x,base)=> Math.max(3, Math.round(x/(base||1)*100));
+  const compName = n => String(n||'').replace(/^شركة\s*/,'').trim();
+
+  box.innerHTML =
+  // HERO
+  '<div class="dsh-hero"><div class="dsh-htop"><div><div class="t">لوحة قيادة سيمبل ✦</div><div class="s">كل اللي يصير في منصتك — بمكان واحد</div></div>'
+  + '<span class="dsh-live"><span class="d"></span> مباشر · محدّث الآن</span></div>'
+  + '<div class="dsh-figs">'
+  +   '<div class="dsh-fig"><div class="l">💰 قيمة الصفقات (GMV)</div><div class="v">'+money(gmv).replace(' ر.س','')+'<small> ر.س</small></div><div class="sub">'+(growthSub||(num(approved.length)+' صفقة معتمدة'))+'</div></div>'
+  +   '<div class="dsh-fig alert"><div class="l">⚠️ مستحق للمؤثرين</div><div class="v">'+money(owed).replace(' ر.س','')+'<small> ر.س</small></div><div class="sub">غير مدفوعة — تحتاج متابعة</div></div>'
+  +   '<div class="dsh-fig"><div class="l">👥 المستخدمون</div><div class="v">'+num(USERS.length)+'</div><div class="sub">'+num(creators.length)+' مؤثر · '+num(brands.length)+' شركات</div></div>'
+  +   '<div class="dsh-fig"><div class="l">🚀 حملات نشطة</div><div class="v">'+num(activeCamps)+' <small>/ '+num(CAMPAIGNS.length)+'</small></div><div class="sub">'+num(waitlisted)+' في قوائم الانتظار</div></div>'
+  + '</div></div>'
+  // FINANCIAL FLOW
+  + '<div class="dsh-grid"><div class="dsh-card"><h4>💸 تدفّق الأموال — حقوق المؤثرين</h4><div class="hint">من إجمالي GMV '+money(gmv)+': المدفوع فعليًا، المستحق، وقيد التنفيذ</div>'
+  +   '<div class="dsh-flow">'+(paid>0?'<div style="flex:'+paid+';background:#0c4f4b">✓ مدفوع</div>':'')+(owed>0?'<div style="flex:'+owed+';background:#13B9B2">⚠ مستحق</div>':'')+(inprog>0?'<div style="flex:'+inprog+';background:#83d7d2;color:#0c4f4b">قيد التنفيذ</div>':'')+'</div>'
+  +   '<div class="dsh-leg"><div class="dsh-lg"><span class="sw" style="background:#0c4f4b"></span><b>'+money(paid)+'</b><span>✓ مدفوع</span></div>'
+  +   '<div class="dsh-lg"><span class="sw" style="background:#13B9B2"></span><b>'+money(owed)+'</b><span>⚠ مستحق غير مدفوع</span></div>'
+  +   '<div class="dsh-lg"><span class="sw" style="background:#83d7d2"></span><b>'+money(inprog)+'</b><span>قيد التنفيذ</span></div></div></div></div>'
+  // FUNNEL + GROWTH
+  + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>🎯 قمع التنفيذ</h4><div class="hint">من المؤثرين لأول دفعة — وين يتسرّب الناس</div><div class="dsh-fun">'
+  +   '<div class="dsh-fr"><span class="dsh-fl">مؤثرون</span><div class="dsh-fb" style="width:100%">'+num(creators.length)+'</div></div>'
+  +   '<div class="dsh-fr"><span class="dsh-fl">قدّموا</span><div class="dsh-fb" style="width:'+pct(appliedCreators,creators.length)+'%">'+num(appliedCreators)+'</div><span class="dsh-fp">'+pct(appliedCreators,creators.length)+'%</span></div>'
+  +   '<div class="dsh-fr"><span class="dsh-fl">صفقات مقفلة</span><div class="dsh-fb" style="width:'+pct(closedCount,creators.length)+'%">'+num(closedCount)+'</div></div>'
+  +   '<div class="dsh-fr"><span class="dsh-fl">معتمدة</span><div class="dsh-fb" style="width:'+pct(approved.length,creators.length)+'%">'+num(approved.length)+'</div></div>'
+  +   '<div class="dsh-fr"><span class="dsh-fl">مكتملة</span><div class="dsh-fb" style="width:'+pct(completed.length,creators.length)+'%">'+num(completed.length)+'</div></div>'
+  + '</div></div>'
+  + '<div class="dsh-card"><h4>📈 نمو الـGMV شهريًا</h4><div class="hint">قيمة الصفقات المعتمدة كل شهر</div><div class="dsh-vb">'
+  +   (months.length?months.map(m=>'<div class="dsh-vbi"><div class="dsh-vbc" style="height:'+Math.max(4,Math.round(m[1]/maxM*100))+'%"><span class="v">'+num(m[1])+'</span></div><span class="dsh-vbcap">'+DSH_MONTHS[parseInt(m[0].slice(5,7))-1]+'</span></div>').join(''):'<div class="hint">لا بيانات</div>')
+  + '</div></div></div>'
+  // COMPANIES + DONUT
+  + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>🏢 الشركات — GMV والمستحقات</h4><div class="hint">مرتّبة بالأعلى قيمة · المستحق للمؤثرين بجانبها</div><div class="dsh-hb">'
+  +   (comp.length?comp.map(r=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(compName(r.b.company_name))+'</span><div class="dsh-ht"><div class="dsh-hf" style="width:'+Math.max(4,Math.round(r.gmv/maxG*100))+'%"></div></div><span class="dsh-hv">'+num(r.gmv)+(r.owed>0?' <span class="dsh-ho">· مستحق '+num(r.owed)+'</span>':'')+'</span></div>').join(''):'<div class="hint">لا شركات</div>')
+  + '</div></div>'
+  + '<div class="dsh-card"><h4>◑ حالة الطلبات ('+num(APPS.length)+')</h4><div class="hint">'+(sc.campaign_full?'الطلب يسحق العرض — '+num(sc.campaign_full)+' ارتدّوا لاكتمال الحملة':'توزيع حالات الطلبات')+'</div><div class="dsh-dwrap">'
+  +   '<div class="dsh-donut" style="background:'+donutBg+'"><div class="dsh-dc"><b>'+num(topStatus[1])+'</b><s>'+esc(DSH_STATUS[topStatus[0]]||topStatus[0])+'</s></div></div>'
+  +   '<div style="display:flex;flex-direction:column;gap:7px">'+dleg.map(d=>'<div class="dsh-lg"><span class="sw" style="background:'+d.c+'"></span><b>'+num(d.v)+'</b><span>'+esc(d.n)+'</span></div>').join('')+'</div>'
+  + '</div></div></div>'
+  // CITIES + FEED
+  + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📍 المؤثرون حسب المدينة</h4><div class="hint">توزيع جغرافي (أعلى 5)</div><div class="dsh-hb">'
+  +   (cities.length?cities.map(c=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(DSH_CITY[c[0]]||c[0])+'</span><div class="dsh-ht"><div class="dsh-hf lite" style="width:'+Math.max(4,Math.round(c[1]/maxC*100))+'%"></div></div><span class="dsh-hv">'+num(c[1])+'</span></div>').join(''):'<div class="hint">لا بيانات</div>')
+  + '</div></div>'
+  + '<div class="dsh-card dsh-feed"><h4>⚡ نشاط حديث</h4><div class="hint">آخر ما صار على المنصة</div>'
+  +   (feed.length?feed.map(e=>'<div class="fi"><div class="fic"><i class="ti '+e.ic+'"></i></div><div class="ft">'+e.txt+'</div><div class="fw">'+ago(e.t)+'</div></div>').join(''):'<div class="hint">لا نشاط</div>')
+  + '</div></div>'
+  // ALERT
+  + (owed>0?'<div class="dsh-alert"><div class="ic">⚠️</div><div class="tx">فيه <b>'+money(owed)+' مستحقة للمؤثرين</b> غير مدفوعة'+(topOwed[0]&&topOwed[0].owed>0?' — أعلاها «'+esc(compName(topOwed[0].b.company_name))+'» ('+num(topOwed[0].owed)+')':'')+'. راجع تبويب «الشركات» لمتابعة الحقوق.</div></div>':'');
 }
 
 // ===== users =====
@@ -1361,8 +1491,12 @@ $('#ph-search').addEventListener('input', renderPhotos);
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
-  t.classList.add('active'); $('#panel-'+t.getAttribute('data-tab')).classList.add('active');
+  const tab = t.getAttribute('data-tab');
+  t.classList.add('active'); $('#panel-'+tab).classList.add('active');
+  const kp=$('#kpis'); if(kp) kp.style.display = (tab==='overview') ? 'none' : '';
 }));
+// إخفاء شريط الأرقام المكرّر في «نظرة عامة» (الهيرو يغنيها) — الافتراضي عند التحميل
+(function(){ const kp=$('#kpis'); if(kp) kp.style.display='none'; })();
 $('#u-search').addEventListener('input',renderUsers);
 { const _cs=$('#co-search'); if(_cs) _cs.addEventListener('input',renderCompanies); }
 $('#u-role').addEventListener('change',renderUsers);
