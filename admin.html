@@ -1145,7 +1145,7 @@ function renderKPIs(){
 }
 
 // ===== لوحة القيادة (نظرة عامة) — كل شي بمكان واحد =====
-const DSH_CITY = { riyadh:'الرياض', jeddah:'جدة', dammam:'الدمام', khobar:'الخبر', abha:'أبها', makkah:'مكة', madinah:'المدينة', taif:'الطائف', jazan:'جازان', khamis:'خميس مشيط', hofuf:'الهفوف', jubail:'الجبيل', tabuk:'تبوك', buraidah:'بريدة', qassim:'القصيم', other:'أخرى' };
+const DSH_CITY = { riyadh:'الرياض', jeddah:'جدة', dammam:'الدمام', khobar:'الخبر', abha:'أبها', makkah:'مكة', madinah:'المدينة', taif:'الطائف', jazan:'جازان', khamis:'خميس مشيط', hofuf:'الهفوف', jubail:'الجبيل', tabuk:'تبوك', buraidah:'بريدة', qassim:'القصيم', ahsa:'الأحساء', unaizah:'عنيزة', dhahran:'الظهران', albaha:'الباحة', other:'أخرى' };
 const DSH_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const DSH_STATUS = { campaign_full:'اكتمال الحملة', waitlisted:'قائمة انتظار', closed:'صفقات مقفلة', rejected:'مرفوضة', pending:'قيد المراجعة', active:'تفاوض نشط', campaign_full_ar:'' };
 
@@ -1190,7 +1190,7 @@ function renderOverview(){
 
   // المدن
   const cc={}; creators.forEach(u=>{ const c=(u.city||'').trim().toLowerCase(); if(!c) return; cc[c]=(cc[c]||0)+1; });
-  const cities = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const cities = Object.entries(cc).sort((a,b)=>b[1]-a[1]);
   const maxC = Math.max(1, ...cities.map(c=>c[1]));
 
   // نشاط حديث
@@ -1260,7 +1260,7 @@ function renderOverview(){
   +   '<div style="display:flex;flex-direction:column;gap:7px">'+dleg.map(d=>'<div class="dsh-lg"><span class="sw" style="background:'+d.c+'"></span><b>'+num(d.v)+'</b><span>'+esc(d.n)+'</span></div>').join('')+'</div>'
   + '</div></div></div>'
   // CITIES + FEED
-  + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📍 المؤثرون حسب المدينة</h4><div class="hint">توزيع جغرافي (أعلى 5)</div><div class="dsh-hb">'
+  + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📍 المؤثرون حسب المدينة</h4><div class="hint">توزيع جغرافي — كل المدن ('+num(cities.length)+')</div><div class="dsh-hb" style="max-height:340px;overflow-y:auto;padding-inline-end:4px">'
   +   (cities.length?cities.map(c=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(DSH_CITY[c[0]]||c[0])+'</span><div class="dsh-ht"><div class="dsh-hf lite" style="width:'+Math.max(4,Math.round(c[1]/maxC*100))+'%"></div></div><span class="dsh-hv">'+num(c[1])+'</span></div>').join(''):'<div class="hint">لا بيانات</div>')
   + '</div></div>'
   + '<div class="dsh-card dsh-feed"><h4>⚡ نشاط حديث</h4><div class="hint">آخر ما صار على المنصة</div>'
