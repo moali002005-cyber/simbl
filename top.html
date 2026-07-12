@@ -250,7 +250,7 @@ let scope = 'sa';
 let MAX_ACHIEVEMENT = 0;   // أعلى درجة إنجاز (لتطبيع درجات المكمّلين)
 
 const arabicDigits=['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-function toArabic(n){ return String(n).split('').map(d=>arabicDigits[parseInt(d)]??d).join(''); }
+function toArabic(n){ return String(n); }
 const CAT = { general:'عام', lifestyle:'لايف ستايل', beauty:'جمال وعناية', fashion:'موضة', food:'طعام', travel:'سفر', fitness:'رياضة', tech:'تقنية', parenting:'أمومة وأطفال' };
 const PLAT = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', x:'إكس', youtube:'يوتيوب' };
 const FLAG_SVGS = {

@@ -203,7 +203,7 @@ let myCampaigns = [];
 let campaignApps = {};
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
+const toArabic = n => String(n);
 
 const DUES_STAGE_NAMES = { 1:'العنوان', 2:'الشحن', 3:'الاستلام', 4:'البريف', 5:'المحتوى', 6:'الموافقة', 7:'النشر', 8:'البيانات البنكية', 9:'مكتمل' };
 
@@ -427,7 +427,7 @@ function duesRowFilled(a, camp, idx, totals) {
   const name = escHtml(nameRaw);
   const phoneRaw = (creator.whatsapp || creator.phone || '').trim();
   const amountNum = Number(a.final_price || a.price || 0);
-  const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
+  const amountDisp = amountNum.toLocaleString('en-US') + ' ر.س';
   const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
   const bank = sd[8] || sd['8'] || {};
   const ibanRaw = ov.iban != null ? ov.iban : (bank.iban || '');
@@ -608,8 +608,8 @@ function renderCampaignBlock(camp, deals) {
   const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
   const launch = duesDateText(camp.created_at);
   const sumChips =
-    '<span class="dues-chip due">المتبقّي: ' + totals.due.toLocaleString('ar-SA') + ' ر.س</span>' +
-    '<span class="dues-chip paid">المدفوع: ' + totals.paid.toLocaleString('ar-SA') + ' ر.س</span>';
+    '<span class="dues-chip due">المتبقّي: ' + totals.due.toLocaleString('en-US') + ' ر.س</span>' +
+    '<span class="dues-chip paid">المدفوع: ' + totals.paid.toLocaleString('en-US') + ' ر.س</span>';
 
   return '<div class="camp-block" data-campid="' + camp.id + '">'
     + '<div class="camp-bar">'
@@ -648,7 +648,7 @@ function duesCardHTML(c) {
     + '<div class="dues-card-h"><span class="dues-card-name">' + name + '</span><span class="dues-card-go">\u2190</span></div>'
     + '<div class="dues-card-meta">'
     +   '<span class="m-users">\uD83D\uDC65 ' + toArabic(st.creators) + ' معلن</span>'
-    +   '<span class="m-amount">\uD83D\uDCB0 ' + st.total.toLocaleString('ar-SA') + ' ر.س</span>'
+    +   '<span class="m-amount">\uD83D\uDCB0 ' + st.total.toLocaleString('en-US') + ' ر.س</span>'
     + '</div></div>';
 }
 

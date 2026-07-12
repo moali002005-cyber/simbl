@@ -1105,7 +1105,7 @@ let currentFilter = 'suit';
 let expandedAppId = null;
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
+const toArabic = n => String(n);
 
 // ====== إشعار لطيف يختفي تلقائياً (بديل alert) ======
 function showToast(message, type = 'success', duration = 3500) {
@@ -1310,7 +1310,7 @@ function updateHeroStats() {
   set('stat-followers', fStr);
   set('stat-deals', toArabic(deals));
   set('stat-active', toArabic(active));
-  set('earn-total', Number(earnings).toLocaleString('ar-SA'));
+  set('earn-total', Number(earnings).toLocaleString('en-US'));
   set('earn-sub', deals ? (toArabic(deals) + ' صفقة مكتملة') : 'ابدأ أول صفقة');
 
   var bio = document.getElementById('profile-bio'); if (bio) bio.textContent = currentUser.bio || '';
@@ -1329,7 +1329,7 @@ function updateHeroStats() {
   if (elist) {
     if (closedApproved.length) {
       elist.innerHTML = closedApproved.map(function(a){
-        var amt = Number(a.final_price || a.price || 0).toLocaleString('ar-SA');
+        var amt = Number(a.final_price || a.price || 0).toLocaleString('en-US');
         var title = (a.campaigns && a.campaigns.title) || 'صفقة';
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;"><span style="font-size:13px;color:var(--ink);">'+title+'</span><span style="font-weight:600;font-size:13px;color:var(--accent-ink);">'+amt+' ر.س</span></div>';
       }).join('');
@@ -1495,7 +1495,7 @@ function renderOfferCard(c, a) {
     expandedInner = `
       <div class="approval-gate" onclick="event.stopPropagation()">
         <div class="ag-info">
-          <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</span></div>
+          <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('en-US')} ر.س</span></div>
           <div class="ag-desc">تم التوصّل لاتفاق، بانتظار تعميد الشركة لبدء التنفيذ.</div>
         </div>
       </div>`;
@@ -1515,7 +1515,7 @@ function renderOfferCard(c, a) {
           <div class="ac-brand">${brandName}</div>
         </div>
         <div class="ac-side">
-          ${isNegotiating ? '' : `<div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('ar-SA')} ر.س</div>`}
+          ${isNegotiating ? '' : `<div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('en-US')} ر.س</div>`}
           ${headRight}
         </div>
         ${expandable ? '<span class="ac-chev">▾</span>' : ''}

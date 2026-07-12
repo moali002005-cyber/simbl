@@ -388,7 +388,7 @@ const PB_STAGE_NAME = {1:'العنوان',2:'الشحن',3:'الاستلام',5:
 const PB_DOW = ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'];
 window.PB_DETAIL_CACHE = window.PB_DETAIL_CACHE || {};
 
-function pbNum(n){ return (typeof n==='number'? n : (n||0)).toLocaleString('ar-SA'); }
+function pbNum(n){ return (typeof n==='number'? n : (n||0)).toLocaleString('en-US'); }
 function openPerfBoard(){ document.getElementById('perfBoard').classList.add('on'); loadPerfBoard(); }
 function closePerfBoard(){ document.getElementById('perfBoard').classList.remove('on'); }
 

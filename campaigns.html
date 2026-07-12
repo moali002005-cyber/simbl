@@ -1973,7 +1973,7 @@ let selectedCampaignId = null;
 let expandedAppId = null;
 
 const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-const toArabic = n => String(n).split('').map(d => arabicDigits[parseInt(d)] ?? d).join('');
+const toArabic = n => String(n);
 
 // مؤقّت تنازلي حيّ لمهلة استبدال المعلن المُرقّى من الانتظار (يحدّث كل ثانية)
 if (!window._simblCountdownTick) {
@@ -2566,7 +2566,7 @@ function renderDues() {
     const nameRaw = creator.name || 'معلن';
     const name = escHtml(nameRaw);
     const amountNum = Number(a.final_price || a.price || 0);
-    const amountDisp = amountNum.toLocaleString('ar-SA') + ' ر.س';
+    const amountDisp = amountNum.toLocaleString('en-US') + ' ر.س';
     const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
     const bank = sd[8] || sd['8'] || {};
     const ibanRaw = bank.iban || '';
@@ -2642,8 +2642,8 @@ function renderDues() {
   }).join('');
 
   const sumChips =
-    '<span class="dues-chip due">المتبقّي: ' + totalDue.toLocaleString('ar-SA') + ' ر.س</span>' +
-    '<span class="dues-chip paid">المدفوع: ' + totalPaid.toLocaleString('ar-SA') + ' ر.س</span>';
+    '<span class="dues-chip due">المتبقّي: ' + totalDue.toLocaleString('en-US') + ' ر.س</span>' +
+    '<span class="dues-chip paid">المدفوع: ' + totalPaid.toLocaleString('en-US') + ' ر.س</span>';
 
   const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].map(L => '<th class="xl-colh">' + L + '</th>').join('');
 
@@ -3410,7 +3410,7 @@ function renderCellDetail(a) {
           <div class="ag-icon">⏳</div>
           <div class="ag-info">
             <div class="ag-title">الوكيل توصّل لسعر نهائي:</div>
-            <div class="ag-price">${(a.final_price || a.price).toLocaleString('ar-SA')} ر.س</div>
+            <div class="ag-price">${(a.final_price || a.price).toLocaleString('en-US')} ر.س</div>
             <div class="ag-desc">اعتمد الصفقة وابدأ التنفيذ مع المعلن.</div>
           </div>
         </div>
@@ -3905,7 +3905,7 @@ function renderBrandPaymentCard(app, campaign) {
     return `<div class="stage-action complete"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
   }
   const status = app.payment_status || 'unpaid';
-  const amount = (app.final_price || app.price || 0).toLocaleString('ar-SA');
+  const amount = (app.final_price || app.price || 0).toLocaleString('en-US');
   const sd = (typeof app.stage_data === 'object' && app.stage_data) ? app.stage_data : {};
   const bank = sd[8] || sd['8'] || {};
   const deadline = paymentDeadlineTextBrand(app, campaign);

@@ -452,7 +452,7 @@ function followerRangeText(c) {
 // ====== تعهّد الدفع: نطاق المدة بالأرقام العربية (هذه الصفحة ما فيها toArabic، فنحوّل محليًا) ======
 const __arDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 function toArabicNum(n) {
-  return String(n).split('').map(d => __arDigits[parseInt(d)] ?? d).join('');
+  return String(n);
 }
 // يرجّع نص المدّة مثل «٧–٣٠ يوم» أو «٣٠ يوم»، أو '' لو ما فيه قيم (حملات قديمة)
 function paymentRangeText(c) {
@@ -612,7 +612,7 @@ function render() {
   } else if (isAwaiting) {
     if (isBrand) {
       footer = `<div class="approve-wrap">
-        <div class="approve-info">الوكيل توصّل لاتفاق${application.final_price ? ' عند <strong>' + application.final_price.toLocaleString('ar-SA') + ' ر.س</strong>' : ''}. اسحب لاعتماد الصفقة.</div>
+        <div class="approve-info">الوكيل توصّل لاتفاق${application.final_price ? ' عند <strong>' + application.final_price.toLocaleString('en-US') + ' ر.س</strong>' : ''}. اسحب لاعتماد الصفقة.</div>
         <div class="swipe-track" id="approve-swipe" onclick="event.stopPropagation()">
           <div class="swipe-fill"></div>
           <div class="swipe-hint">اسحب لاعتماد الصفقة</div>
@@ -620,7 +620,7 @@ function render() {
         </div>
       </div>`;
     } else {
-      footer = `<div class="chat-foot awaiting">⏳ تم الاتفاق${application.final_price ? ' عند ' + application.final_price.toLocaleString('ar-SA') + ' ر.س' : ''} · بانتظار تعميد الشركة</div>`;
+      footer = `<div class="chat-foot awaiting">⏳ تم الاتفاق${application.final_price ? ' عند ' + application.final_price.toLocaleString('en-US') + ' ر.س' : ''} · بانتظار تعميد الشركة</div>`;
     }
   } else if (!isCreator) {
     footer = `<div class="chat-foot">أنت تشاهد المفاوضة كمراقب.</div>`;

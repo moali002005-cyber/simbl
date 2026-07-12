@@ -113,7 +113,7 @@ function parseFollowers(v){
   if(u==='k') n*=1e3; if(u==='m') n*=1e6;
   return Math.round(n);
 }
-function ar(n){ return Number(n||0).toLocaleString('ar-SA'); }
+function ar(n){ return Number(n||0).toLocaleString('en-US'); }
 function arReach(n){
   n=Number(n||0);
   if(n>=1e6) return (n/1e6).toLocaleString('ar-SA',{maximumFractionDigits:1})+' مليون';

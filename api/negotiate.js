@@ -572,7 +572,7 @@ ${voiceInstructions}
 - المنصة: ${platformLabel} · ${timingDesc} · المتابعين: ${followerLabel} · المدينة: ${cityLabel} · الدفع: ${paymentLabel}${visitLocLine}
 
 ## عرض المؤثرة:
-- الاسم: ${application.creator_name} · المنصة: ${application.platform || 'غير محدد'} · المتابعين: ${application.followers ? application.followers.toLocaleString('ar-SA') : 'غير محدد'}
+- الاسم: ${application.creator_name} · المنصة: ${application.platform || 'غير محدد'} · المتابعين: ${application.followers ? application.followers.toLocaleString('en-US') : 'غير محدد'}
 - ملاحظتها: ${application.note || 'لا يوجد'}
 
 ## الأرقام (حرفياً):
