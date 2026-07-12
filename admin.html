@@ -1189,8 +1189,9 @@ function renderOverview(){
   const topStatus = scOrder[0] || ['—',0];
 
   // المدن
-  const cc={}; creators.forEach(u=>{ const c=(u.city||'').trim().toLowerCase(); if(!c) return; cc[c]=(cc[c]||0)+1; });
+  const cc={}; let noCity=0; creators.forEach(u=>{ const c=(u.city||'').trim().toLowerCase(); if(!c){noCity++;return;} cc[c]=(cc[c]||0)+1; });
   const cities = Object.entries(cc).sort((a,b)=>b[1]-a[1]);
+  const withCity = creators.length - noCity;
   const maxC = Math.max(1, ...cities.map(c=>c[1]));
 
   // نشاط حديث
@@ -1260,8 +1261,9 @@ function renderOverview(){
   +   '<div style="display:flex;flex-direction:column;gap:7px">'+dleg.map(d=>'<div class="dsh-lg"><span class="sw" style="background:'+d.c+'"></span><b>'+num(d.v)+'</b><span>'+esc(d.n)+'</span></div>').join('')+'</div>'
   + '</div></div></div>'
   // CITIES + FEED
-  + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📍 المؤثرون حسب المدينة</h4><div class="hint">توزيع جغرافي — كل المدن ('+num(cities.length)+')</div><div class="dsh-hb" style="max-height:340px;overflow-y:auto;padding-inline-end:4px">'
+  + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📍 المؤثرون حسب المدينة</h4><div class="hint">'+num(withCity)+' حدّدوا مدينتهم عبر '+num(cities.length)+' مدينة · '+num(noCity)+' غير محدد ('+Math.round(noCity/Math.max(1,creators.length)*100)+'%)</div><div class="dsh-hb" style="max-height:340px;overflow-y:auto;padding-inline-end:4px">'
   +   (cities.length?cities.map(c=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(DSH_CITY[c[0]]||c[0])+'</span><div class="dsh-ht"><div class="dsh-hf lite" style="width:'+Math.max(4,Math.round(c[1]/maxC*100))+'%"></div></div><span class="dsh-hv">'+num(c[1])+'</span></div>').join(''):'<div class="hint">لا بيانات</div>')
+  +   (noCity>0?'<div class="dsh-hr" style="opacity:.7;border-top:1px dashed #d6e3e1;margin-top:6px;padding-top:8px"><span class="dsh-hn" style="color:var(--muted)">غير محدد</span><div class="dsh-ht"><div class="dsh-hf" style="width:'+Math.max(4,Math.round(noCity/maxC*100))+'%;background:repeating-linear-gradient(45deg,#c3d4d2,#c3d4d2 5px,#d9e5e3 5px,#d9e5e3 10px)"></div></div><span class="dsh-hv" style="color:var(--muted)">'+num(noCity)+'</span></div>':'')
   + '</div></div>'
   + '<div class="dsh-card dsh-feed"><h4>⚡ نشاط حديث</h4><div class="hint">آخر ما صار على المنصة</div>'
   +   (feed.length?feed.map(e=>'<div class="fi"><div class="fic"><i class="ti '+e.ic+'"></i></div><div class="ft">'+e.txt+'</div><div class="fw">'+ago(e.t)+'</div></div>').join(''):'<div class="hint">لا نشاط</div>')
