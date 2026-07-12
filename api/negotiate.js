@@ -723,12 +723,14 @@ ${voiceInstructions}
     // حماية إضافية: لو السعر النهائي تجاوز السقف، ألغِ الإقفال
     let safeDealClosed = dealClosed;
     let safeDealDetails = dealDetails;
+    let closeBlockedReason = null; // سبب حجب الإقفال (لعرض رسالة مناسبة بدل "اتفقنا")
     if (dealClosed && dealDetails) {
       const finalPrice = extractFinalPrice(dealDetails);
       if (finalPrice && finalCap && finalPrice > finalCap) {
         console.warn(`Agent attempted to close above cap: ${finalPrice} > ${finalCap}. Blocking.`);
         safeDealClosed = false;
         safeDealDetails = null;
+        closeBlockedReason = 'above_cap';
       }
     }
 
@@ -746,6 +748,7 @@ ${voiceInstructions}
           console.warn(`Campaign ${campaignId}: reserve full (${reserveClosed}/${RESERVE_COUNT}). Blocking extra close.`);
           safeDealClosed = false;
           safeDealDetails = null;
+          closeBlockedReason = 'reserve_full';
         }
       }
     }
@@ -762,6 +765,14 @@ ${voiceInstructions}
 
     // ============ الرسالة النهائية المعروضة للمعلن ============
     let replyToSend = cleanReply || agentReply;
+
+    // لو حاول الوكيل يقفل لكن الإقفال انحجب (تجاوز سقف/امتلاء احتياط)، لا نعرض نص "اتفقنا"
+    // المضلّل — نستبدله برسالة مناسبة، لأنه فعليًا ما تم حفظ أي صفقة.
+    if (dealClosed && !safeDealClosed) {
+      replyToSend = (closeBlockedReason === 'reserve_full')
+        ? 'نعتذر منك، اكتمل العدد المطلوب لهذي الحملة قبل قليل، فما نقدر نعتمد الاتفاق. نتمنى نشوفك في حملة قادمة تناسبك 🌿'
+        : 'أعتذر، ما نقدر نعتمد هذا المبلغ لأنه يتجاوز حدود ميزانية الحملة. إذا يناسبك نكمل ضمن حدود الميزانية يشرّفنا، وإلا نشكر لك وقتك 🌿';
+    }
 
     // عند الإقفال: أضف تأكيد المبلغ + إعلام مناسب (صفقة عادية أو احتياط) بشكل حتمي.
     if (safeDealClosed && safeDealDetails) {
