@@ -1736,6 +1736,17 @@ async function simblExitImpersonation(){
         <div class="hint">اختر المنصة المطلوب النشر عليها</div>
       </div>
 
+      <div class="field" id="creator-tier-field" style="display:none;">
+        <label>تصنيف المؤثرين</label>
+        <div class="platform-grid" id="tier-grid">
+          <button type="button" class="platform-chip" data-value="micro" onclick="selectCreatorTier(this)"><span>Micro (UGC)</span></button>
+          <button type="button" class="platform-chip" data-value="medium" onclick="selectCreatorTier(this)"><span>Medium</span></button>
+          <button type="button" class="platform-chip" data-value="mega" onclick="selectCreatorTier(this)"><span>Mega</span></button>
+        </div>
+        <input type="hidden" name="creator_tiers" id="creator-tiers-input">
+        <div class="hint">تقدر تختار أكثر من تصنيف</div>
+      </div>
+
       <div class="field">
         <label>متطلبات المؤثر — نطاق المتابعين</label>
         <div class="platform-grid" id="range-grid">
@@ -2079,6 +2090,26 @@ function selectPlatform(btn) {
   btn.classList.add('active');
   const input = document.getElementById('platform-input');
   if (input) input.value = btn.dataset.value;
+  updateTierVisibility(btn.dataset.value);
+}
+// تصنيف المؤثرين يظهر فقط عند اختيار تيك توك (Micro (UGC) / Medium / Mega)
+function updateTierVisibility(platform) {
+  const field = document.getElementById('creator-tier-field');
+  if (!field) return;
+  const isTikTok = platform === 'tiktok';
+  field.style.display = isTikTok ? '' : 'none';
+  if (!isTikTok) {
+    document.querySelectorAll('#tier-grid .platform-chip').forEach(c => c.classList.remove('active'));
+    const ti = document.getElementById('creator-tiers-input');
+    if (ti) ti.value = '';
+  }
+}
+function selectCreatorTier(btn) {
+  btn.classList.toggle('active');
+  const grid = document.getElementById('tier-grid');
+  const input = document.getElementById('creator-tiers-input');
+  const vals = Array.from(grid.querySelectorAll('.platform-chip.active')).map(c => c.dataset.value);
+  if (input) input.value = vals.join(',');
 }
 function selectFollowerRange(btn) {
   btn.classList.toggle('active');
@@ -2714,6 +2745,7 @@ function renderSingleCampaign(c) {
               ${c.publish_timing ? `<span><strong>موعد النشر:</strong> ${publishTimingText(c)}</span>` : ''}
               ${c.platform ? `<span><strong>المنصة:</strong> ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
               ${c.follower_range ? `<span><strong>المتابعين:</strong> ${followerRangeText(c)}</span>` : ''}
+              ${c.creator_tiers ? `<span><strong>تصنيف المؤثرين:</strong> ${String(c.creator_tiers).split(',').map(t => ({micro:'Micro (UGC)',medium:'Medium',mega:'Mega'}[t.trim()] || t.trim())).filter(Boolean).join('، ')}</span>` : ''}
               ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن</span>` : ''}
               ${c.country ? `<span><strong>الدولة:</strong> ${COUNTRY_LABELS[c.country] || c.country}</span>` : ''}
               ${c.city ? `<span><strong>المدينة:</strong> ${CITY_LABELS[c.city] || c.city}</span>` : ''}
@@ -3360,6 +3392,13 @@ function setModalMode(mode, campaign) {
       c.classList.toggle('active', c.dataset.value === campaign.platform);
     });
     form.querySelector('#platform-input').value = campaign.platform || '';
+    // تصنيف المؤثرين (تيك توك) — أظهر الحقل حسب المنصة ثم عبّئ الاختيارات
+    updateTierVisibility(campaign.platform || '');
+    const selectedTiers = (campaign.creator_tiers || '').split(',').map(s => s.trim()).filter(Boolean);
+    form.querySelectorAll('#tier-grid .platform-chip').forEach(c => {
+      c.classList.toggle('active', selectedTiers.includes(c.dataset.value));
+    });
+    form.querySelector('#creator-tiers-input').value = selectedTiers.join(',');
   } else {
     h3.textContent = 'إنشاء حملة جديدة';
     sub.textContent = 'عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.';
@@ -3375,6 +3414,8 @@ function setModalMode(mode, campaign) {
     form.querySelector('#platform-input').value = '';
     form.querySelectorAll('#range-grid .platform-chip').forEach(c => c.classList.remove('active'));
     form.querySelector('#follower-range-input').value = '';
+    // صفّر تصنيف المؤثرين وأخفِ الحقل
+    updateTierVisibility('');
     togglePublishDate();
     simblPopulateCities();
     toggleCampaignType();
@@ -3529,6 +3570,7 @@ async function submitCampaign(event) {
     publish_date: fd.get('publish_date') || null,
     platform: platform,
     follower_range: fd.get('follower_range') || null,
+    creator_tiers: (platform === 'tiktok' ? (fd.get('creator_tiers') || null) : null),
     campaign_size: parseInt(fd.get('campaign_size')) || null,
     campaign_type: fd.get('campaign_type') || 'home',
     visit_location: fd.get('visit_location') || null,
