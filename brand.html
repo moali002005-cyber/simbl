@@ -1737,7 +1737,7 @@ async function simblExitImpersonation(){
           <button type="button" class="platform-chip" data-value="mega" onclick="selectCreatorTier(this)"><span>Mega</span></button>
         </div>
         <input type="hidden" name="creator_tiers" id="creator-tiers-input">
-        <div class="hint">تقدر تختار أكثر من تصنيف</div>
+        <div class="hint">اختر تصنيفاً واحداً (إجباري)</div>
       </div>
 
       <div class="field" id="budget-field">
@@ -2133,11 +2133,11 @@ function updateTierVisibility(platform) {
   updateBudgetBounds();
 }
 function selectCreatorTier(btn) {
-  btn.classList.toggle('active');
-  const grid = document.getElementById('tier-grid');
+  // اختيار واحد فقط (إجباري) — يلغي أي تصنيف آخر مختار
+  document.querySelectorAll('#tier-grid .platform-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
   const input = document.getElementById('creator-tiers-input');
-  const vals = Array.from(grid.querySelectorAll('.platform-chip.active')).map(c => c.dataset.value);
-  if (input) input.value = vals.join(',');
+  if (input) input.value = btn.dataset.value;
   updateBudgetBounds();
 }
 function selectFollowerRange(btn) {
