@@ -1273,31 +1273,6 @@ async function simblExitImpersonation(){
   </div>
 </div>
 
-<style>
-  #push-modal{position:fixed;inset:0;z-index:10002;background:rgba(12,26,24,.6);display:none;align-items:center;justify-content:center;padding:16px}
-  #push-modal.on{display:flex}
-  #push-modal .pm-box{background:#fff;border-radius:22px;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:22px 20px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;font-family:inherit;position:relative}
-  #push-modal .pm-close{position:absolute;top:12px;left:14px;width:30px;height:30px;border:0;border-radius:50%;background:#f1f4f4;color:#5b5b5b;font-size:18px;cursor:pointer;line-height:1}
-  #push-modal .pm-ic{font-size:40px;margin-bottom:6px}
-  #push-modal h3{margin:0 0 8px;font-size:20px;color:#141414}
-  #push-modal p{margin:0 0 14px;font-size:14px;color:#5b5b5b;line-height:1.7}
-  #push-modal .pm-img{width:100%;border-radius:14px;border:1px solid #eef2f2;display:block;margin:0 auto 16px}
-  #push-modal .pm-enable{width:100%;padding:14px;border:0;border-radius:100px;background:var(--accent,#13B9B2);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
-  #push-modal .pm-enable:hover{filter:brightness(.97)}
-  #push-modal .pm-skip{display:inline-block;margin-top:12px;font-size:13px;color:#8a8a8a;cursor:pointer;text-decoration:underline}
-</style>
-<div id="push-modal">
-  <div class="pm-box">
-    <button class="pm-close" onclick="skipPushGuide()" aria-label="إغلاق">×</button>
-    <div class="pm-ic">🔔</div>
-    <h3>فعّل الإشعارات</h3>
-    <p>عشان توصلك عروض الحملات وتحديثات حملاتك أول بأول — حتى والتطبيق مغلق. اتبع الخطوات:</p>
-    <img class="pm-img" src="/notify-guide.png" alt="خطوات تفعيل الإشعارات على الآيفون" loading="lazy">
-    <button class="pm-enable" onclick="enablePushFromGuide()">تفعيل الآن</button>
-    <div class="pm-skip" onclick="skipPushGuide()">لاحقًا</div>
-  </div>
-</div>
-
 <!-- زر واتساب عائم دائم (يظهر في كل الصفحة) -->
 <a id="wa-fab" href="https://chat.whatsapp.com/DRTU4vQD4vD0cmiJJeCmzE?mode=gi_t" target="_blank" rel="noopener">
   <span class="wa-ic">💬</span>
@@ -1645,36 +1620,6 @@ function markGroupJoined(){
   try{ localStorage.setItem('simbl_group_joined','1'); }catch(e){}
   var m=document.getElementById('group-modal'); if(m) m.classList.remove('on');
 }
-// ===== «فعّل الإشعارات»: شاشة تنبثق أول ما يفتح المعلن المنصة (لو ما فعّل الإشعارات) =====
-function maybePromptPushGuide(){
-  try{
-    // وضع المعاينة: ?pushtest=1 يعرض الشاشة دائماً (للتجربة، حتى لو الإشعارات مفعّلة)
-    var forceShow = (location.search.indexOf('pushtest') !== -1);
-    if(forceShow){ var mm=document.getElementById('push-modal'); if(mm) mm.classList.add('on'); return; }
-    if(typeof Notification === 'undefined') return;              // المتصفّح ما يدعم الإشعارات
-    if(Notification.permission === 'granted') return;            // مفعّلة أصلاً → لا شيء
-    if(!currentUser || !currentUser.id) return;
-    // نكتم بانر push-subscribe على هذي الصفحة — مودالنا يغنّي عنه
-    try{ sessionStorage.setItem('simbl_push_reminded_' + currentUser.id, '1'); }catch(_){}
-    if(sessionStorage.getItem('simbl_pushguide_skip') === '1') return;   // أجّلها هذي الجلسة
-    // لا نكدّس فوق مودال المدينة أو القروب
-    var cm = document.getElementById('city-modal');
-    var gm = document.getElementById('group-modal');
-    if((cm && cm.classList.contains('on')) || (gm && gm.classList.contains('on'))) return;
-    var m = document.getElementById('push-modal'); if(m) m.classList.add('on');
-  }catch(e){ /* تجاهل */ }
-}
-function skipPushGuide(){
-  try{ sessionStorage.setItem('simbl_pushguide_skip','1'); }catch(e){}
-  var m=document.getElementById('push-modal'); if(m) m.classList.remove('on');
-}
-function enablePushFromGuide(){
-  skipPushGuide();
-  try{
-    if(typeof manualEnablePush === 'function'){ manualEnablePush(); return; }
-    if(typeof subscribeToPush === 'function' && currentUser && currentUser.id){ subscribeToPush(currentUser.id); }
-  }catch(e){ console.warn('enablePushFromGuide:', e); }
-}
 // زر واتساب العائم الدائم
 function hideWaFab(e){
   if(e){ e.preventDefault(); e.stopPropagation(); }
@@ -1746,7 +1691,6 @@ async function init() {
 
   maybePromptCity();
   maybePromptGroup();
-  maybePromptPushGuide();
 
   initNotifications('user-menu');
 
@@ -3406,6 +3350,7 @@ init();
 </script>
 
 <script src="push-subscribe.js?v=2"></script>
+<script src="install-guide.js?v=1"></script>
 <!-- مودال عرض البريف (يفتحه زر «عرض البريف» جنب اسم الحملة) -->
 <div class="brief-modal" id="briefModal" onclick="if(event.target===this)closeBriefModal()">
   <div class="brief-modal-card">
