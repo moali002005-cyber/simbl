@@ -1299,7 +1299,8 @@ function showPendingScreen(status) {
 }
 
 async function loadData() {
-  document.getElementById('unified-list').innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري تحميل الإعلانات...</div></div>';
+  var _ul = document.getElementById('unified-list');
+  if (_ul) _ul.innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري تحميل الإعلانات...</div></div>';
   // نفصل التحميلين: فشل أحدهما ما يمنع الآخر — الأرباح والإحصائيات تعتمد على الطلبات فقط،
   // فلا تتعطّل لو تعذّر جلب الحملات (كان Promise.all يُسقط كل شيء ويترك الأرقام صفرًا).
   const [campRes, appRes] = await Promise.allSettled([
@@ -1314,8 +1315,8 @@ async function loadData() {
   try { updateHeroStats(); } catch (e) { console.error('updateHeroStats failed:', e); }
   try { renderUnified(); } catch (e) { console.error('renderUnified failed:', e); }
 
-  if (appRes.status === 'rejected') {
-    document.getElementById('unified-list').innerHTML = '<div style="text-align:center; padding:60px; color:var(--ink-soft)">حصل خطأ في تحميل الإعلانات. حدّث الصفحة وحاول مرة أخرى.</div>';
+  if (appRes.status === 'rejected' && _ul) {
+    _ul.innerHTML = '<div style="text-align:center; padding:60px; color:var(--ink-soft)">حصل خطأ في تحميل الإعلانات. حدّث الصفحة وحاول مرة أخرى.</div>';
   }
 }
 
