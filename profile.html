@@ -1310,6 +1310,9 @@ async function loadData() {
   if (campRes.status === 'rejected') console.error('load campaigns failed:', campRes.reason);
   if (appRes.status  === 'rejected') console.error('load applications failed:', appRes.reason);
 
+  // dbGetCampaigns قد يكون حدّث بيانات المعلن في localStorage (مثل الفئة/المدينة) — نلتقطها
+  try { var _fresh = getCurrentUser(); if (_fresh) currentUser = _fresh; } catch (e) {}
+
   try { updateHeroStats(); } catch (e) { console.error('updateHeroStats failed:', e); }
   try { renderUnified(); } catch (e) { console.error('renderUnified failed:', e); }
 
@@ -1427,10 +1430,14 @@ function updateHeroStats() {
   if (ilist) {
     var PL2 = { tiktok:'تيك توك', snapchat:'سناب شات', instagram:'انستقرام', youtube:'يوتيوب', x:'إكس' };
     var CL2 = { general:'عام', lifestyle:'لايف ستايل', beauty:'جمال وعناية', fashion:'موضة', food:'طعام', travel:'سفر', tech:'تقنية', sports:'رياضة', family:'أمومة وأطفال' };
+    var TIER2 = { micro:'Micro (UGC)', medium:'Medium', mega:'Mega' };
+    var CITY2 = { riyadh:'الرياض', jeddah:'جدة', makkah:'مكة المكرمة', madinah:'المدينة المنورة', dammam:'الدمام', khobar:'الخبر', dhahran:'الظهران', hofuf:'الأحساء', qatif:'القطيف', jubail:'الجبيل', taif:'الطائف', tabuk:'تبوك', buraidah:'بريدة', unaizah:'عنيزة', hail:'حائل', abha:'أبها', khamis:'خميس مشيط', najran:'نجران', jazan:'جازان', yanbu:'ينبع', sakaka:'سكاكا', arar:'عرعر', albaha:'الباحة', other:'أخرى' };
     var row = function(label, val){ return val ? '<div style="display:flex;justify-content:space-between;padding:13px 4px;border-bottom:1px solid var(--line);"><span style="font-size:13px;color:var(--ink-muted);">'+label+'</span><span style="font-size:13px;color:var(--ink);font-weight:500;">'+val+'</span></div>' : ''; };
     ilist.innerHTML =
       row('المنصة', currentUser.platform ? (PL2[currentUser.platform]||currentUser.platform) : '') +
+      row('الفئة', currentUser.creator_tier ? (TIER2[currentUser.creator_tier]||currentUser.creator_tier) : '') +
       row('التصنيف', currentUser.category ? (CL2[currentUser.category]||currentUser.category) : '') +
+      row('المدينة', currentUser.city ? (CITY2[currentUser.city]||currentUser.city) : '') +
       row('المتابعين', fStr) +
       (currentUser.bio ? '<div style="padding:14px 4px;"><div style="font-size:12px;color:var(--ink-muted);margin-bottom:6px;">النبذة</div><div style="font-size:13px;color:var(--ink);line-height:1.7;">'+currentUser.bio+'</div></div>' : '');
   }
