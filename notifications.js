@@ -502,7 +502,7 @@ async function notifyMatchedCreators(campaign, brandName) {
   try {
     let q = supabaseClient
       .from('users')
-      .select('id, followers, platform, country, city')
+      .select('id, followers, platform, country, city, creator_tier')
       .eq('role', 'creator')
       .eq('is_test', !!(getCurrentUser()?.is_test));
 

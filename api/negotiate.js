@@ -175,7 +175,7 @@ async function supabaseGetCampaignSrv(campaignId) {
   if (!campaignId) return null;
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/campaigns?id=eq.${campaignId}&select=id,budget,country,city,platform,follower_range,campaign_size`,
+      `${SUPABASE_URL}/rest/v1/campaigns?id=eq.${campaignId}&select=id,budget,country,city,platform,follower_range,campaign_size,creator_tiers`,
       { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
     );
     if (!res.ok) { console.error('Get campaign error:', await res.text()); return null; }
@@ -192,7 +192,7 @@ async function supabaseGetCreatorTargeting(creatorId) {
   if (!creatorId) return null;
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?id=eq.${creatorId}&select=platform,followers`,
+      `${SUPABASE_URL}/rest/v1/users?id=eq.${creatorId}&select=platform,followers,creator_tier`,
       { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
     );
     if (!res.ok) { console.error('Get creator targeting error:', await res.text()); return null; }
@@ -298,6 +298,17 @@ function simblFollowerMismatchSrv(creatorFollowers, campaign) {
   const inRange = buckets.some(b => { const r = SIMBL_FOLLOWER_BUCKETS_SRV[b]; return r ? (f >= r[0] && f < r[1]) : false; });
   return !inRange;                                // معروف وخارج كل النطاقات → تعارض
 }
+// التصنيف (Micro/Medium/Mega): الحملة مصنّفة + تصنيف المعلن معروف ومختلف → تعارض مؤكّد
+// (تصنيف المعلن غير معروف → لا نمنع من السيرفر؛ الفلترة عند العرض هي الصرامة الأولى)
+function simblTierMismatchSrv(creatorTier, campaign) {
+  const raw = (campaign && campaign.creator_tiers != null) ? String(campaign.creator_tiers).trim() : '';
+  if (!raw) return false;
+  const tiers = raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (!tiers.length) return false;
+  const ct = String(creatorTier || '').trim().toLowerCase();
+  if (!ct) return false;
+  return !tiers.includes(ct);
+}
 
 function creatorAcceptedExplicit(text) {
   if (!text) return false;
@@ -401,11 +412,13 @@ export default async function handler(req, res) {
   campaign.platform = realCampaign.platform;
   campaign.follower_range = realCampaign.follower_range;
   campaign.campaign_size = realCampaign.campaign_size;
+  campaign.creator_tiers = realCampaign.creator_tiers;
   application.price = realApp.price;
   application.campaign_id = realApp.campaign_id;
   if (realCreator) {
     application.platform = realCreator.platform;
     application.followers = realCreator.followers;
+    application.creator_tier = realCreator.creator_tier;
   }
 
   // ============ فحص استهداف الدولة/المدينة (يقفل تفاوض معلن خارج نطاق الحملة) ============
@@ -436,6 +449,15 @@ export default async function handler(req, res) {
   if (simblFollowerMismatchSrv(application.followers, campaign)) {
     return res.status(200).json({
       reply: 'نعتذر منك، متطلّب المتابعين لهذي الحملة مختلف عن نطاقك الحالي، فما نقدر نكمل التفاوض. نتمنى نشوفك في حملة تناسب نطاقك 🌿',
+      dealClosed: false,
+      dealDetails: null
+    });
+  }
+
+  // ============ فحص التصنيف (يقفل تفاوض معلن تصنيفه مختلف عن تصنيف الحملة) ============
+  if (simblTierMismatchSrv(application.creator_tier, campaign)) {
+    return res.status(200).json({
+      reply: 'نعتذر منك، هذي الحملة مخصّصة لتصنيف مختلف عن تصنيف حسابك، فما نقدر نكمل التفاوض. نتمنى نشوفك في حملة تناسب تصنيفك 🌿',
       dealClosed: false,
       dealDetails: null
     });

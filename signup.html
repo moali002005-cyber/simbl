@@ -582,7 +582,7 @@ textarea { resize: vertical; min-height: 80px; }
             <div class="field-row">
         <div class="field">
           <label>المنصة الأساسية</label>
-          <select name="platform" required>
+          <select name="platform" required onchange="simblToggleTierField(this.value)">
             <option value="">اختر المنصة</option>
             <option value="tiktok">تيك توك</option>
             <option value="instagram">انستغرام</option>
@@ -595,6 +595,17 @@ textarea { resize: vertical; min-height: 80px; }
           <label>اسم الحساب (اليوزر)</label>
           <input type="text" name="handle" required placeholder="@username">
         </div>
+      </div>
+
+      <div class="field" id="tier-field" style="display:none;">
+        <label>تصنيف حسابك</label>
+        <select name="creator_tier" id="creator-tier-select">
+          <option value="">اختر تصنيفك</option>
+          <option value="micro">Micro (UGC)</option>
+          <option value="medium">Medium</option>
+          <option value="mega">Mega</option>
+        </select>
+        <div class="hint">حدّد تصنيفك ليصلك ما يناسبك من حملات المعلنين على تيك توك.</div>
       </div>
 
       <div class="field">
@@ -780,6 +791,19 @@ textarea { resize: vertical; min-height: 80px; }
 
 <script src="supabase-config.js?v=2"></script>
 <script>
+// تصنيف المؤثر: يظهر فقط لو منصته تيك توك، ويصير إجبارياً حينها
+function simblToggleTierField(platform) {
+  var f = document.getElementById('tier-field');
+  if (!f) return;
+  var isTk = platform === 'tiktok';
+  f.style.display = isTk ? '' : 'none';
+  var sel = document.getElementById('creator-tier-select');
+  if (sel) {
+    if (isTk) { sel.setAttribute('required', 'required'); }
+    else { sel.removeAttribute('required'); sel.value = ''; }
+  }
+}
+
 function selectRole(role) {
   document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('card-' + role).classList.add('selected');
@@ -813,6 +837,7 @@ async function submitForm(event, role) {
     userData.email = email;
     userData.whatsapp = fd.get('whatsapp');
     userData.platform = fd.get('platform');
+    userData.creator_tier = (fd.get('platform') === 'tiktok') ? (fd.get('creator_tier') || null) : null;
     userData.handle = fd.get('handle');
     userData.followers = parseInt(fd.get('followers')) || 0;
     userData.category = fd.get('category');

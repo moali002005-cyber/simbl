@@ -62,11 +62,24 @@ function simblFollowerMatch(creator, campaign) {
   });
 }
 
-// مطابقة موحّدة للأربعة: الدولة + المدينة + المنصة + نطاق المتابعين
+// التصنيف (Micro (UGC) / Medium / Mega): لا تصنيف على الحملة → الجميع ·
+// تصنيف محدّد → لازم تصنيف المعلن ضمن المختار (معلن بلا تصنيف يُحجب من الحملات المصنّفة)
+function simblTierMatch(creator, campaign) {
+  const raw = (campaign && campaign.creator_tiers != null) ? String(campaign.creator_tiers).trim() : '';
+  if (!raw) return true;
+  const tiers = raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (!tiers.length) return true;
+  const ct = (creator && creator.creator_tier != null) ? String(creator.creator_tier).trim().toLowerCase() : '';
+  if (!ct) return false;
+  return tiers.includes(ct);
+}
+
+// مطابقة موحّدة: الدولة + المدينة + المنصة + نطاق المتابعين + التصنيف
 function simblTargetMatch(creator, campaign) {
   return simblLocationMatch(creator, campaign)
       && simblPlatformMatch(creator, campaign)
-      && simblFollowerMatch(creator, campaign);
+      && simblFollowerMatch(creator, campaign)
+      && simblTierMatch(creator, campaign);
 }
 
 // سبب قفل الحملة للمعلن غير المطابق (أول بُعد غير مطابق) — تُعرض الحملة للاطّلاع لكن بلا دخول
@@ -88,6 +101,12 @@ function simblLockReason(creator, campaign) {
   }
   if (!simblFollowerMatch(creator, campaign)) {
     return 'هذي الحملة لنطاق متابعين مختلف عن نطاقك';
+  }
+  if (!simblTierMatch(creator, campaign)) {
+    const T = { micro:'Micro (UGC)', medium:'Medium', mega:'Mega' };
+    const names = String((campaign && campaign.creator_tiers) || '')
+      .split(',').map(s => T[s.trim().toLowerCase()] || s.trim()).filter(Boolean).join('، ');
+    return names ? ('هذي الحملة لتصنيف: ' + names) : 'هذي الحملة لتصنيف مختلف';
   }
   return '';
 }
@@ -135,7 +154,7 @@ async function dbSignup(userData) {
   const { data, error } = await supabaseClient
     .from('users')
     .insert([userData])
-    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url, country, city')
+    .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url, country, city, creator_tier')
     .single();
   if (error) throw error;
   return data;
@@ -157,10 +176,10 @@ async function dbGetCampaigns() {
   let __me = getCurrentUser();
   let __rows = data || [];
   if (__me && __me.role === 'creator') {
-    if (!__me.country || !__me.platform || __me.followers == null) {
+    if (!__me.country || !__me.platform || __me.followers == null || __me.creator_tier === undefined) {
       try {
         const { data: __fresh } = await supabaseClient
-          .from('users').select('country, city, platform, followers').eq('id', __me.id).maybeSingle();
+          .from('users').select('country, city, platform, followers, creator_tier').eq('id', __me.id).maybeSingle();
         if (__fresh) {
           __me = { ...__me, ...__fresh };
           if (typeof saveCurrentUser === 'function') saveCurrentUser(__me); // حدّث الكائن المخزّن للمرات الجاية
@@ -351,7 +370,7 @@ async function tryRestoreSession() {
     try {
       const { data, error } = await supabaseClient
         .from('users')
-        .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url, country, city')
+        .select('id, role, name, platform, handle, followers, category, price, bio, company_name, industry, size, position, website, created_at, auth_id, approval_status, cr_number, is_test, avatar_url, country, city, creator_tier')
         .eq('id', userId)
         .maybeSingle();
 
