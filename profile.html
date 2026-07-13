@@ -1080,13 +1080,33 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 
   <!-- ============ TAB: EARNINGS ============ -->
   <div id="tab-earnings">
-    <div style="background:var(--cream);border-radius:16px;padding:22px;text-align:center;margin-bottom:16px;">
+    <div style="background:var(--cream);border-radius:16px;padding:22px;text-align:center;margin-bottom:14px;">
       <div style="font-size:12.5px;color:var(--ink-muted);">إجمالي أرباحك</div>
       <div style="font-weight:700;font-size:32px;color:var(--ink);margin-top:6px;"><span id="earn-total">0</span> <span style="font-size:15px;color:var(--accent);">ر.س</span></div>
       <div id="earn-sub" style="font-size:12px;color:var(--ink-muted);margin-top:6px;"></div>
     </div>
+
+    <div class="fin-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="fin-tile"><div class="ft-l">📅 دخل هذا الشهر</div><div class="ft-v" id="fin-month">0 ر.س</div><div class="ft-s" id="fin-month-c">—</div></div>
+      <div class="fin-tile"><div class="ft-l">⏳ مستحق لك (لم يُدفع)</div><div class="ft-v" id="fin-owed">0 ر.س</div><div class="ft-s" id="fin-owed-c">—</div></div>
+      <div class="fin-tile"><div class="ft-l">💸 حُوّل — أكّد استلامه</div><div class="ft-v" id="fin-marked">0 ر.س</div><div class="ft-s" id="fin-marked-c">—</div></div>
+      <div class="fin-tile"><div class="ft-l">✅ مستلم ومؤكّد</div><div class="ft-v" id="fin-confirmed">0 ر.س</div><div class="ft-s" id="fin-confirmed-c">—</div></div>
+    </div>
+
+    <div id="fin-months-wrap" style="background:var(--cream);border-radius:14px;padding:16px 18px;margin-bottom:16px;display:none;">
+      <div style="font-size:12.5px;color:var(--ink-muted);margin-bottom:12px;">دخلك المؤكّد آخر الأشهر</div>
+      <div id="fin-months"></div>
+    </div>
+
+    <div id="earn-list-title" style="font-size:12.5px;color:var(--ink-muted);margin:2px 2px 10px;display:none;">إعلاناتك المكتملة</div>
     <div id="earn-list"></div>
   </div>
+  <style>
+    .fin-tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 13px 12px;}
+    .fin-tile .ft-l{font-size:11px;color:var(--ink-muted);line-height:1.4;min-height:30px;}
+    .fin-tile .ft-v{font-size:19px;font-weight:700;color:var(--ink);margin-top:4px;line-height:1.1;}
+    .fin-tile .ft-s{font-size:10.5px;color:var(--accent-ink);font-weight:600;margin-top:3px;}
+  </style>
 
   <!-- ============ TAB: INFO ============ -->
   <div id="tab-info" style="display:none;">
@@ -1311,7 +1331,50 @@ function updateHeroStats() {
   set('stat-deals', toArabic(deals));
   set('stat-active', toArabic(active));
   set('earn-total', Number(earnings).toLocaleString('en-US'));
-  set('earn-sub', deals ? (toArabic(deals) + ' صفقة مكتملة') : 'ابدأ أول صفقة');
+  set('earn-sub', deals ? (toArabic(deals) + ' إعلان مكتمل') : 'ابدأ أول صفقة');
+
+  // ====== اللوحة المالية: مستلم / بانتظار تأكيد / مستحق / دخل الشهر ======
+  var amountOf = function(a){ return Number(a.final_price || a.price || 0); };
+  var sum = function(arr){ return arr.reduce(function(s,a){ return s + amountOf(a); }, 0); };
+  var confirmedArr = closedApproved.filter(function(a){ return a.payment_status === 'confirmed'; });
+  var markedArr    = closedApproved.filter(function(a){ return a.payment_status === 'marked_paid'; });
+  var owedArr      = closedApproved.filter(function(a){ var p=a.payment_status; return !p || p==='unpaid' || p==='disputed'; });
+  var now = new Date();
+  var thisMonthArr = confirmedArr.filter(function(a){
+    if(!a.received_confirmed_at) return false;
+    var d = new Date(a.received_confirmed_at);
+    return !isNaN(d.getTime()) && d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  });
+  var sar = function(v){ return Number(v).toLocaleString('en-US') + ' ر.س'; };
+  set('fin-month', sar(sum(thisMonthArr)));      set('fin-month-c', thisMonthArr.length ? (thisMonthArr.length + ' إعلان') : 'لا شيء بعد');
+  set('fin-owed', sar(sum(owedArr)));            set('fin-owed-c', owedArr.length ? (owedArr.length + ' إعلان') : '—');
+  set('fin-marked', sar(sum(markedArr)));        set('fin-marked-c', markedArr.length ? (markedArr.length + ' بانتظار تأكيدك') : '—');
+  set('fin-confirmed', sar(sum(confirmedArr)));  set('fin-confirmed-c', confirmedArr.length ? (confirmedArr.length + ' إعلان') : '—');
+
+  // ====== دخل مؤكّد آخر الأشهر (رسم بسيط) ======
+  var MON = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  var byMonth = {};
+  confirmedArr.forEach(function(a){
+    if(!a.received_confirmed_at) return;
+    var d = new Date(a.received_confirmed_at); if(isNaN(d.getTime())) return;
+    var k = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    byMonth[k] = (byMonth[k] || 0) + amountOf(a);
+  });
+  var mkeys = Object.keys(byMonth).sort().slice(-6);
+  var mwrap = document.getElementById('fin-months-wrap');
+  var mbox = document.getElementById('fin-months');
+  if (mbox && mkeys.length) {
+    var maxV = Math.max.apply(null, mkeys.map(function(k){ return byMonth[k]; }).concat([1]));
+    mbox.innerHTML = mkeys.map(function(k){
+      var p = k.split('-'); var label = MON[parseInt(p[1],10)-1] + ' ' + p[0]; var v = byMonth[k];
+      var w = Math.max(4, Math.round(v / maxV * 100));
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">'
+        + '<span style="font-size:11px;color:var(--ink-muted);width:74px;flex-shrink:0;">'+label+'</span>'
+        + '<div style="flex:1;background:var(--cream-darker);border-radius:6px;height:16px;overflow:hidden;"><div style="height:100%;width:'+w+'%;background:linear-gradient(90deg,#7fd6d2,#13B9B2);border-radius:6px;"></div></div>'
+        + '<span style="font-size:11px;font-weight:700;color:var(--accent-ink);width:66px;text-align:left;flex-shrink:0;">'+v.toLocaleString('en-US')+'</span></div>';
+    }).join('');
+    if (mwrap) mwrap.style.display = '';
+  } else if (mwrap) { mwrap.style.display = 'none'; }
 
   var bio = document.getElementById('profile-bio'); if (bio) bio.textContent = currentUser.bio || '';
   var tags = document.getElementById('profile-tags');
@@ -1326,15 +1389,29 @@ function updateHeroStats() {
   }
 
   var elist = document.getElementById('earn-list');
+  var elTitle = document.getElementById('earn-list-title');
   if (elist) {
     if (closedApproved.length) {
+      if (elTitle) elTitle.style.display = '';
       elist.innerHTML = closedApproved.map(function(a){
-        var amt = Number(a.final_price || a.price || 0).toLocaleString('en-US');
+        var amt = amountOf(a).toLocaleString('en-US');
         var title = (a.campaigns && a.campaigns.title) || 'صفقة';
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;"><span style="font-size:13px;color:var(--ink);">'+title+'</span><span style="font-weight:600;font-size:13px;color:var(--accent-ink);">'+amt+' ر.س</span></div>';
+        var ps = a.payment_status || 'unpaid';
+        var chip = (ps === 'confirmed')   ? { t:'✅ مستلم',        c:'#0e6b66', bg:'rgba(19,185,178,.14)' }
+                 : (ps === 'marked_paid') ? { t:'💸 أكّد استلامه',  c:'#8a5a00', bg:'rgba(200,150,20,.14)' }
+                 : (ps === 'disputed')    ? { t:'⚠️ لم يُستلم',     c:'#c93030', bg:'rgba(201,48,48,.10)' }
+                 :                          { t:'⏳ مستحق',         c:'#7a6a2a', bg:'rgba(160,140,40,.14)' };
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;">'
+          + '<div style="min-width:0;flex:1;">'
+          +   '<div style="font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+title+'</div>'
+          +   '<span style="display:inline-block;margin-top:5px;font-size:10.5px;font-weight:700;color:'+chip.c+';background:'+chip.bg+';padding:2px 9px;border-radius:100px;">'+chip.t+'</span>'
+          + '</div>'
+          + '<span style="font-weight:700;font-size:13px;color:var(--ink);flex-shrink:0;">'+amt+' ر.س</span>'
+          + '</div>';
       }).join('');
     } else {
-      elist.innerHTML = '<div style="text-align:center;color:var(--ink-soft);font-size:13px;padding:30px 0;">ما عندك صفقات مكتملة بعد — أول صفقة بتظهر هنا 🌿</div>';
+      if (elTitle) elTitle.style.display = 'none';
+      elist.innerHTML = '<div style="text-align:center;color:var(--ink-soft);font-size:13px;padding:30px 0;">ما عندك إعلانات مكتملة بعد — أول إعلان بيظهر هنا 🌿</div>';
     }
   }
 
