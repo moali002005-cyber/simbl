@@ -1658,24 +1658,17 @@ async function simblExitImpersonation(){
         <textarea name="description" required rows="4" placeholder="وضّح للمعلن: المنتج، الجمهور المستهدف، المحاور والنقاط المطلوبة، نوع المحتوى، الكلمات المفتاحية، أي مراجع أو أمثلة... (يُرسل للمعلن تلقائيًا في مرحلة البريف)"></textarea>
       </div>
 
-      <div class="field-row">
-        <div class="field">
-          <label>التصنيف</label>
-          <select name="industry" required>
-            <option value="">اختر التصنيف</option>
-            <option value="perfumes">عطور</option>
-            <option value="fashion">موضة</option>
-            <option value="beauty">جمال</option>
-            <option value="food">طعام</option>
-            <option value="tech">تقنية</option>
-            <option value="other">أخرى</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>الميزانية للمعلن الواحد (نطاق)</label>
-          <input type="text" name="budget" required placeholder="مثل: 800 - 1500">
-          <div class="hint">المبلغ المخصّص لكل معلن، بالريال السعودي</div>
-        </div>
+      <div class="field">
+        <label>التصنيف</label>
+        <select name="industry" required>
+          <option value="">اختر التصنيف</option>
+          <option value="perfumes">عطور</option>
+          <option value="fashion">موضة</option>
+          <option value="beauty">جمال</option>
+          <option value="food">طعام</option>
+          <option value="tech">تقنية</option>
+          <option value="other">أخرى</option>
+        </select>
       </div>
 
       <div class="field-row" id="home-timing-field">
@@ -1745,6 +1738,12 @@ async function simblExitImpersonation(){
         </div>
         <input type="hidden" name="creator_tiers" id="creator-tiers-input">
         <div class="hint">تقدر تختار أكثر من تصنيف</div>
+      </div>
+
+      <div class="field" id="budget-field">
+        <label>الميزانية للمعلن الواحد (نطاق)</label>
+        <input type="text" name="budget" required placeholder="مثل: 800 - 2000" inputmode="numeric">
+        <div class="hint" id="budget-hint">المبلغ المخصّص لكل معلن، بالريال السعودي</div>
       </div>
 
       <div class="field">
@@ -2092,6 +2091,34 @@ function selectPlatform(btn) {
   if (input) input.value = btn.dataset.value;
   updateTierVisibility(btn.dataset.value);
 }
+// حدود السعر الإجبارية لكل تصنيف (ريال سعودي، للمعلن الواحد)
+const TIER_BUDGET = { micro: [800, 2000], medium: [2000, 7000], mega: [7000, 50000] };
+const TIER_LABEL = { micro: 'Micro (UGC)', medium: 'Medium', mega: 'Mega' };
+function currentSelectedTiers() {
+  const el = document.getElementById('creator-tiers-input');
+  return (el && el.value) ? el.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+}
+// حدود مجمّعة عند اختيار أكثر من تصنيف: أدنى حد أدنى + أعلى حد أعلى
+function tierBudgetBounds(tiers) {
+  if (!tiers || !tiers.length) return null;
+  let lo = Infinity, hi = -Infinity;
+  tiers.forEach(t => { const b = TIER_BUDGET[t]; if (b) { lo = Math.min(lo, b[0]); hi = Math.max(hi, b[1]); } });
+  return (isFinite(lo) && isFinite(hi)) ? [lo, hi] : null;
+}
+function updateBudgetBounds() {
+  const hint = document.getElementById('budget-hint');
+  const inp = document.querySelector('[name="budget"]');
+  const tiers = currentSelectedTiers();
+  const b = tierBudgetBounds(tiers);
+  if (b) {
+    const names = tiers.map(t => TIER_LABEL[t] || t).join('، ');
+    if (hint) hint.textContent = 'لتصنيف ' + names + ': السعر لازم بين ' + b[0].toLocaleString('en-US') + ' و ' + b[1].toLocaleString('en-US') + ' ر.س';
+    if (inp) inp.placeholder = 'مثل: ' + b[0] + ' - ' + b[1];
+  } else {
+    if (hint) hint.textContent = 'المبلغ المخصّص لكل معلن، بالريال السعودي';
+    if (inp) inp.placeholder = 'مثل: 800 - 1500';
+  }
+}
 // تصنيف المؤثرين يظهر فقط عند اختيار تيك توك (Micro (UGC) / Medium / Mega)
 function updateTierVisibility(platform) {
   const field = document.getElementById('creator-tier-field');
@@ -2103,6 +2130,7 @@ function updateTierVisibility(platform) {
     const ti = document.getElementById('creator-tiers-input');
     if (ti) ti.value = '';
   }
+  updateBudgetBounds();
 }
 function selectCreatorTier(btn) {
   btn.classList.toggle('active');
@@ -2110,6 +2138,7 @@ function selectCreatorTier(btn) {
   const input = document.getElementById('creator-tiers-input');
   const vals = Array.from(grid.querySelectorAll('.platform-chip.active')).map(c => c.dataset.value);
   if (input) input.value = vals.join(',');
+  updateBudgetBounds();
 }
 function selectFollowerRange(btn) {
   btn.classList.toggle('active');
@@ -3399,6 +3428,7 @@ function setModalMode(mode, campaign) {
       c.classList.toggle('active', selectedTiers.includes(c.dataset.value));
     });
     form.querySelector('#creator-tiers-input').value = selectedTiers.join(',');
+    updateBudgetBounds();
   } else {
     h3.textContent = 'إنشاء حملة جديدة';
     sub.textContent = 'عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.';
@@ -3542,6 +3572,31 @@ async function submitCampaign(event) {
   if (!followerRange) {
     showToast('اختر نطاق متابعين واحد على الأقل.', 'error');
     return;
+  }
+  // تيك توك: تصنيف المؤثرين إجباري (لأن حدود السعر تعتمد عليه)
+  const selectedTiers = (platform === 'tiktok')
+    ? String(fd.get('creator_tiers') || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    : [];
+  if (platform === 'tiktok' && selectedTiers.length === 0) {
+    showToast('اختر تصنيف المؤثرين (Micro / Medium / Mega).', 'error');
+    return;
+  }
+  // حدود السعر الإجبارية حسب التصنيف المختار
+  const _bnds = tierBudgetBounds(selectedTiers);
+  if (_bnds) {
+    const _budStr = String(fd.get('budget') || '')
+      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    const _nums = (_budStr.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if (!_nums.length) {
+      showToast('اكتب ميزانية صحيحة للمعلن الواحد.', 'error');
+      return;
+    }
+    const _lo = Math.min(..._nums), _hi = Math.max(..._nums);
+    if (_lo < _bnds[0] || _hi > _bnds[1]) {
+      showToast('لتصنيف المؤثرين المختار، السعر لازم يكون بين ' + _bnds[0].toLocaleString('en-US') + ' و ' + _bnds[1].toLocaleString('en-US') + ' ر.س.', 'error');
+      return;
+    }
   }
   // تحقق من موافقة الشركة على إقرار الدفع (إجباري قبل النشر)
   const pledgeEl = form.querySelector('[name="payment_pledge"]');
