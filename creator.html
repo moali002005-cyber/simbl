@@ -1648,6 +1648,9 @@ function markGroupJoined(){
 // ===== «فعّل الإشعارات»: شاشة تنبثق أول ما يفتح المعلن المنصة (لو ما فعّل الإشعارات) =====
 function maybePromptPushGuide(){
   try{
+    // وضع المعاينة: ?pushtest=1 يعرض الشاشة دائماً (للتجربة، حتى لو الإشعارات مفعّلة)
+    var forceShow = (location.search.indexOf('pushtest') !== -1);
+    if(forceShow){ var mm=document.getElementById('push-modal'); if(mm) mm.classList.add('on'); return; }
     if(typeof Notification === 'undefined') return;              // المتصفّح ما يدعم الإشعارات
     if(Notification.permission === 'granted') return;            // مفعّلة أصلاً → لا شيء
     if(!currentUser || !currentUser.id) return;
