@@ -1109,6 +1109,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   <!-- ============ TAB: INFO ============ -->
   <div id="tab-info" style="display:none;">
     <div id="info-list"></div>
+    <div id="bank-box"></div>
     <div id="tiktok-connect"></div>
   </div>
 </main>
@@ -1262,6 +1263,7 @@ async function init() {
 
   handleTiktokReturn();
   renderTiktokConnect();
+  renderBankBox();
 
   await loadData();
 }
@@ -2457,6 +2459,73 @@ function connectTiktok(){
   window.location.href = 'https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/tiktok-auth-start?creator=' + encodeURIComponent(currentUser.id);
 }
 
+// ===== بياناتي البنكية: تُحفظ مرة وحدة (عمود محمي + دوال محصورة على صاحبها) =====
+function bkEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function bkMaskIban(v){ v = String(v||''); return v.length > 10 ? (v.slice(0,6) + ' •••• ' + v.slice(-4)) : v; }
+async function renderBankBox(){
+  var box = document.getElementById('bank-box'); if(!box) return;
+  var bank = null;
+  try { var r = await supabaseClient.rpc('get_my_bank'); if(!r.error && r.data && r.data.length) bank = r.data[0]; }
+  catch(e){ console.warn('get_my_bank', e); }
+  window.__bank = bank || { account_holder:'', iban:'', bank_name:'' };
+  var has = bank && bank.iban;
+  var card = '<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-top:14px;">'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+    +   '<span style="width:34px;height:34px;border-radius:10px;background:rgba(19,185,178,.12);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">🏦</span>'
+    +   '<div style="font-weight:600;font-size:15px;color:var(--ink);">بياناتي البنكية</div>'
+    + '</div>';
+  if (has) {
+    card += '<div style="font-size:13px;color:var(--ink-soft);line-height:2;">'
+      +   '<div><span style="color:var(--ink-muted);">صاحب الحساب:</span> ' + bkEsc(bank.account_holder||'—') + '</div>'
+      +   '<div dir="ltr" style="text-align:right;"><span style="color:var(--ink-muted);">الآيبان:</span> ' + bkEsc(bkMaskIban(bank.iban)) + '</div>'
+      +   '<div><span style="color:var(--ink-muted);">البنك:</span> ' + bkEsc(bank.bank_name||'—') + '</div>'
+      + '</div>'
+      + '<div style="font-size:11.5px;color:var(--ink-muted);margin-top:8px;">تُعبّأ تلقائياً في صفقاتك الجديدة.</div>'
+      + '<button type="button" onclick="editBank()" style="margin-top:12px;background:var(--cream-darker);border:0;color:var(--ink);font-family:inherit;font-size:12.5px;font-weight:600;padding:9px 20px;border-radius:100px;cursor:pointer;">تعديل</button>';
+  } else {
+    card += '<div style="font-size:13px;color:var(--ink-soft);line-height:1.7;">احفظ بياناتك البنكية مرة وحدة، وتنطبع تلقائياً في كل صفقة — تستلم مستحقاتك أسرع وبلا أخطاء.</div>'
+      + '<button type="button" onclick="editBank()" style="margin-top:12px;background:var(--accent);color:#fff;border:0;padding:10px 22px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">إضافة بياناتي البنكية</button>';
+  }
+  card += '</div>';
+  box.innerHTML = card;
+}
+function editBank(){
+  var box = document.getElementById('bank-box'); if(!box) return;
+  var b = window.__bank || {};
+  var fld = 'width:100%;box-sizing:border-box;background:#fff;border:1px solid var(--line-strong);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:14px;color:var(--ink);margin-bottom:12px;';
+  var lbl = 'font-size:12px;color:var(--ink-muted);margin:0 2px 6px;display:block;';
+  box.innerHTML = '<div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-top:14px;">'
+    + '<div style="font-weight:600;font-size:15px;color:var(--ink);margin-bottom:14px;">🏦 بياناتي البنكية</div>'
+    + '<label style="'+lbl+'">اسم صاحب الحساب</label><input id="bk-holder" type="text" style="'+fld+'" value="'+bkEsc(b.account_holder)+'">'
+    + '<label style="'+lbl+'">رقم الآيبان</label><input id="bk-iban" type="text" dir="ltr" style="'+fld+'text-align:right;" placeholder="SA00 0000 0000 0000 0000 0000" value="'+bkEsc(b.iban)+'">'
+    + '<label style="'+lbl+'">اسم البنك (اختياري)</label><input id="bk-bank" type="text" style="'+fld+'" value="'+bkEsc(b.bank_name)+'">'
+    + '<div id="bk-err" style="display:none;color:#c0392b;font-size:12.5px;margin-bottom:10px;line-height:1.6;"></div>'
+    + '<div style="display:flex;gap:10px;">'
+    +   '<button type="button" id="bk-save" onclick="saveBank()" style="flex:1;background:var(--accent);color:#fff;border:0;padding:12px;border-radius:100px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;">حفظ</button>'
+    +   '<button type="button" onclick="renderBankBox()" style="background:var(--cream-darker);border:0;color:var(--ink);font-family:inherit;font-size:13px;font-weight:600;padding:12px 18px;border-radius:100px;cursor:pointer;">إلغاء</button>'
+    + '</div></div>';
+}
+async function saveBank(){
+  var holder = (document.getElementById('bk-holder').value||'').trim();
+  var iban = (document.getElementById('bk-iban').value||'').replace(/\s/g,'').toUpperCase();
+  var bank = (document.getElementById('bk-bank').value||'').trim();
+  var err = document.getElementById('bk-err');
+  var showErr = function(m){ if(err){ err.textContent=m; err.style.display='block'; } };
+  if(err) err.style.display='none';
+  if(!holder){ showErr('اكتب اسم صاحب الحساب.'); return; }
+  if(!/^SA\d{22}$/.test(iban)){ showErr('رقم الآيبان غير صحيح — لازم يبدأ بـ SA ثم 22 رقم (24 خانة).'); return; }
+  var btn = document.getElementById('bk-save'); if(btn){ btn.disabled=true; btn.textContent='جاري الحفظ…'; }
+  try {
+    var r = await supabaseClient.rpc('set_my_bank', { p_account_holder: holder, p_iban: iban, p_bank_name: bank });
+    if(r.error) throw r.error;
+    await renderBankBox();
+    showToast('تم حفظ بياناتك البنكية ✓');
+  } catch(e){
+    console.error('saveBank', e);
+    if(btn){ btn.disabled=false; btn.textContent='حفظ'; }
+    showErr('تعذّر الحفظ، حاول مرة ثانية.');
+  }
+}
 function renderTiktokConnect(){
   var box = document.getElementById('tiktok-connect');
   if (!box) return;

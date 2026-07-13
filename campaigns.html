@@ -4102,6 +4102,25 @@ function findAppById(applicationId) {
   return { app: null, campaign: null };
 }
 
+// تعبئة تلقائية للبيانات البنكية المحفوظة عند فتح حقولها في مرحلة الدفع
+document.addEventListener('focusin', async function(e){
+  var el = e.target;
+  if(!el || !el.id || !/-(iban|account_holder|bank_name)$/.test(el.id)) return;
+  var form = el.closest('form') || document;
+  if(form.dataset.bankPrefilled) return;
+  form.dataset.bankPrefilled = '1';
+  var ib = form.querySelector('input[id$="-iban"]');
+  if(ib && ib.value) return; // المعلن كتب شيئاً مسبقاً — لا نلمسه
+  try{
+    var r = await supabaseClient.rpc('get_my_bank');
+    var b = (r.data && r.data[0]) || null;
+    if(!b || !b.iban) return;
+    var set = function(sfx, val){ var i = form.querySelector('input[id$="-'+sfx+'"]'); if(i && !i.value) i.value = val || ''; };
+    set('account_holder', b.account_holder); set('iban', b.iban); set('bank_name', b.bank_name);
+    if(typeof showToast === 'function') showToast('عبّأنا بياناتك البنكية المحفوظة ✓');
+  }catch(_){}
+});
+
 async function submitStageForm(applicationId) {
   const { app, campaign } = findAppById(applicationId);
   if (!app) return;
