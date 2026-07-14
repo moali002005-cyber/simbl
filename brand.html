@@ -2564,7 +2564,6 @@ function renderCampaigns() {
     return;
   }
   list.innerHTML = renderSingleCampaign(selected);
-  initSwipeTracks();
 }
 
 function selectCampaign(campaignId) {
@@ -2617,92 +2616,6 @@ function toggleBrief(id, btn) {
   const isExpanded = content.classList.toggle('expanded');
   content.classList.toggle('truncated', !isExpanded);
   btn.textContent = isExpanded ? 'إخفاء ↑' : 'قراءة المزيد ↓';
-}
-
-// ============ Swipe-to-approve handler ============
-let activeSwipe = null;
-
-function initSwipeTracks() {
-  document.querySelectorAll('.swipe-track').forEach(track => {
-    if (track.dataset.swipeReady === '1') return;
-    track.dataset.swipeReady = '1';
-    const thumb = track.querySelector('.swipe-thumb');
-    if (!thumb) return;
-    thumb.addEventListener('mousedown', e => swipeStart(e, track));
-    thumb.addEventListener('touchstart', e => swipeStart(e, track), { passive: false });
-  });
-}
-
-function swipeStart(e, track) {
-  if (track.classList.contains('done')) return;
-  const thumb = track.querySelector('.swipe-thumb');
-  const fill = track.querySelector('.swipe-fill');
-  const hint = track.querySelector('.swipe-hint');
-  const appId = track.dataset.appId;
-  activeSwipe = {
-    track, thumb, fill, hint, appId,
-    startX: e.touches ? e.touches[0].clientX : e.clientX,
-    trackWidth: track.offsetWidth,
-    thumbWidth: 48,
-    padding: 6,
-    currentLeft: 0
-  };
-  thumb.classList.add('dragging');
-  e.preventDefault();
-}
-
-function swipeMove(e) {
-  if (!activeSwipe) return;
-  const s = activeSwipe;
-  const cx = e.touches ? e.touches[0].clientX : e.clientX;
-  const delta = s.startX - cx; // RTL: drag left → positive
-  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
-  s.currentLeft = Math.max(0, Math.min(max, delta));
-  s.thumb.style.right = (s.padding + s.currentLeft) + 'px';
-  s.fill.style.width = (s.currentLeft + s.thumbWidth + s.padding) + 'px';
-  const pct = s.currentLeft / max;
-  s.hint.style.opacity = Math.max(0, 1 - pct * 1.6);
-  if (pct >= 0.92) {
-    swipeComplete();
-  }
-}
-
-function swipeEnd() {
-  if (!activeSwipe) return;
-  const s = activeSwipe;
-  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
-  s.thumb.classList.remove('dragging');
-  if (s.currentLeft / max < 0.92) {
-    s.thumb.style.right = s.padding + 'px';
-    s.fill.style.width = '0px';
-    s.hint.style.opacity = 1;
-  }
-  activeSwipe = null;
-}
-
-function swipeComplete() {
-  if (!activeSwipe) return;
-  const s = activeSwipe;
-  const max = s.trackWidth - s.thumbWidth - s.padding * 2;
-  s.thumb.style.right = (s.padding + max) + 'px';
-  s.fill.style.width = (max + s.thumbWidth + s.padding) + 'px';
-  s.track.classList.add('done');
-  s.hint.textContent = '✓ جاري الاعتماد...';
-  s.hint.style.opacity = 1;
-  s.thumb.classList.remove('dragging');
-  const appId = s.appId;
-  activeSwipe = null;
-  approveDeal(appId);
-}
-
-// مستمعو النوافذ (مرّة واحدة فقط)
-if (!window.__simblSwipeBound) {
-  window.__simblSwipeBound = true;
-  window.addEventListener('mousemove', swipeMove);
-  window.addEventListener('touchmove', swipeMove, { passive: false });
-  window.addEventListener('mouseup', swipeEnd);
-  window.addEventListener('touchend', swipeEnd);
-  window.addEventListener('touchcancel', swipeEnd);
 }
 
 async function approveDeal(applicationId) {
