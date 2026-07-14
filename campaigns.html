@@ -1988,6 +1988,8 @@ async function simblExitImpersonation(){
 <script>document.write('<script src="notifications.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 let currentUser = null;
+let WORKSPACE_ID = null; // مساحة العمل الفعّالة (المالك لو كان عضو فريق)
+function hasPerm(p){ return !window.TEAM_WS || ((window.TEAM_WS.permissions||[]).indexOf(p) >= 0); }
 let myCampaigns = [];
 let campaignApps = {};
 let selectedCampaignId = null;
@@ -2333,7 +2335,14 @@ async function init() {
     return;
   }
 
-  const companyName = currentUser.company_name || 'الشركة';
+  // ====== مساحة الفريق: العضو يشتغل على مساحة المالك ======
+  WORKSPACE_ID = currentUser.id; window.TEAM_WS = null;
+  try {
+    const { data: ws } = await supabaseClient.rpc('team_my_workspace');
+    if (ws && ws.is_member && ws.owner_id) { WORKSPACE_ID = ws.owner_id; window.TEAM_WS = ws; }
+  } catch (e) {}
+
+  const companyName = window.TEAM_WS ? (window.TEAM_WS.owner_company_name || 'الشركة') : (currentUser.company_name || 'الشركة');
   document.getElementById('user-name').textContent = companyName;
   document.getElementById('user-initial').textContent = companyName[0];
   var _wn = document.getElementById('welcome-name'); if (_wn) _wn.textContent = companyName;
@@ -2351,7 +2360,7 @@ async function init() {
       saveCurrentUser(currentUser);
     }
   } catch (e) { /* نعتمد القيمة المخزّنة عند تعذّر الجلب */ }
-  if (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended') {
+  if (!window.TEAM_WS && (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended')) {
     showPendingScreen(approvalStatus);
     return;
   }
@@ -2359,6 +2368,7 @@ async function init() {
   initNotifications('user-menu');
 
   await loadData();
+  applyTeamPermissions();
 }
 
 // شاشة "قيد المراجعة" / "غير مفعّل" — تمنع المحتوى حتى تفعيل الأدمن
@@ -2395,7 +2405,7 @@ function showPendingScreen(status) {
 async function loadData() {
   try {
     document.getElementById('campaigns-list').innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري التحميل...</div></div>';
-    myCampaigns = await dbGetMyCampaigns(currentUser.id);
+    myCampaigns = await dbGetMyCampaigns(WORKSPACE_ID || currentUser.id);
 
     // جلب عروض كل الحملات بطلب واحد بدل طلب لكل حملة (إصلاح N+1)
     const campIds = myCampaigns.map(c => c.id);
@@ -2945,7 +2955,13 @@ function copyBriefModal() {
   }
 }
 
+function applyTeamPermissions(){
+  if(!window.TEAM_WS) return;
+  const hideByOnclick=(needle)=>document.querySelectorAll('[onclick]').forEach(el=>{ if((el.getAttribute('onclick')||'').indexOf(needle)>=0) el.style.display='none'; });
+  if(!hasPerm('campaigns')) hideByOnclick('openCampaignModal');
+}
 async function approveDeal(applicationId) {
+  if(!hasPerm('deals')){ showToast('ما عندك صلاحية اعتماد الصفقات','error'); return; }
   const { app, campaign } = findAppById(applicationId);
   if (!app) return;
 
@@ -2986,6 +3002,7 @@ async function approveDeal(applicationId) {
 let rejectingAppId = null;
 
 function openRejectModal(applicationId) {
+  if(!hasPerm('deals')){ showToast('ما عندك صلاحية رفض/استبدال المعلنين','error'); return; }
   rejectingAppId = applicationId;
   const ta = document.getElementById('reject-reason');
   if (ta) ta.value = '';
@@ -3883,6 +3900,7 @@ function renderBrandPaymentCard(app, campaign) {
 }
 
 async function setBrandPaid(applicationId) {
+  if(!hasPerm('payments')){ showToast('ما عندك صلاحية إدارة المستحقات والدفع','error'); return; }
   try {
     const { data, error } = await supabaseClient
       .from('applications')
@@ -4060,6 +4078,7 @@ document.addEventListener('focusin', async function(e){
 });
 
 async function submitStageForm(applicationId) {
+  if(!hasPerm('workflow') && !hasPerm('deals')){ showToast('ما عندك صلاحية إدارة التنفيذ','error'); return; }
   const { app, campaign } = findAppById(applicationId);
   if (!app) return;
   const oldStage = app.stage || 1;
@@ -4238,6 +4257,7 @@ function setModalMode(mode, campaign) {
 }
 
 function openCampaignModal() {
+  if(!hasPerm('campaigns')){ showToast('ما عندك صلاحية إدارة الحملات','error'); return; }
   editingCampaignId = null;
   setModalMode('create');
   document.getElementById('campaign-modal').classList.add('show');
@@ -4417,7 +4437,7 @@ async function submitCampaign(event) {
     }
 
     // وضع الإنشاء
-    campaign.brand_id = currentUser.id;
+    campaign.brand_id = WORKSPACE_ID || currentUser.id;
     campaign.status = 'active';
     campaign.is_test = !!currentUser.is_test;
     const createdCampaign = await dbCreateCampaign(campaign);

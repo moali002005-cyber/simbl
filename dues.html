@@ -199,6 +199,7 @@ table.xl td.xl-rowcopy.copied { background:#13B9B2; color:#fff; }
 <script>document.write('<script src="notifications.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 let currentUser = null;
+let WORKSPACE_ID = null; // مساحة العمل الفعّالة (المالك لو عضو فريق)
 let myCampaigns = [];
 let campaignApps = {};
 
@@ -839,7 +840,7 @@ async function submitFix() {
 
 async function loadData() {
   try {
-    myCampaigns = await dbGetMyCampaigns(currentUser.id);
+    myCampaigns = await dbGetMyCampaigns(WORKSPACE_ID || currentUser.id);
 
     // جلب عروض كل الحملات بطلب واحد بدل طلب لكل حملة (إصلاح N+1)
     const campIds = myCampaigns.map(c => c.id);
@@ -890,7 +891,19 @@ async function init() {
     return;
   }
 
-  // بوابة الموافقة
+  // ====== مساحة الفريق + صلاحية المستحقات ======
+  WORKSPACE_ID = currentUser.id; window.TEAM_WS = null;
+  try {
+    const { data: ws } = await supabaseClient.rpc('team_my_workspace');
+    if (ws && ws.is_member && ws.owner_id) { WORKSPACE_ID = ws.owner_id; window.TEAM_WS = ws; }
+  } catch (e) {}
+  if (window.TEAM_WS && (window.TEAM_WS.permissions || []).indexOf('payments') < 0) {
+    alert('ما عندك صلاحية الاطلاع على المستحقات والدفع.');
+    window.location.href = '/company.html';
+    return;
+  }
+
+  // بوابة الموافقة (أعضاء الفريق يتبعون تفعيل المالك)
   let approvalStatus = currentUser.approval_status;
   try {
     const { data: meRow } = await supabaseClient
@@ -901,7 +914,7 @@ async function init() {
       saveCurrentUser(currentUser);
     }
   } catch (e) {}
-  if (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended') {
+  if (!window.TEAM_WS && (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended')) {
     window.location.href = '/brand.html';
     return;
   }
