@@ -540,6 +540,10 @@ function ago(x){ if(!x) return ''; const d=new Date(x); const s=(Date.now()-d.ge
   if(s<2592000) return 'قبل '+Math.floor(s/86400)+' يوم'; return fmtDate(x); }
 const roleLabel = r => r==='brand'?'شركة':(r==='creator'?'معلن':(r||'—'));
 const isClosed = a => a && a.status==='closed';
+// صفقة معتمدة = أقفلها الوكيل واعتمدتها الشركة (هي التعريف الموحّد للـ GMV في كل التبويبات)
+const isApprovedDeal = a => a && a.status==='closed' && a.brand_approved===true;
+// قيمة الصفقة الموحّدة: السعر النهائي وإلا السعر المبدئي
+const gmvVal = a => Number(a && (a.final_price||a.price))||0;
 
 // ===== state =====
 let USERS=[], CAMPAIGNS=[], APPS=[], NEGS=[];
@@ -640,6 +644,7 @@ function inWin(ts,hours){ if(!ts) return false; const d=new Date(ts); if(isNaN(d
 function winCount(arr,field,hours){ return arr.filter(x=>inWin(x[field],hours)).length; }
 function winDistinct(arr,field,idField,hours){ return new Set(arr.filter(x=>inWin(x[field],hours)).map(x=>x[idField])).size; }
 function winSum(arr,field,sumField,hours){ return arr.filter(x=>inWin(x[field],hours)).reduce((s,x)=>s+(Number(x[sumField])||0),0); }
+function winSumV(arr,field,valFn,hours){ return arr.filter(x=>inWin(x[field],hours)).reduce((s,x)=>s+valFn(x),0); }
 function countBy(arr,key){ const o={}; arr.forEach(x=>{ const k=x[key]||'غير محدد'; o[k]=(o[k]||0)+1; }); return o; }
 function barRows(counts,labelMap){
   const e=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
@@ -659,6 +664,7 @@ function renderAnalytics(){
   const brands=USERS.filter(u=>u.role==='brand');
   const creators=USERS.filter(u=>u.role==='creator');
   const closed=APPS.filter(isClosed);
+  const approved=APPS.filter(isApprovedDeal); // نفس تعريف GMV في «نظرة عامة» و«الشركات»
 
   // ---- time windows ----
   const rows=[
@@ -668,7 +674,8 @@ function renderAnalytics(){
     ['شركات أطلقت حملة', u=>winDistinct(CAMPAIGNS,'created_at','brand_id',u), new Set(CAMPAIGNS.map(c=>c.brand_id)).size],
     ['معلنون قدّموا عرض', u=>winDistinct(APPS,'created_at','creator_id',u), new Set(APPS.map(a=>a.creator_id)).size],
     ['صفقات مقفلة', u=>winCount(closed,'closed_at',u), closed.length],
-    ['الإيراد (GMV)', u=>money(winSum(closed,'closed_at','final_price',u)), money(closed.reduce((s,a)=>s+(Number(a.final_price)||0),0))],
+    ['صفقات معتمدة', u=>winCount(approved,'closed_at',u), approved.length],
+    ['الإيراد (GMV) — معتمد', u=>money(winSumV(approved,'closed_at',gmvVal,u)), money(approved.reduce((s,a)=>s+gmvVal(a),0))],
     ['رسائل التفاوض', u=>winCount(NEGS,'created_at',u), NEGS.length],
   ];
   $('#tw-body').innerHTML = rows.map(r=>{
@@ -885,13 +892,14 @@ function renderInsights(){
   const hourMap={}; Object.entries(hourC).sort((a,b)=>b[1]-a[1]).slice(0,6).forEach(([h,v])=>{ hourMap[String(h).padStart(2,'0')+':00']=v; });
   $('#top-hours').innerHTML = barRows(hourMap);
 
-  // ---- leaderboards ----
-  const cl={}; closed.forEach(a=>{ const c=a.creator_id; (cl[c]=cl[c]||{n:0,g:0}); cl[c].n++; cl[c].g+=Number(a.final_price)||0; });
+  // ---- leaderboards (صفقات معتمدة فقط — نفس تعريف GMV) ----
+  const approvedDeals=APPS.filter(isApprovedDeal);
+  const cl={}; approvedDeals.forEach(a=>{ const c=a.creator_id; (cl[c]=cl[c]||{n:0,g:0}); cl[c].n++; cl[c].g+=gmvVal(a); });
   const topC=Object.entries(cl).sort((a,b)=>b[1].n-a[1].n||b[1].g-a[1].g).slice(0,6);
   $('#top-creators').innerHTML = topC.length?topC.map(([id,v])=>{
     const u=usersById[id]; return '<tr><td>'+esc(u?(u.name||u.company_name||'—'):'—')+'</td><td class="mono">'+num(v.n)+'</td><td class="mono">'+money(v.g)+'</td></tr>';
   }).join('') : '<tr><td colspan="3" class="empty">لا بيانات</td></tr>';
-  const bg={}; closed.forEach(a=>{ const c=campsById[a.campaign_id]; if(!c) return; const b=c.brand_id; (bg[b]=bg[b]||{n:0,g:0}); bg[b].n++; bg[b].g+=Number(a.final_price)||0; });
+  const bg={}; approvedDeals.forEach(a=>{ const c=campsById[a.campaign_id]; if(!c) return; const b=c.brand_id; (bg[b]=bg[b]||{n:0,g:0}); bg[b].n++; bg[b].g+=gmvVal(a); });
   const topB=Object.entries(bg).sort((a,b)=>b[1].g-a[1].g).slice(0,6);
   $('#top-brands').innerHTML = topB.length?topB.map(([id,v])=>{
     const u=usersById[id]; return '<tr><td>'+esc(u?(u.company_name||u.name||'—'):'—')+'</td><td class="mono">'+num(v.n)+'</td><td class="mono">'+money(v.g)+'</td></tr>';
@@ -1146,7 +1154,7 @@ function renderLeaderBar(){
     +   fig('💰','قيمة الصفقات (GMV)', r(gmv), num(approved.length)+' صفقة معتمدة')
     +   fig('✓','مدفوع للمؤثرين', r(paid), 'حُوّلت فعليًا للمؤثرين')
     +   fig('⚠️','مستحق للمؤثرين', r(owed), owed>0?'غير مدفوعة — تحتاج متابعة':'كل الحقوق مدفوعة ✓', owed>0?'alert':'')
-    +   fig('👥','المستخدمون', num(USERS.length), num(creators.length)+' مؤثر · '+num(brands.length)+' شركات')
+    +   fig('👥','المستخدمون', num(creators.length+brands.length), num(creators.length)+' مؤثر · '+num(brands.length)+' شركات')
     +   fig('🚀','حملات نشطة', num(activeCamps)+' <small>/ '+num(CAMPAIGNS.length)+'</small>', num(waitlisted)+' في قوائم الانتظار')
     +   fig('🏢','الشركات', num(brands.length), 'شركة معلِنة على المنصة')
     + '</div>';
