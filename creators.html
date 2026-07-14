@@ -162,7 +162,7 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
   <section class="grid" id="grid"><div class="loading-wrap"><div class="loading-pill"><span class="loading-dot"></span>جاري تحميل المعلنين...</div></div></section>
 </main>
 <div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeProfile()"><div class="modal" id="modal-body"></div></div>
-<script src="/supabase-config.js?v=3"></script>
+<script>document.write('<script src="/supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 let allCreators = [];
 let filters = { tier:'all', cat:'all', plat:'all' };

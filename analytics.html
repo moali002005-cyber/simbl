@@ -102,7 +102,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1
   <div id="content"><div class="loading">جاري تحميل بياناتك…</div></div>
 </div>
 
-<script src="supabase-config.js?v=3"></script>
+<script>document.write('<script src="supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 function parseFollowers(v){
   if(v==null) return 0;

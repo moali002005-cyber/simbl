@@ -1114,8 +1114,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   </div>
 </main>
 
-<script src="supabase-config.js?v=3"></script>
-<script src="notifications.js?v=3"></script>
+<script>document.write('<script src="supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
+<script>document.write('<script src="notifications.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 let currentUser = null;
 let allCampaigns = [];

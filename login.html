@@ -328,7 +328,7 @@ input::placeholder { color: var(--ink-faint); }
   </div>
 </main>
 
-<script src="supabase-config.js?v=3"></script>
+<script>document.write('<script src="supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 function switchTab(which) {
   const isPw = which === 'password';

@@ -97,7 +97,7 @@ body{background:var(--cream-darker);color:var(--ink);font-family:var(--font-body
   </div>
 </div>
 
-<script src="/supabase-config.js?v=3"></script>
+<script>document.write('<script src="/supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 var CREATORS=[], CFG={};
 function getCart(){ try{ return JSON.parse(localStorage.getItem('simbl_cart')||'[]'); }catch(e){ return []; } }

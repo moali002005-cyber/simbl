@@ -241,8 +241,8 @@ body{background:var(--cream);color:var(--ink);font-family:var(--font-body);font-
   <p class="note">الترتيب يتحدّث تلقائيًا مع كل صفقة — الأسرع إنجازًا والأكثر إكمالًا يتصدّر.</p>
 </main>
 
-<script src="supabase-config.js?v=3"></script>
-<script src="notifications.js?v=3"></script>
+<script>document.write('<script src="supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
+<script>document.write('<script src="notifications.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 let RANKED = [];   // أفضل 500 بعد الترتيب (مع رقم الترتيب)
 let filters = { plat:'all', cat:'all' };
