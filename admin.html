@@ -617,7 +617,9 @@ async function loadAll(silent){
       fetchAll('applications','*'),
       fetchAll('negotiations','*')
     ]);
-    USERS=u; CAMPAIGNS=c; APPS=a; NEGS=n;
+    // احتفظ بآخر بيانات صالحة إذا فشل أحد الطلبات مؤقتاً (تحديث تلقائي كل 60ث)
+    if(Array.isArray(u)) USERS=u; if(Array.isArray(c)) CAMPAIGNS=c;
+    if(Array.isArray(a)) APPS=a; if(Array.isArray(n)) NEGS=n;
     usersById={}; USERS.forEach(x=>usersById[x.id]=x);
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
