@@ -802,6 +802,18 @@ body {
 .ag-btn.reject:hover { background: rgba(201,48,48,0.06); }
 .ag-btn.nego { background: var(--ink); color: #fff; }
 .ag-btn.nego:hover { background: var(--accent); }
+/* أزرار الاعتماد/الرفض المصغّرة داخل نفس صف المعلن */
+.mx-approve-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 5px 12px; background: #FAEEDA; border-radius: 8px; flex-wrap: wrap; }
+.mx-appr-price { font-size: 12px; font-weight: 700; color: #854F0B; white-space: nowrap; }
+.mx-appr-btns { display: flex; gap: 6px; align-items: center; }
+.mx-btn { border: 0; padding: 7px 14px; border-radius: 100px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: filter .15s, transform .12s, background .15s; white-space: nowrap; }
+.mx-btn:hover { transform: translateY(-1px); }
+.mx-btn.approve { background: linear-gradient(135deg, #16c2ba, #0e9a94); color: #fff; }
+.mx-btn.approve:hover { filter: brightness(1.06); }
+.mx-btn.reject { background: #fff; color: #b32d2d; border: 1.5px solid rgba(201,48,48,0.45); }
+.mx-btn.reject:hover { background: rgba(201,48,48,0.06); }
+.mx-btn.nego { background: #eef1f0; color: #33413f; padding: 7px 11px; }
+.mx-btn.nego:hover { background: #e0e6e4; }
 .ag-top {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -3479,7 +3491,14 @@ function renderDealRow(a, idx, campaignType) {
       }
     });
   } else if (awaitingApproval) {
-    cells = `<td class="mx-cell click" colspan="${NCOL}" onclick="openCell('${a.id}',0)"><div class="mx-in" style="background:#FAEEDA;color:#854F0B;font-size:12px;font-weight:600;height:44px;">⏳ بانتظار تعميدك — اضغط للاعتماد</div></td>`;
+    cells = `<td colspan="${NCOL}" style="padding:4px 6px;"><div class="mx-approve-row">
+        <span class="mx-appr-price">⏳ اتفاق عند ${(a.final_price || a.price).toLocaleString('en-US')} ر.س</span>
+        <span class="mx-appr-btns">
+          <button class="mx-btn approve" onclick="event.stopPropagation(); approveDeal('${a.id}')">✓ اعتماد</button>
+          <button class="mx-btn reject" onclick="event.stopPropagation(); openRejectModal('${a.id}')">✗ رفض</button>
+          <button class="mx-btn nego" title="عرض المفاوضة" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬</button>
+        </span>
+      </div></td>`;
   } else if (a.status === 'waitlisted') {
     cells = `<td class="mx-cell" colspan="${NCOL}"><div class="mx-in" style="background:#F0F4F8;color:#5B6B7A;font-size:12px;font-weight:600;height:44px;">🕓 في قائمة الانتظار — يبدأ التفاوض تلقائيًا لو انفتح مكان</div></td>`;
   } else {
@@ -3494,7 +3513,7 @@ function renderDealRow(a, idx, campaignType) {
     cells = `<td colspan="${NCOL}" style="cursor:pointer;" onclick="event.stopPropagation(); startNegotiation('${a.id}')"><div class="mx-in" style="font-size:12px;color:var(--ink-muted);height:44px;display:flex;align-items:center;justify-content:center;gap:2px;">💬 قيد التفاوض — اضغط لعرض المفاوضة${_cd}</div></td>`;
   }
 
-  const isExpanded = awaitingApproval || (expandedAppId === a.id);
+  const isExpanded = (expandedAppId === a.id);
   const detail = isExpanded
     ? `<tr class="mx-detail"><td colspan="${NCOL + 2}"><div class="ac-body" onclick="event.stopPropagation()">${renderCellDetail(a)}</div></td></tr>`
     : '';
@@ -3502,7 +3521,7 @@ function renderDealRow(a, idx, campaignType) {
   return `
     <tr id="ac-${a.id}">
       <td class="mx-idx">${toArabic(idx + 1)}</td>
-      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);flex:1;min-width:0;">${nameHtml}</span><button class="app-swap-btn" title="استبدال هذا المعلن بالتالي من قائمة الانتظار" onclick="event.stopPropagation(); openRejectModal('${a.id}')">↔ استبدال</button></div></td>
+      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);flex:1;min-width:0;">${nameHtml}</span>${awaitingApproval ? '' : `<button class="app-swap-btn" title="استبدال هذا المعلن بالتالي من قائمة الانتظار" onclick="event.stopPropagation(); openRejectModal('${a.id}')">↔ استبدال</button>`}</div></td>
       ${cells}
     </tr>
     ${detail}
