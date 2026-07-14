@@ -276,6 +276,20 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 .ins{background:#fbfdfc;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;color:#14201e}
 .ins .ic{margin-inline-end:5px}
 .ins b{color:#0c4f4b}
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:13px}
+.rc{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fbfdfc}
+.rc-top{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.rc-av{width:44px;height:44px;border-radius:50%;flex-shrink:0;background-size:cover;background-position:center;background-color:#e4eae9;display:flex;align-items:center;justify-content:center}
+.rc-av.ini{font-size:18px;font-weight:700;color:#0e7a74;background:rgba(19,185,178,.14)}
+.rc-id{min-width:0}
+.rc-n{font-size:14px;font-weight:700;color:#0c4f4b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-h{color:#9aa3a0;font-size:12px;font-weight:500}
+.rc-f{font-size:11.5px;color:var(--faint);margin-top:1px}
+.rc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rc-chip{font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;background:#eef2f1;color:#5f6b66}
+.rc-chip.match{background:rgba(19,185,178,.16);color:#0e7a74}
+.rc-cta{margin-top:16px;padding-top:13px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.rc-cta a{font-weight:700;color:#0e9a94;white-space:nowrap}
 
 </style>
 </head>
@@ -321,6 +335,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
     <button class="tab" data-tab="compare">مقارنة الحملات</button>
     <button class="tab" data-tab="deals">صفقاتي</button>
     <button class="tab" data-tab="creators">المؤثرون</button>
+    <button class="tab" data-tab="recommend">مؤثرون مقترحون</button>
   </div>
 
   <div class="panel active" id="panel-overview"><div id="ov-body"></div></div>
@@ -328,6 +343,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="panel" id="panel-compare"><div id="compare-body"></div></div>
   <div class="panel" id="panel-deals"><div id="deals-body"></div></div>
   <div class="panel" id="panel-creators"><div id="creators-body"></div></div>
+  <div class="panel" id="panel-recommend"><div id="recommend-body"></div></div>
 </div>
 
 <!-- pending screen host -->
@@ -614,6 +630,70 @@ function renderAnalytics(){
   box.innerHTML='<div class="dsh-grid">'+content+'</div><div class="dsh-grid">'+chart+'</div><div class="dsh-grid">'+cards+'</div>';
 }
 
+// ===== أدوات النمو: توصيات المؤثرين (تحميل عند فتح التبويب) =====
+let RECO_LOADED=false;
+async function loadRecommend(){
+  const box=$('#recommend-body'); if(!box || RECO_LOADED) return;
+  box.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0">نجهّز أفضل المؤثرين المناسبين لحملاتك…</div></div>';
+  try{
+    const [dir,trust,perf]=await Promise.all([
+      supabaseClient.from('creator_directory').select('id,name,handle,platform,followers,category,country,avatar_url'),
+      supabaseClient.from('creator_trust').select('creator_id,deals_count,ratings_count,avg_rating'),
+      supabaseClient.from('simbl_creator_performance').select('creator_id,completed_deals,speed_points,achievement')
+    ]);
+    RECO_LOADED=true;
+    renderRecommend(dir.data||[], trust.data||[], perf.data||[]);
+  }catch(e){ console.error(e); box.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0;color:#c23b3b">تعذّر تحميل التوصيات. حدّث الصفحة.</div></div>'; }
+}
+function renderRecommend(dir, trust, perf){
+  const box=$('#recommend-body'); if(!box) return;
+  const tById={}; trust.forEach(t=>tById[t.creator_id]=t);
+  const pById={}; perf.forEach(p=>pById[p.creator_id]=p);
+  const camps=myCampaigns||[];
+  const norm=s=>String(s||'').trim().toLowerCase();
+  const targetPlatforms=new Set(); const targetCountries=new Set();
+  camps.forEach(c=>{ String(c.platform||'').split(/[,،]/).forEach(p=>{ if(p.trim()) targetPlatforms.add(norm(p)); }); if(c.country) targetCountries.add(norm(c.country)); });
+  const worked=new Set((ALLAPPS||[]).filter(a=>a.status==='closed'&&a.brand_approved===true&&a.creator_id).map(a=>a.creator_id));
+  const scored=dir.filter(cr=>cr.id && !worked.has(cr.id)).map(cr=>{
+    const t=tById[cr.id]||{}, p=pById[cr.id]||{};
+    const rating=Number(t.avg_rating)||0;
+    const deals=Number(p.completed_deals)||Number(t.deals_count)||0;
+    const platMatch=targetPlatforms.size? targetPlatforms.has(norm(cr.platform)) : false;
+    const ctryMatch=targetCountries.size? targetCountries.has(norm(cr.country)) : false;
+    let score=0;
+    if(platMatch) score+=4;
+    if(ctryMatch) score+=1.5;
+    score+=rating*1.6;
+    score+=Math.min(deals,10)*0.35;
+    score+=Math.min(Number(cr.followers)>0?Math.log10(Number(cr.followers)):0,6)*0.2;
+    return {cr,t,p,rating,deals,platMatch,ctryMatch,score};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
+
+  if(!scored.length){ box.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0">ما فيه توصيات كافية بعد. كل ما أطلقت حملات أكثر، صارت التوصيات أدق.</div></div>'; return; }
+  const CITYc=CITY;
+  const cards=scored.map(x=>{
+    const cr=x.cr; const initial=(cr.name||'م')[0];
+    const chips=[];
+    if(x.platMatch) chips.push('<span class="rc-chip match">✓ '+esc(cr.platform||'المنصة')+'</span>');
+    else if(cr.platform) chips.push('<span class="rc-chip">'+esc(cr.platform)+'</span>');
+    if(x.ctryMatch && cr.country) chips.push('<span class="rc-chip match">✓ '+esc(cr.country)+'</span>');
+    if(x.rating>0) chips.push('<span class="rc-chip">⭐ '+x.rating.toFixed(1)+'</span>');
+    if(x.deals>0) chips.push('<span class="rc-chip">'+num(x.deals)+' صفقة</span>');
+    if(cr.category) chips.push('<span class="rc-chip">'+esc(cr.category)+'</span>');
+    const foll=Number(cr.followers)>0?reachFmt(Number(cr.followers))+' متابع':'';
+    const av=cr.avatar_url?('<span class="rc-av" style="background-image:url('+esc(cr.avatar_url)+')"></span>'):('<span class="rc-av ini">'+esc(initial)+'</span>');
+    return '<div class="rc"><div class="rc-top">'+av+'<div class="rc-id"><div class="rc-n">'+esc(cr.name||'مؤثر')+(cr.handle?' <span class="rc-h">@'+esc(String(cr.handle).replace(/^@/,''))+'</span>':'')+'</div><div class="rc-f">'+esc(foll)+'</div></div></div>'
+      +'<div class="rc-chips">'+chips.join('')+'</div></div>';
+  }).join('');
+  const matchedCount=scored.filter(x=>x.platMatch).length;
+  box.innerHTML='<div class="dsh-card"><h4>✨ مؤثرون مقترحون لحملاتك</h4><div class="hint">'
+    +(targetPlatforms.size?('مرتّبون حسب مطابقتهم لمنصّات حملاتك وتقييمهم وسجلّهم · '+num(matchedCount)+' مطابق لمنصّتك'):'أفضل المؤثرين أداءً على المنصة')
+    +' · لا يشملون من تعاملت معهم سابقًا</div>'
+    +'<div class="rc-grid">'+cards+'</div>'
+    +'<div class="rc-cta">لجذب هؤلاء المؤثرين، أطلق حملة مطابقة ويتولّى الوكيل التواصل معهم واختيار الأنسب. <a href="/brand.html">+ أطلق حملة جديدة</a></div>'
+    +'</div>';
+}
+
 function renderCompare(){
   const box=$('#compare-body'); if(!box) return;
   const apps=ALLAPPS||[], camps=myCampaigns||[];
@@ -730,6 +810,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
   t.classList.add('active'); $('#panel-'+t.getAttribute('data-tab')).classList.add('active');
+  if(t.getAttribute('data-tab')==='recommend') loadRecommend();
 }));
 
 async function init(){
