@@ -296,6 +296,8 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="co-actions">
     <a class="co-btn primary" href="/brand.html">🚀 إدارة الحملات والعروض</a>
     <a class="co-btn" href="/dues.html">📋 المستحقات بالتفصيل</a>
+    <button class="co-btn" type="button" onclick="openCompanyReport()">📄 تقرير الأداء (PDF)</button>
+    <button class="co-btn" type="button" onclick="exportCompanyExcel()">⬇️ تصدير الصفقات (Excel)</button>
   </div>
 
   <div class="lead-bar" id="lead"></div>
@@ -368,6 +370,84 @@ function renderLeaderBar(){
     +fig('📨','عروض مستلمة', num(c.apps.length), num(c.engaged)+' قيد التفاوض الآن')
     +fig('🤝','صفقات معتمدة', num(c.approved.length), 'اعتمدتها شركتك وبدأ تنفيذها')
     +'</div>';
+}
+
+// ===== أدوات النمو: تصدير التقارير =====
+function payText(a){
+  const stg=a.stage||1, ps=a.payment_status||'unpaid';
+  if(ps==='confirmed') return 'مدفوع ومؤكّد';
+  if(ps==='marked_paid') return 'حُوّل — بانتظار تأكيد الاستلام';
+  if(stg>=9) return 'مستحق — غير مدفوع';
+  return 'قيد التنفيذ';
+}
+function exportCompanyExcel(){
+  const campMap={}; (myCampaigns||[]).forEach(cm=>campMap[cm.id]=cm.title||'—');
+  const deals=(ALLAPPS||[]).filter(a=>a.status==='closed'&&a.brand_approved===true)
+    .sort((a,b)=>new Date(b.closed_at||b.created_at||0)-new Date(a.closed_at||a.created_at||0));
+  if(!deals.length){ alert('ما فيه صفقات معتمدة لتصديرها بعد.'); return; }
+  const rows=[['المؤثر','الحساب','المنصة','الحملة','المبلغ (ر.س)','حالة الدفع','تاريخ الإقفال']];
+  deals.forEach(a=>{ const u=a.users||{};
+    rows.push([ u.name||'مؤثر', u.handle?('@'+String(u.handle).replace(/^@/,'')):'', u.platform||'',
+      campMap[a.campaign_id]||'—', String(val(a)), payText(a), fmtDate(a.closed_at||a.created_at) ]); });
+  const csv='﻿'+rows.map(r=>r.map(cell=>{const s=String(cell==null?'':cell);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  const name=String((currentUser&&currentUser.company_name)||'الشركة').replace(/\s+/g,'_');
+  a.href=url; a.download='صفقات_'+name+'.csv'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},120);
+}
+function openCompanyReport(){
+  const c=compute(); const {gmv,paid,owed,inprog,approved,camps,apps}=c;
+  const company=esc(String((currentUser&&currentUser.company_name)||'الشركة'));
+  const today=new Date().toLocaleDateString('ar-SA-u-nu-latn',{year:'numeric',month:'long',day:'numeric'});
+  const perf=(camps||[]).map(cm=>{ const ca=apps.filter(a=>a.campaign_id===cm.id); const ap=ca.filter(a=>a.status==='closed'&&a.brand_approved===true);
+    return {title:cm.title||'—', offers:ca.length, approved:ap.length, spend:ap.reduce((s,a)=>s+val(a),0)}; })
+    .sort((a,b)=>b.spend-a.spend);
+  const byId={}; apps.forEach(a=>{ if(!a.creator_id) return; const u=a.users||{}; const cur=byId[a.creator_id]||{name:u.name||'مؤثر',handle:u.handle,platform:u.platform,deals:0,spend:0};
+    if(a.status==='closed'&&a.brand_approved===true){cur.deals++;cur.spend+=val(a);} byId[a.creator_id]=cur; });
+  const topC=Object.values(byId).filter(x=>x.deals>0).sort((a,b)=>b.spend-a.spend).slice(0,10);
+  const collaborators=Object.values(byId).filter(x=>x.deals>0).length;
+  const byMonth={}; approved.forEach(a=>{const d=a.closed_at||a.created_at; if(!d)return; const k=String(d).slice(0,7); byMonth[k]=(byMonth[k]||0)+val(a);});
+  const months=Object.entries(byMonth).sort((a,b)=>a[0]<b[0]?-1:1);
+  const maxM=Math.max(1,...months.map(m=>m[1]));
+  const kpi=(l,v,cls)=>'<div class="rk '+(cls||'')+'"><div class="rkl">'+l+'</div><div class="rkv">'+v+'</div></div>';
+  const perfRows=perf.length?perf.map(p=>'<tr><td>'+esc(p.title)+'</td><td>'+num(p.offers)+'</td><td>'+num(p.approved)+'</td><td class="m">'+money(p.spend)+'</td></tr>').join(''):'<tr><td colspan="4" class="e">لا حملات</td></tr>';
+  const topRows=topC.length?topC.map((u,i)=>'<tr><td>'+num(i+1)+'</td><td>'+esc(u.name)+(u.handle?' <span class="h">@'+esc(String(u.handle).replace(/^@/,''))+'</span>':'')+'</td><td>'+num(u.deals)+'</td><td class="m">'+money(u.spend)+'</td></tr>').join(''):'<tr><td colspan="4" class="e">لا مؤثرين</td></tr>';
+  const monthRows=months.length?months.map(m=>{const w=Math.max(3,Math.round(m[1]/maxM*100));return '<div class="mrow"><span class="ml">'+MONTHS[parseInt(m[0].slice(5,7))-1]+' '+m[0].slice(0,4)+'</span><span class="mbar"><span style="width:'+w+'%"></span></span><span class="mv">'+money(m[1])+'</span></div>';}).join(''):'<div class="e">لا بيانات</div>';
+  const html='<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير أداء '+company+' — سيمبل</title>'
+    +'<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">'
+    +'<style>*{margin:0;padding:0;box-sizing:border-box;font-family:\'IBM Plex Sans Arabic\',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    +'body{background:#f4f6f6;color:#0c1f1d;padding:28px;font-size:13px}.sheet{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px -24px rgba(0,0,0,.3)}'
+    +'.hd{background:linear-gradient(135deg,#15C2BA,#0e9a94);color:#fff;padding:26px 30px}.hd .b{font-size:22px;font-weight:700}.hd .s{font-size:13px;opacity:.9;margin-top:3px}.hd .d{font-size:12px;opacity:.85;margin-top:10px}'
+    +'.body{padding:24px 30px}.rkgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px}'
+    +'.rk{border:1px solid #e4eae9;border-radius:12px;padding:13px 15px;background:#fbfdfc}.rk.hl{background:linear-gradient(180deg,rgba(19,185,178,.1),rgba(19,185,178,.02));border-color:rgba(19,185,178,.3)}.rk.alert{background:rgba(210,59,59,.05);border-color:rgba(210,59,59,.25)}'
+    +'.rkl{font-size:11.5px;color:#5f6b66;margin-bottom:5px}.rkv{font-size:20px;font-weight:700;color:#0c4f4b;font-variant-numeric:tabular-nums}'
+    +'h2{font-size:15px;font-weight:700;color:#0c4f4b;margin:22px 0 11px;display:flex;align-items:center;gap:7px}'
+    +'table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:right;padding:9px 10px;border-bottom:1px solid #eef2f1}th{background:#f3f7f6;color:#5f6b66;font-weight:600;font-size:11.5px}td.m{font-weight:700;color:#0c4f4b;font-variant-numeric:tabular-nums;white-space:nowrap}td .h{color:#9aa3a0;font-size:11px}td.e{text-align:center;color:#9aa3a0;padding:16px}'
+    +'.mrow{display:flex;align-items:center;gap:10px;margin-bottom:8px}.ml{width:110px;font-size:12px;color:#5f6b66}.mbar{flex:1;height:16px;background:#eef2f1;border-radius:8px;overflow:hidden}.mbar span{display:block;height:100%;background:linear-gradient(90deg,#16c2ba,#0e9a94)}.mv{width:110px;text-align:left;font-weight:700;color:#0c4f4b;font-variant-numeric:tabular-nums}'
+    +'.ft{padding:16px 30px;border-top:1px solid #eef2f1;font-size:11px;color:#9aa3a0;text-align:center}'
+    +'.pbtn{position:fixed;top:18px;inset-inline-start:18px;background:#0e9a94;color:#fff;border:0;padding:11px 20px;border-radius:100px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px rgba(14,154,148,.7)}'
+    +'@media print{body{background:#fff;padding:0}.sheet{box-shadow:none;border-radius:0;max-width:none}.pbtn{display:none}}'
+    +'</style></head><body>'
+    +'<button class="pbtn" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>'
+    +'<div class="sheet"><div class="hd"><div class="b">تقرير أداء الحملات الإعلانية</div><div class="s">'+company+' · منصة سيمبل</div><div class="d">صدر بتاريخ '+today+'</div></div><div class="body">'
+    +'<div class="rkgrid">'
+    +kpi('إجمالي الإنفاق (GMV)', money(gmv),'hl')
+    +kpi('مدفوع للمؤثرين', money(paid))
+    +kpi('مستحق عليك', money(owed), owed>0?'alert':'')
+    +kpi('قيد التنفيذ', money(inprog))
+    +kpi('صفقات معتمدة', num(approved.length))
+    +kpi('المؤثرون المتعاونون', num(collaborators))
+    +'</div>'
+    +'<h2>📣 أداء الحملات</h2><table><thead><tr><th>الحملة</th><th>العروض</th><th>المعتمدة</th><th>الإنفاق</th></tr></thead><tbody>'+perfRows+'</tbody></table>'
+    +'<h2>👥 أعلى المؤثرين إنفاقًا</h2><table><thead><tr><th>#</th><th>المؤثر</th><th>الصفقات</th><th>الإجمالي</th></tr></thead><tbody>'+topRows+'</tbody></table>'
+    +'<h2>📈 الإنفاق الشهري</h2>'+monthRows
+    +'</div><div class="ft">تقرير تلقائي من لوحة قيادة سيمبل — الأرقام من صفقاتك المعتمدة فقط.</div></div>'
+    +'<script>setTimeout(function(){try{window.focus()}catch(e){}},50);<\/script>'
+    +'</body></html>';
+  const w=window.open('','_blank');
+  if(!w){ alert('اسمح بالنوافذ المنبثقة لعرض التقرير، أو استخدم زر التصدير Excel.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 function renderOverview(){
