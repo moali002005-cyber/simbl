@@ -57,6 +57,23 @@ a{color:var(--accent);text-decoration:none}
 .kpi.hl .val{color:var(--accent-dim)}
 .kpi .ic{position:absolute;top:13px;left:14px;font-size:18px;color:var(--faint)}
 
+/* ===== leader summary bar (موحّد على كل التبويبات) ===== */
+.lead-bar{position:relative;background:linear-gradient(135deg,#15C2BA 0%,#13B9B2 42%,#0b8f88 100%);border-radius:18px;padding:18px 22px;color:#fff;margin-bottom:22px;overflow:hidden;box-shadow:0 18px 42px -28px rgba(19,185,178,.6);text-shadow:0 1px 2px rgba(6,60,57,.16)}
+.lead-bar::after{content:'';position:absolute;top:-45%;inset-inline-start:-6%;width:280px;height:280px;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);pointer-events:none}
+.lead-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;position:relative;z-index:1}
+.lead-top .t{font-size:18px;font-weight:700}
+.lead-top .s{font-size:12.5px;opacity:.9;font-weight:400;margin-top:2px}
+.lead-live{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);padding:5px 12px;border-radius:100px;font-size:11.5px;font-weight:500}
+.lead-live .d{width:8px;height:8px;border-radius:50%;background:#eafffb;animation:leadpulse 2s infinite}
+@keyframes leadpulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}70%{box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+.lead-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;position:relative;z-index:1}
+.lead-fig{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:13px;padding:12px 14px}
+.lead-fig.alert{background:rgba(255,241,214,.18);border-color:rgba(255,236,179,.42)}
+.lead-fig .l{font-size:12px;opacity:.92;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.lead-fig .v{font-size:24px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.lead-fig .v small{font-size:12px;font-weight:400;opacity:.85}
+.lead-fig .sub{font-size:11px;opacity:.85;margin-top:3px}
+
 /* ===== tabs ===== */
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
 .tab{padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
@@ -168,22 +185,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 .msg .who{font-size:11px;color:var(--faint);margin-bottom:3px}
 .err-box{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:#ff9d97;border-radius:11px;padding:14px 16px;font-size:13.5px;margin-bottom:18px;display:none}
 /* ===== لوحة القيادة (نظرة عامة) — ألوان سيمبل الرسمية ===== */
-.dsh-hero{position:relative;background:linear-gradient(135deg,#15C2BA 0%,#13B9B2 40%,#0b8f88 100%);border-radius:22px;padding:24px 26px;color:#fff;overflow:hidden;margin-bottom:16px;box-shadow:0 22px 50px -30px rgba(19,185,178,.55);text-shadow:0 1px 2px rgba(6,60,57,.18)}
-.dsh-hero::after{content:'';position:absolute;top:-40%;inset-inline-start:-8%;width:320px;height:320px;background:radial-gradient(circle,rgba(19,185,178,.4),transparent 70%);pointer-events:none}
-.dsh-htop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
-.dsh-htop .t{font-size:20px;font-weight:700}.dsh-htop .s{font-size:12px;color:rgba(255,255,255,.7)}
-.dsh-live{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);padding:6px 13px;border-radius:100px;font-size:12px;font-weight:600}
-.dsh-live .d{width:7px;height:7px;border-radius:50%;background:#13B9B2;box-shadow:0 0 10px 1px rgba(19,185,178,.9);animation:dshp 1.6s infinite}
-@keyframes dshp{0%,100%{opacity:1}50%{opacity:.4}}
-.dsh-figs{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:14px;margin-top:20px;position:relative;z-index:1}
-@media(max-width:820px){.dsh-figs{grid-template-columns:1fr 1fr}}
-.dsh-fig .l{font-size:11.5px;color:rgba(255,255,255,.72);margin-bottom:5px}
-.dsh-fig .v{font-size:26px;font-weight:700;line-height:1;letter-spacing:-.5px}
-.dsh-fig .v small{font-size:13px;font-weight:600;opacity:.75}
-.dsh-fig .sub{font-size:11px;margin-top:5px;color:rgba(255,255,255,.6)}
-.dsh-fig.alert{background:rgba(19,185,178,.18);border:1px solid rgba(127,214,210,.45);border-radius:13px;padding:11px 13px;margin:-9px -2px}
-.dsh-fig.alert .v{color:#bff0ec}
-.dsh-up{color:#5fe6d0;font-weight:700}
+.dsh-up{color:#0e9a94;font-weight:700}
 .dsh-grid{display:grid;gap:16px;margin-bottom:16px}.dsh-g2{grid-template-columns:1fr 1fr}
 @media(max-width:820px){.dsh-g2{grid-template-columns:1fr}}
 .dsh-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:17px 19px}
@@ -288,7 +290,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 
   <div class="err-box" id="err-box"></div>
 
-  <div class="kpi-grid" id="kpis"></div>
+  <div class="lead-bar" id="kpis"></div>
 
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
@@ -616,7 +618,7 @@ async function loadAll(silent){
     campsById={}; CAMPAIGNS.forEach(x=>campsById[x.id]=x);
     $('#gate').style.display='none'; $('#dash').style.display='block';
     $('#err-box').style.display='none';
-    renderKPIs(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderOverdue(); renderUsers(); renderCampaigns(); renderDeals(); renderCompanies();
+    renderLeaderBar(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderOverdue(); renderUsers(); renderCampaigns(); renderDeals(); renderCompanies();
     updateUpd();
   }catch(err){
     console.error(err);
@@ -1121,27 +1123,33 @@ function campTitle(cid){ const c=campsById[cid]; return c?c.title:'—'; }
 function creatorName(a){ const u=usersById[a.creator_id]; return u?(u.name||u.company_name||'—'):'—'; }
 function brandNameForApp(a){ const c=campsById[a.campaign_id]; return c?brandOfCampaign(c):'—'; }
 
-// ===== KPIs =====
-function renderKPIs(){
-  const brands = USERS.filter(u=>u.role==='brand').length;
-  const creators = USERS.filter(u=>u.role==='creator').length;
+// ===== شريط القيادة الموحّد (يظهر بنفس الشكل على كل التبويبات) =====
+// يستخدم نفس تعريفات الأرقام في «نظرة عامة» حتى ما يختلف رقم عن رقم بين مكان وآخر.
+function renderLeaderBar(){
+  const box = $('#kpis'); if(!box) return;
+  const val = a => Number(a.final_price||a.price)||0;
+  const brands = USERS.filter(u=>u.role==='brand' && u.company_name!=='agentsimpleai');
+  const creators = USERS.filter(u=>u.role==='creator');
   const activeCamps = CAMPAIGNS.filter(c=>c.status==='active').length;
-  const closed = APPS.filter(isClosed);
-  const gmv = closed.reduce((s,a)=>s+(Number(a.final_price)||0),0);
-  const avg = closed.length ? Math.round(gmv/closed.length) : 0;
-  const k = [
-    ['ti-building-store','الشركات',num(brands)],
-    ['ti-users','المعلنون',num(creators)],
-    ['ti-user-check','إجمالي المستخدمين',num(USERS.length)],
-    ['ti-rocket','حملات نشطة',num(activeCamps)+'<small> / '+num(CAMPAIGNS.length)+'</small>'],
-    ['ti-send','إجمالي العروض',num(APPS.length)],
-    ['ti-circle-check','صفقات مقفلة',num(closed.length)],
-    ['ti-coin','قيمة الصفقات (GMV)',money(gmv),'hl'],
-    ['ti-calculator','متوسط الصفقة',money(avg)],
-  ];
-  $('#kpis').innerHTML = k.map(([ic,lbl,val,cls])=>
-    '<div class="kpi '+(cls||'')+'"><i class="ti '+ic+' ic"></i><div class="lbl">'+esc(lbl)+'</div><div class="val">'+val+'</div></div>'
-  ).join('');
+  const approved = APPS.filter(a=>a.status==='closed' && a.brand_approved===true);
+  const completed = approved.filter(a=>(a.stage||1)>=9);
+  const gmv = approved.reduce((s,a)=>s+val(a),0);
+  const paid = approved.filter(a=>a.payment_status==='confirmed').reduce((s,a)=>s+val(a),0);
+  const owed = completed.filter(a=>a.payment_status!=='confirmed').reduce((s,a)=>s+val(a),0);
+  const waitlisted = APPS.filter(a=>a.status==='waitlisted').length;
+  const fig = (ic,l,v,s,cls)=> '<div class="lead-fig '+(cls||'')+'"><div class="l">'+ic+' '+l+'</div><div class="v">'+v+'</div><div class="sub">'+s+'</div></div>';
+  const r = x => money(x).replace(' ر.س','')+'<small> ر.س</small>';
+  box.innerHTML =
+    '<div class="lead-top"><div><div class="t">لوحة قيادة سيمبل ✦</div><div class="s">كل اللي يصير في منصتك — بمكان واحد</div></div>'
+    + '<span class="lead-live"><span class="d"></span> مباشر · محدّث الآن</span></div>'
+    + '<div class="lead-figs">'
+    +   fig('💰','قيمة الصفقات (GMV)', r(gmv), num(approved.length)+' صفقة معتمدة')
+    +   fig('✓','مدفوع للمؤثرين', r(paid), 'حُوّلت فعليًا للمؤثرين')
+    +   fig('⚠️','مستحق للمؤثرين', r(owed), owed>0?'غير مدفوعة — تحتاج متابعة':'كل الحقوق مدفوعة ✓', owed>0?'alert':'')
+    +   fig('👥','المستخدمون', num(USERS.length), num(creators.length)+' مؤثر · '+num(brands.length)+' شركات')
+    +   fig('🚀','حملات نشطة', num(activeCamps)+' <small>/ '+num(CAMPAIGNS.length)+'</small>', num(waitlisted)+' في قوائم الانتظار')
+    +   fig('🏢','الشركات', num(brands.length), 'شركة معلِنة على المنصة')
+    + '</div>';
 }
 
 // ===== لوحة القيادة (نظرة عامة) — كل شي بمكان واحد =====
@@ -1219,17 +1227,8 @@ function renderOverview(){
   const compName = n => String(n||'').replace(/^شركة\s*/,'').trim();
 
   box.innerHTML =
-  // HERO
-  '<div class="dsh-hero"><div class="dsh-htop"><div><div class="t">لوحة قيادة سيمبل ✦</div><div class="s">كل اللي يصير في منصتك — بمكان واحد</div></div>'
-  + '<span class="dsh-live"><span class="d"></span> مباشر · محدّث الآن</span></div>'
-  + '<div class="dsh-figs">'
-  +   '<div class="dsh-fig"><div class="l">💰 قيمة الصفقات (GMV)</div><div class="v">'+money(gmv).replace(' ر.س','')+'<small> ر.س</small></div><div class="sub">'+(growthSub||(num(approved.length)+' صفقة معتمدة'))+'</div></div>'
-  +   '<div class="dsh-fig alert"><div class="l">⚠️ مستحق للمؤثرين</div><div class="v">'+money(owed).replace(' ر.س','')+'<small> ر.س</small></div><div class="sub">غير مدفوعة — تحتاج متابعة</div></div>'
-  +   '<div class="dsh-fig"><div class="l">👥 المستخدمون</div><div class="v">'+num(USERS.length)+'</div><div class="sub">'+num(creators.length)+' مؤثر · '+num(brands.length)+' شركات</div></div>'
-  +   '<div class="dsh-fig"><div class="l">🚀 حملات نشطة</div><div class="v">'+num(activeCamps)+' <small>/ '+num(CAMPAIGNS.length)+'</small></div><div class="sub">'+num(waitlisted)+' في قوائم الانتظار</div></div>'
-  + '</div></div>'
-  // FINANCIAL FLOW
-  + '<div class="dsh-grid"><div class="dsh-card"><h4>💸 تدفّق الأموال — حقوق المؤثرين</h4><div class="hint">من إجمالي GMV '+money(gmv)+': المدفوع فعليًا، المستحق، وقيد التنفيذ</div>'
+  // FINANCIAL FLOW (الأرقام الرئيسية صارت بشريط القيادة الموحّد فوق)
+  '<div class="dsh-grid"><div class="dsh-card"><h4>💸 تدفّق الأموال — حقوق المؤثرين</h4><div class="hint">من إجمالي GMV '+money(gmv)+': المدفوع فعليًا، المستحق، وقيد التنفيذ'+(growthSub?' · '+growthSub:'')+'</div>'
   +   '<div class="dsh-flow">'+(paid>0?'<div style="flex:'+paid+';background:#0e9a94">✓ مدفوع</div>':'')+(owed>0?'<div style="flex:'+owed+';background:#13B9B2">⚠ مستحق</div>':'')+(inprog>0?'<div style="flex:'+inprog+';background:#a5e3df;color:#0e6b66">قيد التنفيذ</div>':'')+'</div>'
   +   '<div class="dsh-leg"><div class="dsh-lg"><span class="sw" style="background:#0e9a94"></span><b>'+money(paid)+'</b><span>✓ مدفوع</span></div>'
   +   '<div class="dsh-lg"><span class="sw" style="background:#13B9B2"></span><b>'+money(owed)+'</b><span>⚠ مستحق غير مدفوع</span></div>'
@@ -1522,10 +1521,8 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
   const tab = t.getAttribute('data-tab');
   t.classList.add('active'); $('#panel-'+tab).classList.add('active');
-  const kp=$('#kpis'); if(kp) kp.style.display = (tab==='overview') ? 'none' : '';
 }));
-// إخفاء شريط الأرقام المكرّر في «نظرة عامة» (الهيرو يغنيها) — الافتراضي عند التحميل
-(function(){ const kp=$('#kpis'); if(kp) kp.style.display='none'; })();
+// شريط القيادة الموحّد ثابت فوق كل التبويبات — ما يختفي ولا يتغيّر شكله
 $('#u-search').addEventListener('input',renderUsers);
 { const _cs=$('#co-search'); if(_cs) _cs.addEventListener('input',renderCompanies); }
 $('#u-role').addEventListener('change',renderUsers);
