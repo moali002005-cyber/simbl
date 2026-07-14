@@ -2172,6 +2172,7 @@ async function init() {
     const hs = document.getElementById('hero-status');
     if (hs) hs.textContent = 'تعمل في مساحة فريق «' + companyName + '»';
   }
+  applyTeamPermissions();
 
   // ====== بوابة الموافقة: الشركة لازم تكون مفعّلة قبل استخدام المنصة ======
   // أي حالة غير 'pending'/'rejected' (بما فيها القديمة بدون قيمة) تُعتبر مفعّلة،
@@ -2619,6 +2620,7 @@ function toggleBrief(id, btn) {
 }
 
 async function approveDeal(applicationId) {
+  if (typeof hasPerm === 'function' && !hasPerm('deals')) { showToast('ما عندك صلاحية اعتماد الصفقات', 'error'); return; }
   const { app, campaign } = findAppById(applicationId);
   if (!app) return;
 
@@ -3375,7 +3377,16 @@ function setModalMode(mode, campaign) {
   }
 }
 
+// صلاحيات عضو الفريق — المالك وغير الأعضاء لهم كل الصلاحيات
+function hasPerm(p) { return !window.TEAM_WS || ((window.TEAM_WS.permissions || []).indexOf(p) >= 0); }
+function applyTeamPermissions() {
+  if (!window.TEAM_WS) return; // المالك: لا قيود
+  const hideByOnclick = (needle) => document.querySelectorAll('[onclick]').forEach(el => { if ((el.getAttribute('onclick') || '').indexOf(needle) >= 0) el.style.display = 'none'; });
+  if (!hasPerm('campaigns')) hideByOnclick('openCampaignModal');
+  if (!hasPerm('payments')) hideByOnclick("/dues.html");
+}
 function openCampaignModal() {
+  if (!hasPerm('campaigns')) { showToast('ما عندك صلاحية إدارة الحملات', 'error'); return; }
   editingCampaignId = null;
   setModalMode('create');
   document.getElementById('campaign-modal').classList.add('show');

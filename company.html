@@ -825,6 +825,10 @@ async function init(){
   const cn=window.TEAM_WS?(window.TEAM_WS.owner_company_name||'الشركة'):(currentUser.company_name||'الشركة');
   WORKSPACE_NAME=cn;
   $('#co-name').textContent='أداء الحملات الإعلانية — '+cn;
+  // صلاحيات: عضو بلا صلاحية «المستحقات» ما يشوف صفحة المستحقات التفصيلية
+  if(window.TEAM_WS && (window.TEAM_WS.permissions||[]).indexOf('payments')<0){
+    const d=document.querySelector('.co-btn[href="/dues.html"]'); if(d) d.style.display='none';
+  }
   let approvalStatus=currentUser.approval_status;
   try{ const {data:meRow}=await supabaseClient.from('users').select('approval_status').eq('id',currentUser.id).maybeSingle(); if(meRow&&meRow.approval_status){approvalStatus=meRow.approval_status; currentUser.approval_status=approvalStatus; saveCurrentUser(currentUser);} }catch(e){}
   if(!window.TEAM_WS && (approvalStatus==='pending'||approvalStatus==='rejected'||approvalStatus==='suspended')){ showPending(approvalStatus); return; }
