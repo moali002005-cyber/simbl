@@ -58,6 +58,15 @@ input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(19
 .loading{text-align:center;color:var(--muted);padding:40px}
 .empty{color:var(--faint);font-size:13px;padding:8px 0}
 .ed{width:100%;margin-top:10px;padding:12px;background:#fbfdfc;border:1px solid var(--line);border-radius:12px}
+.feed{display:flex;flex-direction:column}
+.frow{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.frow:first-child{border-top:0}
+.fic{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.fi{flex:1;min-width:0;font-size:13.5px;line-height:1.6}
+.fi .fw{font-weight:700;color:var(--accent-ink)}
+.fi .fd{color:var(--ink)}
+.fi .fa{font-weight:700;color:var(--accent-dim)}
+.fi small{display:block;color:var(--faint);font-size:11.5px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -85,7 +94,20 @@ const PERMS=[
   {k:'analytics',l:'التحليلات والتقارير',d:'عرض التحليلات وتصدير التقارير'}
 ];
 const PLABEL=Object.fromEntries(PERMS.map(p=>[p.k,p.l]));
-let currentUser=null, workspace=null, MEMBERS=[];
+let currentUser=null, workspace=null, MEMBERS=[], ACTIVITY=[];
+const ACTS={
+  camp_create:{i:'🆕',c:'#0e9a94'}, camp_edit:{i:'✏️',c:'#5f6b66'}, camp_delete:{i:'🗑️',c:'#c23b3b'},
+  approve:{i:'✅',c:'#0e9a94'}, reject:{i:'⛔',c:'#c23b3b'}, stage:{i:'🎬',c:'#5f6b66'},
+  pay:{i:'💰',c:'#0e9a94'}, member_add:{i:'👤',c:'#0e9a94'}
+};
+function timeAgo(ts){
+  const d=new Date(ts), now=new Date(), s=Math.floor((now-d)/1000);
+  if(s<60) return 'الآن';
+  const m=Math.floor(s/60); if(m<60) return 'قبل '+m+' دقيقة';
+  const h=Math.floor(m/60); if(h<24) return 'قبل '+h+' ساعة';
+  const dd=Math.floor(h/24); if(dd<30) return 'قبل '+dd+' يوم';
+  return d.toLocaleDateString('ar-SA');
+}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
 async function init(){
@@ -97,9 +119,10 @@ async function init(){
 }
 async function load(){
   try{
-    const [wsRes,listRes]=await Promise.all([ supabaseClient.rpc('team_my_workspace'), supabaseClient.rpc('team_list') ]);
+    const [wsRes,listRes,actRes]=await Promise.all([ supabaseClient.rpc('team_my_workspace'), supabaseClient.rpc('team_list'), supabaseClient.rpc('team_activity_list') ]);
     workspace=wsRes.data||{is_member:false};
     MEMBERS=listRes.data||[];
+    ACTIVITY=(actRes&&Array.isArray(actRes.data))?actRes.data:[];
     render();
   }catch(e){ console.error(e); $('#content').innerHTML='<div class="card"><div class="empty" style="color:#c23b3b">تعذّر تحميل الفريق. حدّث الصفحة.</div></div>'; }
 }
@@ -119,6 +142,14 @@ function memberRow(m){
     +'<div id="ed-'+m.member_id+'"></div></div>';
 }
 
+function activityRow(a){
+  const meta=ACTS[a.action]||{i:'•',c:'#5f6b66'};
+  const who=a.is_me?'أنت':(a.actor_name||'عضو');
+  return '<div class="frow"><span class="fic" style="background:'+meta.c+'1a;color:'+meta.c+'">'+meta.i+'</span>'
+    +'<div class="fi"><span class="fw">'+esc(who)+'</span> <span class="fd">'+esc(a.detail||'')+'</span>'
+    +(a.amount?' <span class="fa">'+Number(a.amount).toLocaleString('en-US')+' ر.س</span>':'')
+    +'<small>'+esc(timeAgo(a.created_at))+'</small></div></div>';
+}
 function render(){
   const isMember = workspace && workspace.is_member;
   $('#ws-banner').innerHTML = isMember
@@ -141,6 +172,9 @@ function render(){
   html+='<div class="card"><h2>👤 أعضاء المساحة ('+MEMBERS.length+')</h2><div class="sub">'
     +(isMember?'الفريق اللي تشتغل معه':'أنت والأعضاء اللي أضفتهم لمساحتك')+'</div>'
     +(MEMBERS.length?MEMBERS.map(memberRow).join(''):'<div class="empty">ما فيه أعضاء بعد.</div>')+'</div>';
+
+  html+='<div class="card"><h2>📋 سجل نشاط الفريق</h2><div class="sub">مين سوّى ايش — آخر ١٠٠ حركة على مساحة الشركة.</div>'
+    +(ACTIVITY.length?'<div class="feed">'+ACTIVITY.map(activityRow).join('')+'</div>':'<div class="empty">ما فيه نشاط مسجّل بعد. أي حركة من الفريق (اعتماد، تنفيذ، دفع، تعديل حملة) بتظهر هنا.</div>')+'</div>';
 
   $('#content').innerHTML=html;
 }
