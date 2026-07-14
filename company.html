@@ -366,7 +366,7 @@ function renderLeaderBar(){
     +fig('⚠️','مستحق عليّ للمؤثرين', r(c.owed), c.owed>0?'مكتملة وغير مدفوعة — بادر بالدفع':'ما عليك مستحقات ✓', c.owed>0?'alert':'')
     +fig('📣','حملاتي', num(c.activeCamps)+' <small>/ '+num(c.camps.length)+'</small>', 'نشطة من إجمالي حملاتك')
     +fig('📨','عروض مستلمة', num(c.apps.length), num(c.engaged)+' قيد التفاوض الآن')
-    +fig('🤝','صفقات مقفلة', num(c.closedCount), 'أقفلها الوكيل لصالحك')
+    +fig('🤝','صفقات معتمدة', num(c.approved.length), 'اعتمدتها شركتك وبدأ تنفيذها')
     +'</div>';
 }
 
@@ -405,7 +405,7 @@ function renderOverview(){
   const perf=c.camps.map(cm=>{
     const ca=apps.filter(a=>a.campaign_id===cm.id);
     const sp=ca.filter(a=>a.status==='closed'&&a.brand_approved===true).reduce((s,a)=>s+val(a),0);
-    return {title:cm.title||'—',offers:ca.length,closed:ca.filter(a=>a.status==='closed').length,spend:sp};
+    return {title:cm.title||'—',offers:ca.length,approved:ca.filter(a=>a.status==='closed'&&a.brand_approved===true).length,spend:sp};
   }).sort((a,b)=>b.spend-a.spend).slice(0,6).filter(r=>r.offers>0||r.spend>0);
   const maxSp=Math.max(1,...perf.map(p=>p.spend));
 
@@ -450,7 +450,6 @@ function renderOverview(){
   +'<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>🎯 قمع التنفيذ</h4><div class="hint">من العرض لأول دفعة — وين توصل صفقاتك</div><div class="dsh-fun">'
   +'<div class="dsh-fr"><span class="dsh-fl">عروض مستلمة</span><div class="dsh-fb" style="width:100%">'+num(nOffers)+'</div></div>'
   +'<div class="dsh-fr"><span class="dsh-fl">قيد التفاوض</span><div class="dsh-fb" style="width:'+pct(nEng,base)+'%">'+num(nEng)+'</div></div>'
-  +'<div class="dsh-fr"><span class="dsh-fl">مقفلة</span><div class="dsh-fb" style="width:'+pct(nClosed,base)+'%">'+num(nClosed)+'</div></div>'
   +'<div class="dsh-fr"><span class="dsh-fl">معتمدة</span><div class="dsh-fb" style="width:'+pct(nApp,base)+'%">'+num(nApp)+'</div></div>'
   +'<div class="dsh-fr"><span class="dsh-fl">مكتملة</span><div class="dsh-fb" style="width:'+pct(nComp,base)+'%">'+num(nComp)+'</div></div>'
   +'</div></div>'
@@ -459,7 +458,7 @@ function renderOverview(){
   +'</div></div></div>'
 
   +'<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📣 حملاتي — الأداء</h4><div class="hint">مرتّبة بالأعلى إنفاقًا · عدد العروض والصفقات لكل حملة</div><div class="dsh-hb">'
-  +(perf.length?perf.map(p=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(p.title)+'</span><div class="dsh-ht"><div class="dsh-hf" style="width:'+Math.max(4,Math.round(p.spend/maxSp*100))+'%"></div></div><span class="dsh-hv">'+num(p.spend)+' <span class="dsh-ho">· '+num(p.offers)+' عرض · '+num(p.closed)+' مقفلة</span></span></div>').join(''):'<div class="hint">ما عندك حملات فيها عروض بعد</div>')
+  +(perf.length?perf.map(p=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(p.title)+'</span><div class="dsh-ht"><div class="dsh-hf" style="width:'+Math.max(4,Math.round(p.spend/maxSp*100))+'%"></div></div><span class="dsh-hv">'+num(p.spend)+' <span class="dsh-ho">· '+num(p.offers)+' عرض · '+num(p.approved)+' معتمدة</span></span></div>').join(''):'<div class="hint">ما عندك حملات فيها عروض بعد</div>')
   +'</div></div>'
   +'<div class="dsh-card"><h4>◑ حالة العروض ('+num(apps.length)+')</h4><div class="hint">توزيع حالات العروض على حملاتك</div><div class="dsh-dwrap">'
   +'<div class="dsh-donut" style="background:'+donutBg+'"><div class="dsh-dc"><b>'+num(topStatus[1])+'</b><s>'+esc(STATUS[topStatus[0]]||topStatus[0])+'</s></div></div>'

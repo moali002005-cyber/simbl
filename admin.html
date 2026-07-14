@@ -479,7 +479,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
       <span class="count-tag" id="c-count"></span>
     </div>
     <div class="tbl-wrap">
-      <table><thead><tr><th>الحملة</th><th>الشركة</th><th>الحالة</th><th>العروض</th><th>المقفلة</th><th>الميزانية</th><th>المدينة</th><th>أنشئت</th><th>إجراء</th></tr></thead>
+      <table><thead><tr><th>الحملة</th><th>الشركة</th><th>الحالة</th><th>العروض</th><th>المعتمدة</th><th>الميزانية</th><th>المدينة</th><th>أنشئت</th><th>إجراء</th></tr></thead>
       <tbody id="campaigns-tbody"></tbody></table>
     </div>
   </div>
@@ -673,7 +673,6 @@ function renderAnalytics(){
     ['حملات جديدة', u=>winCount(CAMPAIGNS,'created_at',u), CAMPAIGNS.length],
     ['شركات أطلقت حملة', u=>winDistinct(CAMPAIGNS,'created_at','brand_id',u), new Set(CAMPAIGNS.map(c=>c.brand_id)).size],
     ['معلنون قدّموا عرض', u=>winDistinct(APPS,'created_at','creator_id',u), new Set(APPS.map(a=>a.creator_id)).size],
-    ['صفقات مقفلة', u=>winCount(closed,'closed_at',u), closed.length],
     ['صفقات معتمدة', u=>winCount(approved,'closed_at',u), approved.length],
     ['الإيراد (GMV) — معتمد', u=>money(winSumV(approved,'closed_at',gmvVal,u)), money(approved.reduce((s,a)=>s+gmvVal(a),0))],
     ['رسائل التفاوض', u=>winCount(NEGS,'created_at',u), NEGS.length],
@@ -1252,8 +1251,7 @@ function renderOverview(){
   + '<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>🎯 قمع التنفيذ</h4><div class="hint">من المؤثرين لأول دفعة — وين يتسرّب الناس</div><div class="dsh-fun">'
   +   '<div class="dsh-fr"><span class="dsh-fl">مؤثرون</span><div class="dsh-fb" style="width:100%">'+num(creators.length)+'</div></div>'
   +   '<div class="dsh-fr"><span class="dsh-fl">قدّموا</span><div class="dsh-fb" style="width:'+pct(appliedCreators,creators.length)+'%">'+num(appliedCreators)+'</div><span class="dsh-fp">'+pct(appliedCreators,creators.length)+'%</span></div>'
-  +   '<div class="dsh-fr"><span class="dsh-fl">صفقات مقفلة</span><div class="dsh-fb" style="width:'+pct(closedCount,creators.length)+'%">'+num(closedCount)+'</div></div>'
-  +   '<div class="dsh-fr"><span class="dsh-fl">معتمدة</span><div class="dsh-fb" style="width:'+pct(approved.length,creators.length)+'%">'+num(approved.length)+'</div></div>'
+  +   '<div class="dsh-fr"><span class="dsh-fl">صفقات معتمدة</span><div class="dsh-fb" style="width:'+pct(approved.length,creators.length)+'%">'+num(approved.length)+'</div></div>'
   +   '<div class="dsh-fr"><span class="dsh-fl">مكتملة</span><div class="dsh-fb" style="width:'+pct(completed.length,creators.length)+'%">'+num(completed.length)+'</div></div>'
   + '</div></div>'
   + '<div class="dsh-card"><h4>📈 نمو الـGMV شهريًا</h4><div class="hint">قيمة الصفقات المعتمدة كل شهر</div><div class="dsh-vb">'
@@ -1350,7 +1348,7 @@ function renderCampaigns(){
   rows.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   $('#c-count').textContent = rows.length+' حملة';
   $('#campaigns-tbody').innerHTML = rows.length ? rows.map(c=>{
-    const n=appsOfCampaign(c.id).length, cl=closedOfCampaign(c.id).length;
+    const n=appsOfCampaign(c.id).length, cl=APPS.filter(a=>a.campaign_id===c.id && isApprovedDeal(a)).length;
     const stBadge=c.status==='active'?'<span class="badge b-active">نشطة</span>':(c.status==='hidden'?'<span class="badge b-stage">مخفية</span>':'<span class="badge b-stage">'+esc(c.status||'—')+'</span>');
     const hideLabel=c.status==='hidden'?'إظهار':'إخفاء';
     const act='<button onclick="adminToggleHide(\''+c.id+'\')" style="padding:5px 10px;border:1px solid #d9d9d9;background:#fff;border-radius:7px;font-size:12px;cursor:pointer;margin-inline-start:4px;">'+hideLabel+'</button>'
