@@ -366,6 +366,7 @@ const CITY={riyadh:'الرياض',jeddah:'جدة',dammam:'الدمام',khobar:'
 const STATUS={closed:'صفقات مقفلة',active:'تفاوض نشط',waitlisted:'قائمة انتظار',rejected:'مرفوضة',pending:'قيد المراجعة',campaign_full:'اكتمال الحملة'};
 
 let currentUser=null, myCampaigns=[], ALLAPPS=[], RATINGS=[];
+let WORKSPACE_ID=null, WORKSPACE_NAME=''; // مساحة العمل الفعّالة (المالك لو عضو فريق)
 
 const val=a=>Number(a.final_price||a.price)||0;
 
@@ -391,7 +392,7 @@ function renderLeaderBar(){
   const fig=(ic,l,v,s,cls)=>'<div class="lead-fig '+(cls||'')+'"><div class="l">'+ic+' '+l+'</div><div class="v">'+v+'</div><div class="sub">'+s+'</div></div>';
   const r=x=>money(x).replace(' ر.س','')+'<small> ر.س</small>';
   box.innerHTML=
-    '<div class="lead-top"><div><div class="t">أداء الحملات الإعلانية — '+esc(currentUser.company_name||'شركتك')+' ✦</div><div class="s">كل اللي يصير في حملاتك — بمكان واحد</div></div>'
+    '<div class="lead-top"><div><div class="t">أداء الحملات الإعلانية — '+esc(WORKSPACE_NAME||currentUser.company_name||'شركتك')+' ✦</div><div class="s">كل اللي يصير في حملاتك — بمكان واحد</div></div>'
     +'<span class="lead-live"><span class="d"></span> مباشر · محدّث الآن</span></div>'
     +'<div class="lead-figs">'
     +fig('💰','إجمالي إنفاقي (GMV)', r(c.gmv), num(c.approved.length)+' صفقة معتمدة')
@@ -423,13 +424,13 @@ function exportCompanyExcel(){
   const csv='﻿'+rows.map(r=>r.map(cell=>{const s=String(cell==null?'':cell);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob); const a=document.createElement('a');
-  const name=String((currentUser&&currentUser.company_name)||'الشركة').replace(/\s+/g,'_');
+  const name=String(WORKSPACE_NAME||'الشركة').replace(/\s+/g,'_');
   a.href=url; a.download='صفقات_'+name+'.csv'; document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},120);
 }
 function openCompanyReport(){
   const c=compute(); const {gmv,paid,owed,inprog,approved,camps,apps}=c;
-  const company=esc(String((currentUser&&currentUser.company_name)||'الشركة'));
+  const company=esc(String(WORKSPACE_NAME||'الشركة'));
   const today=new Date().toLocaleDateString('ar-SA-u-nu-latn',{year:'numeric',month:'long',day:'numeric'});
   const perf=(camps||[]).map(cm=>{ const ca=apps.filter(a=>a.campaign_id===cm.id); const ap=ca.filter(a=>a.status==='closed'&&a.brand_approved===true);
     return {title:cm.title||'—', offers:ca.length, approved:ap.length, spend:ap.reduce((s,a)=>s+val(a),0)}; })
@@ -778,7 +779,7 @@ function renderCreators(){
 
 async function loadData(silent){
   try{
-    myCampaigns=await dbGetMyCampaigns(currentUser.id);
+    myCampaigns=await dbGetMyCampaigns(WORKSPACE_ID||currentUser.id);
     const ids=myCampaigns.map(c=>c.id);
     ALLAPPS=[];
     if(ids.length){
@@ -788,7 +789,7 @@ async function loadData(silent){
       if(error) throw error;
       ALLAPPS=data||[];
     }
-    try{ const {data:rr}=await supabaseClient.from('creator_ratings').select('stars').eq('brand_id',currentUser.id); RATINGS=rr||[]; }catch(e){ RATINGS=[]; }
+    try{ const {data:rr}=await supabaseClient.from('creator_ratings').select('stars').eq('brand_id',WORKSPACE_ID||currentUser.id); RATINGS=rr||[]; }catch(e){ RATINGS=[]; }
     renderLeaderBar(); renderOverview(); renderAnalytics(); renderCompare(); renderDeals(); renderCreators();
     const lu=$('#last-upd'); if(lu) lu.textContent='محدّث '+new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'2-digit',minute:'2-digit'});
   }catch(e){ console.error(e); if(!silent){ const ov=$('#ov-body'); if(ov) ov.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0;color:#c23b3b">حصل خطأ في التحميل. حدّث الصفحة.</div></div>'; } }
@@ -818,11 +819,15 @@ async function init(){
   currentUser=(typeof getCurrentUser==='function')?getCurrentUser():null;
   if(!currentUser){ location.href='/signup.html'; return; }
   if(currentUser.role!=='brand'){ location.href='/creator.html'; return; }
-  const cn=currentUser.company_name||'الشركة';
+  // مساحة الفريق: لو المستخدم عضو، يشتغل على مساحة المالك
+  WORKSPACE_ID=currentUser.id; window.TEAM_WS=null;
+  try{ const {data:ws}=await supabaseClient.rpc('team_my_workspace'); if(ws&&ws.is_member&&ws.owner_id){ WORKSPACE_ID=ws.owner_id; window.TEAM_WS=ws; } }catch(e){}
+  const cn=window.TEAM_WS?(window.TEAM_WS.owner_company_name||'الشركة'):(currentUser.company_name||'الشركة');
+  WORKSPACE_NAME=cn;
   $('#co-name').textContent='أداء الحملات الإعلانية — '+cn;
   let approvalStatus=currentUser.approval_status;
   try{ const {data:meRow}=await supabaseClient.from('users').select('approval_status').eq('id',currentUser.id).maybeSingle(); if(meRow&&meRow.approval_status){approvalStatus=meRow.approval_status; currentUser.approval_status=approvalStatus; saveCurrentUser(currentUser);} }catch(e){}
-  if(approvalStatus==='pending'||approvalStatus==='rejected'||approvalStatus==='suspended'){ showPending(approvalStatus); return; }
+  if(!window.TEAM_WS && (approvalStatus==='pending'||approvalStatus==='rejected'||approvalStatus==='suspended')){ showPending(approvalStatus); return; }
   try{ initNotifications('bell'); }catch(e){}
   $('#gate').style.display='none'; $('#dash').style.display='block';
   await loadData();

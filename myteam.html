@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فريقي — سيمبل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f7f8f7;--panel:#fff;--line:rgba(10,10,10,.09);--line2:rgba(10,10,10,.16);--ink:#0a0a0a;--muted:#5f6b66;--faint:#9aa3a0;--accent:#13B9B2;--accent-dim:#0e7a74;--accent-ink:#0c4f4b;--font:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+.nav{background:#fff;border-bottom:1px solid var(--line);padding:16px 0}
+.wrap{max-width:820px;margin:0 auto;padding:0 22px}
+.nav-in{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;color:var(--ink)}
+.logo .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);align-self:flex-end;margin-bottom:6px}
+.back{font-size:13px;color:var(--muted);font-weight:600}
+.hero{padding:26px 0 6px}
+.hero h1{font-size:24px;font-weight:700}.hero p{color:var(--muted);font-size:14px;margin-top:4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-top:16px}
+.card h2{font-size:15.5px;font-weight:700;color:var(--accent-ink);display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.card .sub{font-size:12.5px;color:var(--faint);margin-bottom:16px}
+.codebox{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:linear-gradient(135deg,rgba(19,185,178,.1),rgba(19,185,178,.02));border:1.5px dashed rgba(19,185,178,.4);border-radius:14px;padding:16px 18px}
+.code{font-size:30px;font-weight:800;letter-spacing:5px;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:100px;border:1px solid var(--line2);background:#fff;color:var(--ink);font-family:var(--font);font-size:13.5px;font-weight:600;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent-dim)}
+.btn.primary{background:linear-gradient(135deg,#16c2ba,#0e9a94);border-color:transparent;color:#fff}
+.btn.primary:hover{filter:brightness(1.05);color:#fff}
+.btn.danger{color:#c23b3b;border-color:rgba(201,48,48,.4)}.btn.danger:hover{background:rgba(201,48,48,.06)}
+.mrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.mrow:first-child{border-top:0}
+.av{width:40px;height:40px;border-radius:50%;background:rgba(19,185,178,.14);color:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex-shrink:0}
+.mi{flex:1;min-width:0}.mi b{color:var(--accent-ink);font-weight:600}.mi small{display:block;color:var(--faint);font-size:12px}
+.badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:100px}
+.badge.owner{background:rgba(19,185,178,.16);color:var(--accent-dim)}.badge.member{background:#eef1f0;color:#5f6b66}
+.joinrow{display:flex;gap:10px;flex-wrap:wrap}
+.joinrow input{flex:1;min-width:160px;padding:12px 15px;border:1px solid var(--line2);border-radius:11px;font-family:var(--font);font-size:15px;letter-spacing:2px;text-transform:uppercase}
+.joinrow input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(19,185,178,.14)}
+.note{font-size:12.5px;color:var(--muted);background:#f1f5f4;border-radius:11px;padding:12px 14px;margin-top:14px;line-height:1.7}
+.wsbanner{background:linear-gradient(135deg,#16c2ba,#0e9a94);color:#fff;border-radius:14px;padding:14px 18px;margin-top:16px;font-size:13.5px;font-weight:600}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#0c4f4b;color:#fff;padding:11px 20px;border-radius:100px;font-size:13px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+.loading{text-align:center;color:var(--muted);padding:40px}
+.empty{color:var(--faint);font-size:13px;padding:8px 0}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="wrap nav-in">
+  <a href="/brand.html" class="logo">سيمبل<span class="dot"></span></a>
+  <a href="/brand.html" class="back">← رجوع للوحة</a>
+</div></nav>
+
+<div class="wrap">
+  <div class="hero"><h1>👥 فريقي</h1><p>ادعُ فريقك ليشتغلوا معك على نفس مساحة العمل — نفس الحملات والصفقات.</p></div>
+  <div id="ws-banner"></div>
+  <div id="content"><div class="loading">نحمّل فريقك…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>document.write('<script src="supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let currentUser=null, myCode='', workspace=null;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+async function init(){
+  try{ await tryRestoreSession(); }catch(e){}
+  currentUser=(typeof getCurrentUser==='function')?getCurrentUser():null;
+  if(!currentUser){ location.href='/login.html'; return; }
+  if(currentUser.role!=='brand'){ location.href='/creator.html'; return; }
+  await load();
+}
+
+async function load(){
+  try{
+    const [codeRes, wsRes, listRes]=await Promise.all([
+      supabaseClient.rpc('team_my_code'),
+      supabaseClient.rpc('team_my_workspace'),
+      supabaseClient.rpc('team_list')
+    ]);
+    myCode=codeRes.data||'';
+    workspace=wsRes.data||{is_member:false};
+    render(listRes.data||[]);
+  }catch(e){ console.error(e); $('#content').innerHTML='<div class="card"><div class="empty" style="color:#c23b3b">تعذّر تحميل الفريق. حدّث الصفحة.</div></div>'; }
+}
+
+function render(members){
+  const isMember = workspace && workspace.is_member;
+  // banner if I'm a member of someone's workspace
+  $('#ws-banner').innerHTML = isMember
+    ? '<div class="wsbanner">✦ أنت عضو في مساحة «'+esc(workspace.owner_company_name||'شركة')+'» — كل ما تشتغل عليه في اللوحة يخصّها.</div>'
+    : '';
+
+  const rows = members.map(m=>{
+    const nm=m.name||m.email||'عضو'; const initial=(nm||'ع')[0];
+    const badge = m.is_owner ? '<span class="badge owner">المالك</span>' : '<span class="badge member">عضو</span>';
+    const isMe = m.member_id===currentUser.id;
+    const rm = (!m.is_owner && !isMember) ? '<button class="btn danger" onclick="removeMember(\''+m.member_id+'\',\''+esc(nm).replace(/\x27/g,"")+'\')">إزالة</button>' : '';
+    return '<div class="mrow"><span class="av">'+esc(initial)+'</span><div class="mi"><b>'+esc(nm)+(isMe?' <span style="color:#9aa3a0;font-weight:400">(أنت)</span>':'')+'</b><small>'+esc(m.email||'')+'</small></div>'+badge+rm+'</div>';
+  }).join('');
+
+  let html='';
+  // invite card (owner view — show my code to invite others)
+  if(!isMember){
+    html+='<div class="card"><h2>🔗 ادعُ فريقك</h2><div class="sub">شارك هذا الرمز مع فريقك. أي شخص يسجّل حساب شركة في سيمبل ويدخل الرمز، يدخل نفس مساحتك ويشتغل معك.</div>'
+      +'<div class="codebox"><span class="code" id="mycode">'+esc(myCode||'——————')+'</span><button class="btn primary" onclick="copyCode()">📋 نسخ الرمز</button></div>'
+      +'<div class="note">💡 العضو يفتح <b>سيمبل ← تسجيل ← شركة</b>، وبعد الدخول يفتح صفحة «فريقي» ويدخل الرمز. راح يشوف حملاتك وصفقاتك ويقدر يشتغل عليها فوراً.</div></div>';
+  }
+
+  // members card
+  html+='<div class="card"><h2>👤 أعضاء المساحة ('+members.length+')</h2><div class="sub">'
+    +(isMember?'الفريق اللي تشتغل معه':'أنت والأعضاء اللي انضمّوا لمساحتك')+'</div>'
+    +(members.length?rows:'<div class="empty">ما فيه أعضاء بعد.</div>')+'</div>';
+
+  // join card (join someone else workspace) — shown when not already a member
+  if(!isMember){
+    html+='<div class="card"><h2>➕ انضم لمساحة فريق</h2><div class="sub">عندك رمز دعوة من شركة؟ ادخله هنا لتنضم لمساحتهم وتشتغل معهم.</div>'
+      +'<div class="joinrow"><input id="join-code" maxlength="8" placeholder="رمز الدعوة" oninput="this.value=this.value.toUpperCase()"><button class="btn primary" onclick="joinTeam()">انضمام</button></div></div>';
+  } else {
+    html+='<div class="card"><h2>➕ مساحتك</h2><div class="sub">أنت حالياً عضو في مساحة «'+esc(workspace.owner_company_name||'شركة')+'». للخروج منها تواصل مع مالك المساحة.</div></div>';
+  }
+
+  $('#content').innerHTML=html;
+}
+
+function copyCode(){
+  const t=myCode||''; if(!t) return;
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast('نُسخ الرمز ✓')).catch(()=>fallbackCopy(t)); }
+  else fallbackCopy(t);
+}
+function fallbackCopy(t){ const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('نُسخ الرمز ✓');}catch(e){}document.body.removeChild(ta); }
+
+async function joinTeam(){
+  const code=($('#join-code').value||'').trim().toUpperCase();
+  if(!code){ toast('ادخل رمز الدعوة'); return; }
+  try{
+    const {data,error}=await supabaseClient.rpc('team_join',{p_code:code});
+    if(error) throw error;
+    toast('انضممت للمساحة ✓');
+    setTimeout(()=>location.href='/brand.html',900);
+  }catch(e){ toast((e&&e.message)?e.message:'رمز غير صحيح'); }
+}
+
+async function removeMember(id,name){
+  if(!confirm('إزالة '+(name||'العضو')+' من مساحتك؟ ما راح يقدر يوصل حملاتك بعدها.')) return;
+  try{
+    const {error}=await supabaseClient.rpc('team_remove',{p_member:id});
+    if(error) throw error;
+    toast('تمت الإزالة'); load();
+  }catch(e){ toast((e&&e.message)?e.message:'تعذّرت الإزالة'); }
+}
+
+init();
+</script>
+</body>
+</html>

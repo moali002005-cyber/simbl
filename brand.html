@@ -1842,6 +1842,7 @@ async function simblExitImpersonation(){
 <script>document.write('<script src="notifications.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
 let currentUser = null;
+let WORKSPACE_ID = null; // مساحة العمل الفعّالة (حساب المالك لو كان المستخدم عضو فريق، وإلا حسابه)
 let myCampaigns = [];
 let campaignApps = {};
 let selectedCampaignId = null;
@@ -1871,25 +1872,8 @@ function showToast(message, type = 'success', duration = 3500) {
 // ============ بوّابة «أعضاء الفريق» (وصول مبكّر لحساب الأدمن) ============
 // حساب أيجنت سيمبل فقط يدخل خريطة الفريق؛ باقي الشركات تشوف رسالة قيد التطوير.
 const TEAM_ADMIN_EMAILS = ['hello@agentsimpleai.com'];
-async function openTeamMembers() {
-  try {
-    const u = (typeof currentUser !== 'undefined' && currentUser)
-      ? currentUser
-      : (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
-    let email = (u && u.email) ? u.email : null;
-    if (!email && typeof supabaseClient !== 'undefined') {
-      // إيميل المستخدم نفسه من جلسة المصادقة (بدل قراءة عمود email المحجوب)
-      try {
-        const { data: au } = await supabaseClient.auth.getUser();
-        email = (au && au.user && au.user.email) ? au.user.email : null;
-      } catch (e) {}
-    }
-    if (email && TEAM_ADMIN_EMAILS.includes(email.toLowerCase())) {
-      window.location.href = 'team.html';
-      return;
-    }
-  } catch (e) {}
-  showToast('🚧 يتم تطوير مساحة للعمل المشترك على المنصة، وسيتم إشعاركم وقت جاهزيتها.', 'success', 5000);
+function openTeamMembers() {
+  window.location.href = '/myteam.html';
 }
 
 // ============ Launch radar overlay (بعد نشر الحملة) ============
@@ -2173,10 +2157,21 @@ async function init() {
     return;
   }
 
-  const companyName = currentUser.company_name || 'الشركة';
+  // ====== مساحة الفريق: لو المستخدم عضو في مساحة شركة، يشتغل على مساحتها ======
+  WORKSPACE_ID = currentUser.id; window.TEAM_WS = null;
+  try {
+    const { data: ws } = await supabaseClient.rpc('team_my_workspace');
+    if (ws && ws.is_member && ws.owner_id) { WORKSPACE_ID = ws.owner_id; window.TEAM_WS = ws; }
+  } catch (e) {}
+
+  const companyName = window.TEAM_WS ? (window.TEAM_WS.owner_company_name || 'الشركة') : (currentUser.company_name || 'الشركة');
   document.getElementById('user-name').textContent = companyName;
   document.getElementById('user-initial').textContent = companyName[0];
   document.getElementById('welcome-name').textContent = companyName;
+  if (window.TEAM_WS) {
+    const hs = document.getElementById('hero-status');
+    if (hs) hs.textContent = 'تعمل في مساحة فريق «' + companyName + '»';
+  }
 
   // ====== بوابة الموافقة: الشركة لازم تكون مفعّلة قبل استخدام المنصة ======
   // أي حالة غير 'pending'/'rejected' (بما فيها القديمة بدون قيمة) تُعتبر مفعّلة،
@@ -2191,7 +2186,8 @@ async function init() {
       saveCurrentUser(currentUser);
     }
   } catch (e) { /* نعتمد القيمة المخزّنة عند تعذّر الجلب */ }
-  if (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended') {
+  // أعضاء الفريق يتبعون تفعيل مساحة المالك — لا يحتاجون تفعيلاً مستقلاً
+  if (!window.TEAM_WS && (approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'suspended')) {
     showPendingScreen(approvalStatus);
     return;
   }
@@ -2228,6 +2224,10 @@ function showPendingScreen(status) {
           ? 'نعتذر، ما تم تفعيل حسابكم حاليًا. لأي استفسار تواصلوا مع فريق سيمبل عبر hello@agentsimpleai.com'
           : 'فريق سيمبل يراجع حسابكم الآن للتأكد منه. بمجرد التفعيل بتقدرون تطلقون حملاتكم وتستقبلون العروض. شكرًا لصبركم 🌿'}</p>
         ${rejected ? '' : '<p style="font-size:13px;color:var(--ink-muted);margin-top:6px">تقدرون ترجعون لاحقًا — حسابكم بيشتغل تلقائيًا فور التفعيل.</p>'}
+        <div style="margin-top:22px;padding-top:20px;border-top:1px solid var(--line)">
+          <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:12px">👥 عندك رمز دعوة من شركة على سيمبل؟ انضم لمساحتهم واشتغل معهم فوراً — بدون انتظار تفعيل.</p>
+          <a href="/myteam.html" class="hero-cta" style="display:inline-block;text-decoration:none">انضم لفريق برمز دعوة ←</a>
+        </div>
       </div>
     </section>`;
 }
@@ -2235,7 +2235,7 @@ function showPendingScreen(status) {
 async function loadData() {
   try {
     document.getElementById('campaigns-list').innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>نجمع آخر تفاصيل حملاتك الإعلانية...</div></div>';
-    myCampaigns = await dbGetMyCampaigns(currentUser.id);
+    myCampaigns = await dbGetMyCampaigns(WORKSPACE_ID || currentUser.id);
 
     // جلب عروض كل الحملات بطلب واحد بدل طلب لكل حملة (إصلاح N+1)
     const campIds = myCampaigns.map(c => c.id);
@@ -2256,7 +2256,7 @@ async function loadData() {
     // جلب الصفقات اللي قيّمتها الشركة (طبقة الثقة) — عشان ما يتكرّر التقييم
     try {
       const { data: myRatings } = await supabaseClient
-        .from('creator_ratings').select('application_id, stars').eq('brand_id', currentUser.id);
+        .from('creator_ratings').select('application_id, stars').eq('brand_id', WORKSPACE_ID || currentUser.id);
       ratedDeals = new Set((myRatings || []).map(r => r.application_id));
     } catch (e) { ratedDeals = new Set(); }
 
@@ -3175,7 +3175,7 @@ async function submitRating(appId, creatorId) {
   if (btn) { btn.disabled = true; btn.textContent = 'جاري الإرسال...'; }
   try {
     const { error } = await supabaseClient.from('creator_ratings').insert([{
-      application_id: appId, creator_id: creatorId, brand_id: currentUser.id,
+      application_id: appId, creator_id: creatorId, brand_id: WORKSPACE_ID || currentUser.id,
       stars: overall,
       q_content: sel.content, q_punctuality: sel.punctuality,
       q_communication: sel.communication, q_results: sel.results,
@@ -3582,7 +3582,7 @@ async function submitCampaign(event) {
     }
 
     // وضع الإنشاء
-    campaign.brand_id = currentUser.id;
+    campaign.brand_id = WORKSPACE_ID || currentUser.id;
     campaign.status = 'active';
     campaign.is_test = !!currentUser.is_test;
     const createdCampaign = await dbCreateCampaign(campaign);
