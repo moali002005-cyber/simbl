@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة قيادة الشركة — سيمبل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+
+:root{
+  --bg:#f7f8f7; --panel:#ffffff; --panel2:#f1f3f2; --line:rgba(10,10,10,.09);
+  --line2:rgba(10,10,10,.16); --text:#0a0a0a; --muted:#5f6b66; --faint:#9aa3a0;
+  --accent:#13B9B2; --accent-dim:#0f6e56; --accent-bg:rgba(19,185,178,.12);
+  --good:#0f9d58; --warn:#b8860b; --danger:#d23b3b;
+  --font:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+
+/* ===== gate ===== */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gate-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:40px;max-width:440px;width:100%;text-align:center}
+.gate-card h1{font-size:22px;font-weight:600;margin:18px 0 8px}
+.gate-card p{color:var(--muted);font-size:14px;margin-bottom:22px}
+.gate-eye{width:56px;height:56px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:100px;border:1px solid var(--line2);background:transparent;color:var(--text);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#04211f}
+.btn-primary:hover{background:#15cdc5;color:#04211f}
+.spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== layout ===== */
+.wrap{max-width:1280px;margin:0 auto;padding:20px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-eye{width:38px;height:38px}
+.brand-name{font-size:19px;font-weight:600}
+.brand-sub{font-size:12px;color:var(--muted)}
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-pill{display:inline-flex;align-items:center;gap:7px;background:var(--accent-bg);color:var(--accent-dim);border:1px solid rgba(19,185,178,.3);padding:6px 13px;border-radius:100px;font-size:12.5px;font-weight:500}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:17px;transition:.15s}
+.icon-btn:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ===== kpis ===== */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px 17px;position:relative;overflow:hidden}
+.kpi .lbl{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.kpi .val{font-size:27px;font-weight:600;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.kpi .val small{font-size:13px;color:var(--muted);font-weight:400}
+.kpi.hl{background:linear-gradient(180deg,rgba(19,185,178,.13),rgba(19,185,178,.04));border-color:rgba(19,185,178,.35)}
+.kpi.hl .val{color:var(--accent-dim)}
+.kpi .ic{position:absolute;top:13px;left:14px;font-size:18px;color:var(--faint)}
+
+/* ===== leader summary bar (موحّد على كل التبويبات) ===== */
+.lead-bar{position:relative;background:linear-gradient(135deg,#15C2BA 0%,#13B9B2 42%,#0b8f88 100%);border-radius:18px;padding:18px 22px;color:#fff;margin-bottom:22px;overflow:hidden;box-shadow:0 18px 42px -28px rgba(19,185,178,.6);text-shadow:0 1px 2px rgba(6,60,57,.16)}
+.lead-bar::after{content:'';position:absolute;top:-45%;inset-inline-start:-6%;width:280px;height:280px;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);pointer-events:none}
+.lead-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;position:relative;z-index:1}
+.lead-top .t{font-size:18px;font-weight:700}
+.lead-top .s{font-size:12.5px;opacity:.9;font-weight:400;margin-top:2px}
+.lead-live{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);padding:5px 12px;border-radius:100px;font-size:11.5px;font-weight:500}
+.lead-live .d{width:8px;height:8px;border-radius:50%;background:#eafffb;animation:leadpulse 2s infinite}
+@keyframes leadpulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}70%{box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+.lead-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;position:relative;z-index:1}
+.lead-fig{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:13px;padding:12px 14px}
+.lead-fig.alert{background:rgba(255,241,214,.18);border-color:rgba(255,236,179,.42)}
+.lead-fig .l{font-size:12px;opacity:.92;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.lead-fig .v{font-size:24px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.lead-fig .v small{font-size:12px;font-weight:400;opacity:.85}
+.lead-fig .sub{font-size:11px;opacity:.85;margin-top:3px}
+
+/* ===== tabs ===== */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;transition:.15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent-dim);border-bottom-color:var(--accent)}
+.panel{display:none}
+.panel.active{display:block}
+
+/* ===== cards / sections ===== */
+.section{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px;margin-bottom:18px}
+.section h2{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.two-col{grid-template-columns:1fr}}
+
+/* ===== feed ===== */
+.feed-item{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-top:1px solid var(--line)}
+.feed-item:first-child{border-top:none}
+.feed-ic{width:30px;height:30px;border-radius:8px;background:var(--accent-bg);color:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.feed-txt{flex:1;font-size:13.5px}
+.feed-time{font-size:11.5px;color:var(--faint);white-space:nowrap}
+
+/* ===== toolbar ===== */
+.toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:180px;position:relative}
+.search input{width:100%;background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:9px 36px 9px 12px;color:var(--text);font-family:var(--font);font-size:13.5px}
+.search input:focus{outline:none;border-color:var(--accent)}
+.search i{position:absolute;top:50%;transform:translateY(-50%);inset-inline-start:11px;color:var(--faint);font-size:15px}
+select.filter{background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:9px 12px;color:var(--text);font-family:var(--font);font-size:13.5px;cursor:pointer}
+select.filter:focus{outline:none;border-color:var(--accent)}
+.count-tag{font-size:12.5px;color:var(--muted)}
+
+/* ===== table ===== */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px}
+table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+thead th{background:var(--panel2);color:var(--muted);font-weight:500;text-align:right;padding:11px 13px;position:sticky;top:0}
+tbody td{padding:11px 13px;border-top:1px solid var(--line)}
+tbody tr{transition:background .12s}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:var(--panel2)}
+.empty{padding:30px;text-align:center;color:var(--faint);font-size:13.5px}
+
+/* ===== badges ===== */
+.badge{display:inline-block;padding:2px 9px;border-radius:100px;font-size:11.5px;font-weight:500}
+.b-brand{background:rgba(56,139,253,.13);color:#185fa5}
+.b-creator{background:rgba(140,90,220,.13);color:#5b3a9e}
+.b-active{background:rgba(15,157,88,.14);color:#0f7a35}
+.b-closed{background:var(--accent-bg);color:var(--accent-dim)}
+.b-open{background:rgba(184,134,11,.15);color:#8a6500}
+.b-stage{background:var(--panel2);color:var(--muted);border:1px solid var(--line2)}
+.mono{font-variant-numeric:tabular-nums}
+.dim{color:var(--muted)}
+
+/* ===== analytics ===== */
+.mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.mini{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.mini .l{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.mini .n{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+.mini .n small{font-size:12px;color:var(--muted);font-weight:400}
+.mini.acc .n{color:var(--accent-dim)}
+.bar-row{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:13px}
+.bar-row .bl{width:96px;color:var(--muted);text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-row .bt{flex:1;background:var(--panel2);border-radius:6px;height:15px;overflow:hidden}
+.bar-row .bf{display:block;height:100%;background:var(--accent);border-radius:6px;min-width:3px}
+.bar-row .bn{width:52px;color:var(--text);text-align:left;flex-shrink:0;font-variant-numeric:tabular-nums}
+.tw-table td.mono,.tw-table th{text-align:center}
+.tw-table td:first-child,.tw-table th:first-child{text-align:right}
+.upd{font-size:12px;color:var(--good);display:inline-flex;align-items:center;gap:6px}
+.upd::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ins{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);margin-bottom:10px}
+.ins i{font-size:18px;flex-shrink:0;margin-top:1px}
+.ins.good i{color:var(--good)} .ins.warn i{color:var(--warn)} .ins.info i{color:var(--accent)}
+.ins .it{font-size:13.5px;line-height:1.6}
+.note{font-size:12px;color:var(--faint);margin-top:10px;display:flex;align-items:flex-start;gap:6px}
+.appr-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.appr-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.appr-name{font-size:15px;font-weight:600}
+.appr-meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.appr-meta span{display:inline-flex;align-items:center;gap:5px}
+.appr-link{color:var(--accent-dim);font-weight:500;word-break:break-all}
+.appr-actions{display:flex;gap:10px}
+.btn-appr{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;border:1px solid;font-family:var(--font);font-size:13.5px;font-weight:500;cursor:pointer;transition:.15s}
+.btn-ok{background:var(--accent);border-color:var(--accent);color:#04211f}
+.btn-ok:hover{background:#15cdc5}
+.btn-no{background:transparent;border-color:var(--line2);color:var(--danger)}
+.btn-no:hover{border-color:var(--danger);background:rgba(210,59,59,.06)}
+#pending-count .pending-badge{background:var(--danger);color:#fff;font-size:11px;border-radius:100px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
+#overdue-count .pending-badge{background:var(--danger);color:#fff;font-size:11px;border-radius:100px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
+.b-overdue{background:rgba(210,59,59,.13);color:#b32d2d}
+.b-disputed{background:rgba(184,134,11,.16);color:#8a6500}
+.b-suspended{background:rgba(210,59,59,.16);color:#b32d2d}
+
+/* ===== drawer ===== */
+.drawer-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:28px 16px;overflow-y:auto}
+.drawer-ov.open{display:flex}
+.drawer{position:relative;background:var(--panel);border:1px solid var(--line2);border-radius:14px;width:min(580px,100%);padding:22px;height:auto}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.drawer-head h3{font-size:17px;font-weight:600}
+.dr-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.dr-row:first-of-type{border-top:none}
+.dr-row .k{color:var(--muted)}
+.dr-row .v{text-align:left;font-weight:500}
+.dr-sub{font-size:13px;font-weight:600;color:var(--accent);margin:18px 0 10px}
+pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:12px;font-size:12px;color:var(--muted);overflow-x:auto;white-space:pre-wrap;word-break:break-word;direction:ltr;text-align:left;font-family:ui-monospace,monospace}
+.chat{display:flex;flex-direction:column;gap:9px}
+.msg{max-width:88%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.55}
+.msg.agent{background:var(--panel2);border:1px solid var(--line);align-self:flex-start;border-bottom-inline-start-radius:3px}
+.msg.creator{background:var(--accent-bg);border:1px solid rgba(19,185,178,.3);align-self:flex-end;border-bottom-inline-end-radius:3px}
+.msg .who{font-size:11px;color:var(--faint);margin-bottom:3px}
+.err-box{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:#ff9d97;border-radius:11px;padding:14px 16px;font-size:13.5px;margin-bottom:18px;display:none}
+/* ===== لوحة القيادة (نظرة عامة) — ألوان سيمبل الرسمية ===== */
+.dsh-up{color:#0e9a94;font-weight:700}
+.dsh-grid{display:grid;gap:16px;margin-bottom:16px}.dsh-g2{grid-template-columns:1fr 1fr}
+@media(max-width:820px){.dsh-g2{grid-template-columns:1fr}}
+.dsh-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:17px 19px}
+.dsh-card h4{font-size:13.5px;font-weight:700;color:#0c4f4b;margin-bottom:2px;display:flex;align-items:center;gap:7px}
+.dsh-card .hint{font-size:11px;color:var(--faint);margin-bottom:13px}
+.dsh-flow{display:flex;height:36px;border-radius:10px;overflow:hidden;gap:2px;margin:4px 0 12px}
+.dsh-flow div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;min-width:44px;white-space:nowrap}
+.dsh-leg{display:flex;gap:16px;flex-wrap:wrap}
+.dsh-lg{display:flex;align-items:center;gap:7px;font-size:12px}.dsh-lg .sw{width:11px;height:11px;border-radius:3px}
+.dsh-lg b{font-weight:700;color:#14201e}.dsh-lg span{color:var(--muted)}
+.dsh-fun{display:flex;flex-direction:column;gap:8px}.dsh-fr{display:flex;align-items:center;gap:10px}
+.dsh-fl{width:90px;font-size:12px;color:var(--muted);flex-shrink:0}
+.dsh-fb{height:24px;border-radius:6px;background:linear-gradient(90deg,#0e9a94,#13B9B2);display:flex;align-items:center;padding:0 9px;color:#fff;font-size:12px;font-weight:700;min-width:34px}
+.dsh-fp{font-size:11px;color:var(--faint);flex-shrink:0}
+.dsh-vb{display:flex;align-items:flex-end;gap:20px;height:140px;padding:0 6px}
+.dsh-vbi{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:100%}
+.dsh-vbc{width:100%;max-width:64px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,#16c2ba,#0e9a94);position:relative;min-height:3px}
+.dsh-vbc .v{position:absolute;top:-21px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:#0c4f4b;white-space:nowrap}
+.dsh-vbcap{font-size:11.5px;color:var(--muted)}
+.dsh-hb{display:flex;flex-direction:column;gap:10px}
+.dsh-hr{display:grid;grid-template-columns:88px 1fr auto;align-items:center;gap:9px}
+.dsh-hn{font-size:12px;font-weight:500;color:#14201e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dsh-ht{background:#e3f4f2;border-radius:6px;height:20px;overflow:hidden}
+.dsh-hf{height:100%;border-radius:6px;background:linear-gradient(90deg,#7fd6d2,#13B9B2)}
+.dsh-hf.lite{background:linear-gradient(90deg,#83d7d2,#13B9B2)}
+.dsh-hv{font-size:11.5px;font-weight:700;color:#0c4f4b;white-space:nowrap}.dsh-ho{font-size:10.5px;color:#13B9B2;font-weight:700}
+.dsh-dwrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.dsh-donut{width:120px;height:120px;border-radius:50%;flex-shrink:0;position:relative}
+.dsh-donut::after{content:'';position:absolute;inset:19px;background:#fff;border-radius:50%}
+.dsh-dc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1}
+.dsh-dc b{font-size:20px;font-weight:700;color:#0c4f4b}.dsh-dc s{font-size:10px;color:var(--muted);text-decoration:none}
+.dsh-alert{display:flex;align-items:center;gap:11px;background:linear-gradient(90deg,rgba(19,185,178,.12),rgba(19,185,178,.02));border:1px solid rgba(19,185,178,.3);border-radius:13px;padding:12px 15px;margin-bottom:4px}
+.dsh-alert .ic{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#16c2ba,#0e9a94);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.dsh-alert .tx{font-size:12.5px;color:#14201e}.dsh-alert .tx b{color:#0c4f4b}
+.dsh-feed .fi{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:12.5px}
+.dsh-feed .fi:first-child{border-top:0}
+.dsh-feed .fic{width:26px;height:26px;border-radius:7px;background:rgba(19,185,178,.12);color:#0c4f4b;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dsh-feed .ft{flex:1;color:#14201e}.dsh-feed .fw{font-size:11px;color:var(--faint);flex-shrink:0}
+.dsh-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:600px){.dsh-tiles{grid-template-columns:1fr}}
+.dsh-tile{background:#f3faf9;border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.dsh-tile.warn{background:rgba(19,185,178,.09);border-color:rgba(19,185,178,.3)}
+.dsh-tile .tl{font-size:11.5px;color:var(--muted);margin-bottom:6px}
+.dsh-tile .tv{font-size:21px;font-weight:700;color:#0c4f4b;line-height:1}
+.dsh-tile .ts{font-size:11px;color:var(--faint);margin-top:5px}
+
+
+/* ===== company-specific ===== */
+.co-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.co-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:12px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font-family:var(--font);font-size:13.5px;font-weight:600;cursor:pointer;transition:.15s;text-decoration:none}
+.co-btn:hover{border-color:var(--accent);color:var(--accent-dim)}
+.co-btn.primary{background:linear-gradient(135deg,#16c2ba,#0e9a94);border-color:transparent;color:#fff}
+.co-btn.primary:hover{filter:brightness(1.05);color:#fff}
+.pay-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700}
+.pay-chip.paid{background:rgba(15,157,88,.14);color:#0f7a44}
+.pay-chip.await{background:rgba(184,134,11,.16);color:#8a6608}
+.pay-chip.owed{background:rgba(210,59,59,.13);color:#c23b3b}
+.pay-chip.prog{background:rgba(19,185,178,.14);color:#0e7a74}
+.deal-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:13px}
+.deal-row:first-child{border-top:0}
+.deal-row .dn{flex:1;min-width:0}
+.deal-row .dn b{color:#0c4f4b;font-weight:600}
+.deal-row .dn small{display:block;color:var(--faint);font-size:11px;margin-top:1px}
+.deal-row .damt{font-weight:700;color:#0c4f4b;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+</style>
+</head>
+<body>
+
+<!-- ===== gate / loading ===== -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="spinner"></div>
+    <p style="margin-top:18px">نحمّل لوحة قيادتك...</p>
+  </div>
+</div>
+
+<!-- ===== dashboard ===== -->
+<div class="wrap" id="dash" style="display:none">
+  <div class="topbar">
+    <div class="brand">
+      <div>
+        <div class="brand-name" id="co-name">لوحة قيادة الشركة</div>
+        <div class="brand-sub">كل اللي يصير في حملاتك — بمكان واحد</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="upd" id="last-upd">مباشر</span>
+      <span id="bell"></span>
+      <button class="icon-btn" id="btn-refresh" title="تحديث">↻</button>
+      <button class="icon-btn" id="btn-logout" title="خروج">⎋</button>
+    </div>
+  </div>
+
+  <div class="co-actions">
+    <a class="co-btn primary" href="/brand.html">🚀 إدارة الحملات والعروض</a>
+    <a class="co-btn" href="/dues.html">📋 المستحقات بالتفصيل</a>
+    <a class="co-btn" href="/analytics.html">📊 تحليلات حملاتي</a>
+  </div>
+
+  <div class="lead-bar" id="lead"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">نظرة عامة</button>
+    <button class="tab" data-tab="deals">صفقاتي</button>
+    <button class="tab" data-tab="creators">المؤثرون</button>
+  </div>
+
+  <div class="panel active" id="panel-overview"><div id="ov-body"></div></div>
+  <div class="panel" id="panel-deals"><div id="deals-body"></div></div>
+  <div class="panel" id="panel-creators"><div id="creators-body"></div></div>
+</div>
+
+<!-- pending screen host -->
+<div id="pending-host"></div>
+
+
+<script>document.write('<script src="supabase-config.js?v=' + Date.now() + '"><\/script>');</script>
+<script>document.write('<script src="notifications.js?v=' + Date.now() + '"><\/script>');</script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=n=>(Number(n)||0).toLocaleString('en-US');
+const money=n=>(Number(n)||0).toLocaleString('en-US')+' ر.س';
+function fmtDate(x){if(!x)return '—';const d=new Date(x);if(isNaN(d))return '—';return d.toLocaleDateString('ar-SA-u-nu-latn',{year:'numeric',month:'short',day:'numeric'});}
+function ago(x){if(!x)return '';const d=new Date(x);const s=(Date.now()-d.getTime())/1000;if(s<60)return 'الآن';if(s<3600)return 'قبل '+Math.floor(s/60)+' د';if(s<86400)return 'قبل '+Math.floor(s/3600)+' س';if(s<2592000)return 'قبل '+Math.floor(s/86400)+' يوم';return fmtDate(x);}
+const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const CITY={riyadh:'الرياض',jeddah:'جدة',dammam:'الدمام',khobar:'الخبر',abha:'أبها',makkah:'مكة',madinah:'المدينة',taif:'الطائف',jazan:'جازان',khamis:'خميس مشيط',hofuf:'الهفوف',jubail:'الجبيل',tabuk:'تبوك',buraidah:'بريدة',qassim:'القصيم',ahsa:'الأحساء',unaizah:'عنيزة',dhahran:'الظهران',albaha:'الباحة',other:'أخرى'};
+const STATUS={closed:'صفقات مقفلة',active:'تفاوض نشط',waitlisted:'قائمة انتظار',rejected:'مرفوضة',pending:'قيد المراجعة',campaign_full:'اكتمال الحملة'};
+
+let currentUser=null, myCampaigns=[], ALLAPPS=[];
+
+const val=a=>Number(a.final_price||a.price)||0;
+
+function compute(){
+  const camps=myCampaigns||[];
+  const apps=ALLAPPS||[];
+  const approved=apps.filter(a=>a.status==='closed'&&a.brand_approved===true);
+  const completed=approved.filter(a=>(a.stage||1)>=9);
+  const gmv=approved.reduce((s,a)=>s+val(a),0);
+  const paid=approved.filter(a=>a.payment_status==='confirmed').reduce((s,a)=>s+val(a),0);
+  const owed=completed.filter(a=>a.payment_status!=='confirmed').reduce((s,a)=>s+val(a),0);
+  const inprog=Math.max(0,gmv-paid-owed);
+  const activeCamps=camps.filter(c=>c.status==='active').length;
+  const closedCount=apps.filter(a=>a.status==='closed').length;
+  const engaged=apps.filter(a=>a.status==='active').length;
+  const creatorIds=new Set(apps.filter(a=>a.creator_id).map(a=>a.creator_id));
+  return {camps,apps,approved,completed,gmv,paid,owed,inprog,activeCamps,closedCount,engaged,creatorIds};
+}
+
+function renderLeaderBar(){
+  const box=$('#lead'); if(!box) return;
+  const c=compute();
+  const fig=(ic,l,v,s,cls)=>'<div class="lead-fig '+(cls||'')+'"><div class="l">'+ic+' '+l+'</div><div class="v">'+v+'</div><div class="sub">'+s+'</div></div>';
+  const r=x=>money(x).replace(' ر.س','')+'<small> ر.س</small>';
+  box.innerHTML=
+    '<div class="lead-top"><div><div class="t">لوحة قيادة '+esc(currentUser.company_name||'شركتك')+' ✦</div><div class="s">كل اللي يصير في حملاتك — بمكان واحد</div></div>'
+    +'<span class="lead-live"><span class="d"></span> مباشر · محدّث الآن</span></div>'
+    +'<div class="lead-figs">'
+    +fig('💰','إجمالي إنفاقي (GMV)', r(c.gmv), num(c.approved.length)+' صفقة معتمدة')
+    +fig('✓','مدفوع للمؤثرين', r(c.paid), 'حُوّل فعليًا وأُكّد استلامه')
+    +fig('⚠️','مستحق عليّ للمؤثرين', r(c.owed), c.owed>0?'مكتملة وغير مدفوعة — بادر بالدفع':'ما عليك مستحقات ✓', c.owed>0?'alert':'')
+    +fig('📣','حملاتي', num(c.activeCamps)+' <small>/ '+num(c.camps.length)+'</small>', 'نشطة من إجمالي حملاتك')
+    +fig('📨','عروض مستلمة', num(c.apps.length), num(c.engaged)+' قيد التفاوض الآن')
+    +fig('🤝','صفقات مقفلة', num(c.closedCount), 'أقفلها الوكيل لصالحك')
+    +'</div>';
+}
+
+function renderOverview(){
+  const box=$('#ov-body'); if(!box) return;
+  const c=compute();
+  const {approved,completed,apps,gmv,paid,owed,inprog}=c;
+
+  // إنفاق شهري
+  const byMonth={};
+  approved.forEach(a=>{const d=a.closed_at||a.created_at; if(!d)return; const k=String(d).slice(0,7); byMonth[k]=(byMonth[k]||0)+val(a);});
+  const months=Object.entries(byMonth).sort((a,b)=>a[0]<b[0]?-1:1).slice(-6);
+  const maxM=Math.max(1,...months.map(m=>m[1]));
+  let growthSub='';
+  if(months.length>=2){const prev=months[months.length-2][1]||1,last=months[months.length-1][1];const x=last/prev;if(x>=1.15)growthSub='<span class="dsh-up">▲ '+(x>=2?Math.round(x)+'×':'+'+Math.round((x-1)*100)+'%')+'</span> نمو هذا الشهر';}
+
+  // استلام + تحويلات
+  const nowD=new Date();
+  const sameMonth=d=>{if(!d)return false;const x=new Date(d);return x.getMonth()===nowD.getMonth()&&x.getFullYear()===nowD.getFullYear();};
+  const confMonth=approved.filter(a=>a.payment_status==='confirmed'&&sameMonth(a.received_confirmed_at));
+  const confMonthAmt=confMonth.reduce((s,a)=>s+val(a),0);
+  const awaiting=apps.filter(a=>a.payment_status==='marked_paid');
+  const awaitingAmt=awaiting.reduce((s,a)=>s+val(a),0);
+  const cutoff=new Date(nowD.getTime()-14*86400000);
+  const dayMap={};
+  apps.forEach(a=>{if(!a.paid_marked_at)return;const d=new Date(a.paid_marked_at);if(d<cutoff)return;const k=d.toLocaleDateString('en-CA');dayMap[k]=(dayMap[k]||0)+val(a);});
+  const days=Object.entries(dayMap).sort((a,b)=>a[0]<b[0]?-1:1);
+  const maxD=Math.max(1,...days.map(d=>d[1]));
+
+  // قمع
+  const pct=(x,base)=>Math.max(3,Math.round(x/(base||1)*100));
+  const nOffers=apps.length, nEng=c.engaged, nClosed=c.closedCount, nApp=approved.length, nComp=completed.length;
+  const base=Math.max(1,nOffers);
+
+  // أداء الحملات
+  const perf=c.camps.map(cm=>{
+    const ca=apps.filter(a=>a.campaign_id===cm.id);
+    const sp=ca.filter(a=>a.status==='closed'&&a.brand_approved===true).reduce((s,a)=>s+val(a),0);
+    return {title:cm.title||'—',offers:ca.length,closed:ca.filter(a=>a.status==='closed').length,spend:sp};
+  }).sort((a,b)=>b.spend-a.spend).slice(0,6).filter(r=>r.offers>0||r.spend>0);
+  const maxSp=Math.max(1,...perf.map(p=>p.spend));
+
+  // حالة العروض (دونات)
+  const sc={}; apps.forEach(a=>{sc[a.status]=(sc[a.status]||0)+1;});
+  const scOrder=Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+  const shades=['#13B9B2','#0e9a94','#5fd0ca','#a5e3df'];
+  let acc=0,stops=[],dleg=[];const totApps=apps.length||1;
+  scOrder.slice(0,4).forEach((e,i)=>{const p=e[1]/totApps*100;stops.push(shades[i]+' '+acc.toFixed(2)+'% '+(acc+p).toFixed(2)+'%');acc+=p;dleg.push({c:shades[i],n:STATUS[e[0]]||e[0],v:e[1]});});
+  if(acc<100)stops.push('#b6e7e4 '+acc.toFixed(2)+'% 100%');
+  const donutBg='conic-gradient('+stops.join(',')+')';
+  const topStatus=scOrder[0]||['—',0];
+
+  // مدن المؤثرين (من صفقاتي)
+  const seen=new Set(),cc={};let noCity=0,tot=0;
+  apps.forEach(a=>{if(!a.creator_id||seen.has(a.creator_id))return;seen.add(a.creator_id);tot++;const u=a.users||{};const ci=(u.city||'').trim().toLowerCase();if(!ci){noCity++;return;}cc[ci]=(cc[ci]||0)+1;});
+  const cities=Object.entries(cc).sort((a,b)=>b[1]-a[1]);
+  const maxC=Math.max(1,...cities.map(x=>x[1]));
+
+  // نشاط حديث
+  const ev=[];
+  c.camps.forEach(cm=>ev.push({t:cm.created_at,ic:'ti-rocket',txt:'أطلقت حملة «'+esc(cm.title||'—')+'»'}));
+  apps.forEach(a=>{const nm=(a.users&&a.users.name)||'مؤثر';ev.push({t:a.created_at,ic:'ti-send',txt:'عرض جديد من «'+esc(nm)+'»'});});
+  approved.forEach(a=>{const nm=(a.users&&a.users.name)||'مؤثر';ev.push({t:a.closed_at||a.created_at,ic:'ti-circle-check',txt:'صفقة معتمدة مع «'+esc(nm)+'» · '+money(val(a))});});
+  ev.sort((x,y)=>new Date(y.t||0)-new Date(x.t||0));
+  const feed=ev.slice(0,8);
+
+  box.innerHTML=
+  '<div class="dsh-grid"><div class="dsh-card"><h4>💸 تدفّق أموالي — حقوق المؤثرين</h4><div class="hint">من إجمالي إنفاقي '+money(gmv)+': المدفوع فعليًا، المستحق عليك، وقيد التنفيذ'+(growthSub?' · '+growthSub:'')+'</div>'
+  +'<div class="dsh-flow">'+(paid>0?'<div style="flex:'+paid+';background:#0e9a94">✓ مدفوع</div>':'')+(owed>0?'<div style="flex:'+owed+';background:#13B9B2">⚠ مستحق</div>':'')+(inprog>0?'<div style="flex:'+inprog+';background:#a5e3df;color:#0e6b66">قيد التنفيذ</div>':'')+((paid+owed+inprog)===0?'<div style="flex:1;background:#e6eeec;color:#7d8a87">لا صفقات معتمدة بعد</div>':'')+'</div>'
+  +'<div class="dsh-leg"><div class="dsh-lg"><span class="sw" style="background:#0e9a94"></span><b>'+money(paid)+'</b><span>✓ مدفوع</span></div>'
+  +'<div class="dsh-lg"><span class="sw" style="background:#13B9B2"></span><b>'+money(owed)+'</b><span>⚠ مستحق عليك</span></div>'
+  +'<div class="dsh-lg"><span class="sw" style="background:#a5e3df"></span><b>'+money(inprog)+'</b><span>قيد التنفيذ</span></div></div></div></div>'
+
+  +'<div class="dsh-grid"><div class="dsh-card"><h4>💳 المدفوعات ومتابعة الاستلام</h4><div class="hint">تحويلاتك وتأكيد المؤثرين لاستلام حقوقهم</div>'
+  +'<div class="dsh-tiles"><div class="dsh-tile"><div class="tl">✓ مؤكّد الاستلام هذا الشهر</div><div class="tv">'+money(confMonthAmt)+'</div><div class="ts">'+num(confMonth.length)+' مؤثر أكّدوا استلامهم</div></div>'
+  +'<div class="dsh-tile warn"><div class="tl">⏳ حوّلت — بانتظار تأكيد الاستلام</div><div class="tv">'+money(awaitingAmt)+'</div><div class="ts">'+num(awaiting.length)+' مؤثر ما أكّدوا بعد</div></div></div>'
+  +'<div class="hint" style="margin:2px 0 9px">💸 تحويلاتك اليومية (آخر 14 يوم)</div>'
+  +'<div class="dsh-vb">'+(days.length?days.map(d=>'<div class="dsh-vbi"><div class="dsh-vbc" style="height:'+Math.max(4,Math.round(d[1]/maxD*100))+'%"><span class="v">'+num(d[1])+'</span></div><span class="dsh-vbcap">'+d[0].slice(5)+'</span></div>').join(''):'<div class="hint">لا تحويلات في آخر 14 يوم</div>')+'</div>'
+  +'</div></div>'
+
+  +'<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>🎯 قمع التنفيذ</h4><div class="hint">من العرض لأول دفعة — وين توصل صفقاتك</div><div class="dsh-fun">'
+  +'<div class="dsh-fr"><span class="dsh-fl">عروض مستلمة</span><div class="dsh-fb" style="width:100%">'+num(nOffers)+'</div></div>'
+  +'<div class="dsh-fr"><span class="dsh-fl">قيد التفاوض</span><div class="dsh-fb" style="width:'+pct(nEng,base)+'%">'+num(nEng)+'</div></div>'
+  +'<div class="dsh-fr"><span class="dsh-fl">مقفلة</span><div class="dsh-fb" style="width:'+pct(nClosed,base)+'%">'+num(nClosed)+'</div></div>'
+  +'<div class="dsh-fr"><span class="dsh-fl">معتمدة</span><div class="dsh-fb" style="width:'+pct(nApp,base)+'%">'+num(nApp)+'</div></div>'
+  +'<div class="dsh-fr"><span class="dsh-fl">مكتملة</span><div class="dsh-fb" style="width:'+pct(nComp,base)+'%">'+num(nComp)+'</div></div>'
+  +'</div></div>'
+  +'<div class="dsh-card"><h4>📈 إنفاقي شهريًا</h4><div class="hint">قيمة صفقاتك المعتمدة كل شهر</div><div class="dsh-vb">'
+  +(months.length?months.map(m=>'<div class="dsh-vbi"><div class="dsh-vbc" style="height:'+Math.max(4,Math.round(m[1]/maxM*100))+'%"><span class="v">'+num(m[1])+'</span></div><span class="dsh-vbcap">'+MONTHS[parseInt(m[0].slice(5,7))-1]+'</span></div>').join(''):'<div class="hint">لا بيانات</div>')
+  +'</div></div></div>'
+
+  +'<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📣 حملاتي — الأداء</h4><div class="hint">مرتّبة بالأعلى إنفاقًا · عدد العروض والصفقات لكل حملة</div><div class="dsh-hb">'
+  +(perf.length?perf.map(p=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(p.title)+'</span><div class="dsh-ht"><div class="dsh-hf" style="width:'+Math.max(4,Math.round(p.spend/maxSp*100))+'%"></div></div><span class="dsh-hv">'+num(p.spend)+' <span class="dsh-ho">· '+num(p.offers)+' عرض · '+num(p.closed)+' مقفلة</span></span></div>').join(''):'<div class="hint">ما عندك حملات فيها عروض بعد</div>')
+  +'</div></div>'
+  +'<div class="dsh-card"><h4>◑ حالة العروض ('+num(apps.length)+')</h4><div class="hint">توزيع حالات العروض على حملاتك</div><div class="dsh-dwrap">'
+  +'<div class="dsh-donut" style="background:'+donutBg+'"><div class="dsh-dc"><b>'+num(topStatus[1])+'</b><s>'+esc(STATUS[topStatus[0]]||topStatus[0])+'</s></div></div>'
+  +'<div style="display:flex;flex-direction:column;gap:7px">'+(dleg.length?dleg.map(d=>'<div class="dsh-lg"><span class="sw" style="background:'+d.c+'"></span><b>'+num(d.v)+'</b><span>'+esc(d.n)+'</span></div>').join(''):'<div class="hint">لا عروض</div>')+'</div>'
+  +'</div></div></div>'
+
+  +'<div class="dsh-grid dsh-g2"><div class="dsh-card"><h4>📍 المؤثرون حسب المدينة</h4><div class="hint">'+num(tot-noCity)+' من مؤثري صفقاتك حدّدوا مدينتهم · '+num(noCity)+' غير محدد</div><div class="dsh-hb" style="max-height:340px;overflow-y:auto;padding-inline-end:4px">'
+  +(cities.length?cities.map(x=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(CITY[x[0]]||x[0])+'</span><div class="dsh-ht"><div class="dsh-hf lite" style="width:'+Math.max(4,Math.round(x[1]/maxC*100))+'%"></div></div><span class="dsh-hv">'+num(x[1])+'</span></div>').join(''):'<div class="hint">لا بيانات مدن بعد</div>')
+  +'</div></div>'
+  +'<div class="dsh-card dsh-feed"><h4>⚡ نشاط حديث</h4><div class="hint">آخر ما صار على حملاتك</div>'
+  +(feed.length?feed.map(e=>'<div class="fi"><div class="fic"><i class="ti '+e.ic+'"></i></div><div class="ft">'+e.txt+'</div><div class="fw">'+ago(e.t)+'</div></div>').join(''):'<div class="hint">لا نشاط بعد</div>')
+  +'</div></div>'
+
+  +(owed>0?'<div class="dsh-alert"><div class="ic">⚠️</div><div class="tx">عليك <b>'+money(owed)+' مستحقة للمؤثرين</b> على صفقات مكتملة وغير مدفوعة. بادر بالدفع من صفحة «المستحقات بالتفصيل» حفاظًا على تفعيل حسابك.</div></div>':'');
+}
+
+function payChip(a){
+  const stg=a.stage||1, ps=a.payment_status||'unpaid';
+  if(ps==='confirmed') return '<span class="pay-chip paid">✓ مدفوع ومؤكّد</span>';
+  if(ps==='marked_paid') return '<span class="pay-chip await">⏳ بانتظار تأكيد الاستلام</span>';
+  if(stg>=9) return '<span class="pay-chip owed">⚠ مستحق — بادر بالدفع</span>';
+  return '<span class="pay-chip prog">قيد التنفيذ · مرحلة '+num(stg)+'/9</span>';
+}
+
+function renderDeals(){
+  const box=$('#deals-body'); if(!box) return;
+  const deals=ALLAPPS.filter(a=>a.status==='closed'&&a.brand_approved===true)
+    .sort((a,b)=>new Date(b.closed_at||b.created_at||0)-new Date(a.closed_at||a.created_at||0));
+  if(!deals.length){ box.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0">ما فيه صفقات معتمدة بعد. أول ما تعتمد صفقة بتظهر هنا باسم المؤثر والمبلغ وحالة الدفع.</div></div>'; return; }
+  const rows=deals.map(a=>{
+    const u=a.users||{};
+    const handle=u.handle?('@'+String(u.handle).replace(/^@/,'')):'';
+    const plat=u.platform?(' · '+esc(u.platform)):'';
+    return '<div class="deal-row"><div class="dn"><b>'+esc(u.name||'مؤثر')+'</b><small>'+esc(handle)+plat+' · '+fmtDate(a.closed_at||a.created_at)+'</small></div>'
+      +payChip(a)+'<div class="damt">'+money(val(a))+'</div></div>';
+  }).join('');
+  box.innerHTML='<div class="dsh-card"><h4>🤝 صفقاتي المعتمدة ('+num(deals.length)+')</h4><div class="hint">كل صفقة اعتمدتها — المؤثر والمبلغ وحالة الدفع. للتفاصيل الكاملة والدفع افتح «المستحقات بالتفصيل».</div>'+rows+'</div>';
+}
+
+function renderCreators(){
+  const box=$('#creators-body'); if(!box) return;
+  const byId={};
+  ALLAPPS.forEach(a=>{ if(!a.creator_id) return; const u=a.users||{}; const cur=byId[a.creator_id]||{name:u.name||'مؤثر',handle:u.handle,platform:u.platform,city:u.city,followers:u.followers,deals:0,spend:0,offers:0}; cur.offers++; if(a.status==='closed'&&a.brand_approved===true){cur.deals++;cur.spend+=val(a);} byId[a.creator_id]=cur; });
+  const list=Object.values(byId).sort((a,b)=>b.spend-a.spend);
+  if(!list.length){ box.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0">ما تعاملت مع مؤثرين بعد. أول ما توصلك عروض بيظهرون هنا.</div></div>'; return; }
+  const rows=list.map(u=>{
+    const handle=u.handle?('@'+String(u.handle).replace(/^@/,'')):'';
+    const city=u.city?(' · '+esc(CITY[String(u.city).toLowerCase()]||u.city)):'';
+    const foll=u.followers?(' · '+num(u.followers)+' متابع'):'';
+    return '<div class="deal-row"><div class="dn"><b>'+esc(u.name)+'</b><small>'+esc(handle)+(u.platform?(' · '+esc(u.platform)):'')+city+foll+'</small></div>'
+      +'<span class="pay-chip prog">'+num(u.deals)+' صفقة · '+num(u.offers)+' عرض</span>'
+      +'<div class="damt">'+money(u.spend)+'</div></div>';
+  }).join('');
+  box.innerHTML='<div class="dsh-card"><h4>👥 المؤثرون اللي تعاملت معهم ('+num(list.length)+')</h4><div class="hint">مرتّبون بالأعلى إنفاقًا · صفقاتك معهم وإجمالي ما دفعته لكل واحد</div>'+rows+'</div>';
+}
+
+async function loadData(silent){
+  try{
+    myCampaigns=await dbGetMyCampaigns(currentUser.id);
+    const ids=myCampaigns.map(c=>c.id);
+    ALLAPPS=[];
+    if(ids.length){
+      const {data,error}=await supabaseClient.from('applications')
+        .select('*, users!applications_creator_id_fkey(name,platform,handle,followers,category,website,city)')
+        .in('campaign_id',ids).order('created_at',{ascending:false});
+      if(error) throw error;
+      ALLAPPS=data||[];
+    }
+    renderLeaderBar(); renderOverview(); renderDeals(); renderCreators();
+    const lu=$('#last-upd'); if(lu) lu.textContent='محدّث '+new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){ console.error(e); if(!silent){ const ov=$('#ov-body'); if(ov) ov.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0;color:#c23b3b">حصل خطأ في التحميل. حدّث الصفحة.</div></div>'; } }
+}
+
+function showPending(status){
+  $('#dash').style.display='none'; $('#gate').style.display='none';
+  const host=$('#pending-host');
+  const rejected=status==='rejected', suspended=status==='suspended';
+  const icon=suspended?'⏸️':(rejected?'✕':'🔎');
+  const title=suspended?'حسابكم موقوف مؤقتًا':(rejected?'لم يتم تفعيل حسابكم':'حسابكم قيد المراجعة');
+  const msg=suspended?'تم إيقاف الحساب لوجود مستحقات دفع غير مُسوّاة. بعد التسوية وتأكيد المؤثر الاستلام، يعيد فريق سيمبل التفعيل.'
+    :(rejected?'نعتذر، ما تم تفعيل حسابكم حاليًا. للاستفسار: hello@agentsimpleai.com'
+    :'فريق سيمبل يراجع حسابكم الآن. بمجرد التفعيل بتقدرون تطلقون حملاتكم وتشوفون لوحتكم. شكرًا لصبركم 🌿');
+  host.innerHTML='<div class="gate"><div class="gate-card"><div style="font-size:40px;margin-bottom:10px">'+icon+'</div><h1>'+title+'</h1><p>'+msg+'</p><a class="btn btn-primary" href="/brand.html">رجوع</a></div></div>';
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); $('#panel-'+t.getAttribute('data-tab')).classList.add('active');
+}));
+
+async function init(){
+  try{ await tryRestoreSession(); }catch(e){}
+  currentUser=(typeof getCurrentUser==='function')?getCurrentUser():null;
+  if(!currentUser){ location.href='/signup.html'; return; }
+  if(currentUser.role!=='brand'){ location.href='/creator.html'; return; }
+  const cn=currentUser.company_name||'الشركة';
+  $('#co-name').textContent='لوحة قيادة '+cn;
+  let approvalStatus=currentUser.approval_status;
+  try{ const {data:meRow}=await supabaseClient.from('users').select('approval_status').eq('id',currentUser.id).maybeSingle(); if(meRow&&meRow.approval_status){approvalStatus=meRow.approval_status; currentUser.approval_status=approvalStatus; saveCurrentUser(currentUser);} }catch(e){}
+  if(approvalStatus==='pending'||approvalStatus==='rejected'||approvalStatus==='suspended'){ showPending(approvalStatus); return; }
+  try{ initNotifications('bell'); }catch(e){}
+  $('#gate').style.display='none'; $('#dash').style.display='block';
+  await loadData();
+  setInterval(()=>{ if($('#dash').style.display!=='none') loadData(true); },60000);
+}
+
+$('#btn-refresh').addEventListener('click',()=>loadData());
+$('#btn-logout').addEventListener('click',async()=>{ try{await supabaseClient.auth.signOut();}catch(e){} location.href='/login.html'; });
+
+init();
+</script>
+
+</body>
+</html>
