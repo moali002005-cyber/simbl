@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>لوحة قيادة الشركة — سيمبل</title>
+<title>أداء الحملات الإعلانية — سيمبل</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -281,7 +281,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="topbar">
     <div class="brand">
       <div>
-        <div class="brand-name" id="co-name">لوحة قيادة الشركة</div>
+        <div class="brand-name" id="co-name">أداء الحملات الإعلانية</div>
         <div class="brand-sub">كل اللي يصير في حملاتك — بمكان واحد</div>
       </div>
     </div>
@@ -358,7 +358,7 @@ function renderLeaderBar(){
   const fig=(ic,l,v,s,cls)=>'<div class="lead-fig '+(cls||'')+'"><div class="l">'+ic+' '+l+'</div><div class="v">'+v+'</div><div class="sub">'+s+'</div></div>';
   const r=x=>money(x).replace(' ر.س','')+'<small> ر.س</small>';
   box.innerHTML=
-    '<div class="lead-top"><div><div class="t">لوحة قيادة '+esc(currentUser.company_name||'شركتك')+' ✦</div><div class="s">كل اللي يصير في حملاتك — بمكان واحد</div></div>'
+    '<div class="lead-top"><div><div class="t">أداء الحملات الإعلانية — '+esc(currentUser.company_name||'شركتك')+' ✦</div><div class="s">كل اللي يصير في حملاتك — بمكان واحد</div></div>'
     +'<span class="lead-live"><span class="d"></span> مباشر · محدّث الآن</span></div>'
     +'<div class="lead-figs">'
     +fig('💰','إجمالي إنفاقي (GMV)', r(c.gmv), num(c.approved.length)+' صفقة معتمدة')
@@ -602,7 +602,7 @@ async function init(){
   if(!currentUser){ location.href='/signup.html'; return; }
   if(currentUser.role!=='brand'){ location.href='/creator.html'; return; }
   const cn=currentUser.company_name||'الشركة';
-  $('#co-name').textContent='لوحة قيادة '+cn;
+  $('#co-name').textContent='أداء الحملات الإعلانية — '+cn;
   let approvalStatus=currentUser.approval_status;
   try{ const {data:meRow}=await supabaseClient.from('users').select('approval_status').eq('id',currentUser.id).maybeSingle(); if(meRow&&meRow.approval_status){approvalStatus=meRow.approval_status; currentUser.approval_status=approvalStatus; saveCurrentUser(currentUser);} }catch(e){}
   if(approvalStatus==='pending'||approvalStatus==='rejected'||approvalStatus==='suspended'){ showPending(approvalStatus); return; }
