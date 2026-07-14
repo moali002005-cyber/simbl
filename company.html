@@ -263,6 +263,19 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 .an-stats span{font-size:10.5px;color:var(--muted)}
 .an-spend{border-top:1px solid var(--line);padding-top:10px;font-size:17px;font-weight:800;color:#0c4f4b;font-variant-numeric:tabular-nums}
 .an-spend small{font-size:11px;font-weight:500;color:var(--faint)}
+.cmp{width:100%;border-collapse:collapse;font-size:12.5px;min-width:660px}
+.cmp th,.cmp td{padding:10px 11px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+.cmp th{background:#f3f7f6;color:var(--muted);font-weight:600;font-size:11.5px}
+.cmp td.cn{text-align:right;font-weight:600;color:#0c4f4b}
+.cmp td.m{font-variant-numeric:tabular-nums}
+.cmp td.win{background:rgba(19,185,178,.14);color:#0c4f4b;font-weight:800}
+.cmp .st{font-size:10px;font-weight:700;padding:1px 7px;border-radius:100px;margin-inline-start:4px}
+.cmp .st.on{background:rgba(15,157,88,.14);color:#0f7a44}
+.cmp .st.off{background:#eef1f0;color:#7d8a87}
+.ins-wrap{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.ins{background:#fbfdfc;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;color:#14201e}
+.ins .ic{margin-inline-end:5px}
+.ins b{color:#0c4f4b}
 
 </style>
 </head>
@@ -305,12 +318,14 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
     <button class="tab" data-tab="analytics">التحليلات</button>
+    <button class="tab" data-tab="compare">مقارنة الحملات</button>
     <button class="tab" data-tab="deals">صفقاتي</button>
     <button class="tab" data-tab="creators">المؤثرون</button>
   </div>
 
   <div class="panel active" id="panel-overview"><div id="ov-body"></div></div>
   <div class="panel" id="panel-analytics"><div id="an-body"></div></div>
+  <div class="panel" id="panel-compare"><div id="compare-body"></div></div>
   <div class="panel" id="panel-deals"><div id="deals-body"></div></div>
   <div class="panel" id="panel-creators"><div id="creators-body"></div></div>
 </div>
@@ -599,6 +614,48 @@ function renderAnalytics(){
   box.innerHTML='<div class="dsh-grid">'+content+'</div><div class="dsh-grid">'+chart+'</div><div class="dsh-grid">'+cards+'</div>';
 }
 
+function renderCompare(){
+  const box=$('#compare-body'); if(!box) return;
+  const apps=ALLAPPS||[], camps=myCampaigns||[];
+  const rows=camps.map(cm=>{
+    const ca=apps.filter(a=>a.campaign_id===cm.id);
+    const ap=ca.filter(a=>a.status==='closed'&&a.brand_approved===true);
+    const completed=ap.filter(a=>(a.stage||1)>=9);
+    const spend=ap.reduce((s,a)=>s+val(a),0);
+    const reach=ap.reduce((s,a)=>s+parseFollowers(a.users&&a.users.followers),0);
+    return { title:cm.title||'—', status:cm.status, offers:ca.length, approved:ap.length,
+      conv: ca.length? ap.length/ca.length*100 : 0, spend, avg: ap.length? Math.round(spend/ap.length):0,
+      completion: ap.length? completed.length/ap.length*100 : 0, reach, cpr: reach? spend/reach*1000 : 0 };
+  }).filter(r=>r.offers>0||r.spend>0);
+  if(!rows.length){ box.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0">ما عندك حملات فيها بيانات كافية للمقارنة بعد. أطلق حملات واستقبل عروضاً وبتظهر المقارنة هنا.</div></div>'; return; }
+  const best={ conv:Math.max(...rows.map(r=>r.conv)), approved:Math.max(...rows.map(r=>r.approved)),
+    spend:Math.max(...rows.map(r=>r.spend)), reach:Math.max(...rows.map(r=>r.reach)),
+    avgLow:Math.min(...rows.filter(r=>r.avg>0).map(r=>r.avg)), completion:Math.max(...rows.map(r=>r.completion)) };
+  const hl=cond=>cond?' class="win"':'';
+  const hlm=cond=>cond?' class="m win"':' class="m"';
+  const trows=rows.sort((a,b)=>b.conv-a.conv).map(r=>
+    '<tr><td class="cn">'+esc(r.title)+' '+(r.status!=='closed'?'<span class="st on">نشطة</span>':'<span class="st off">مغلقة</span>')+'</td>'
+    +'<td>'+num(r.offers)+'</td>'
+    +'<td'+hl(r.approved===best.approved&&r.approved>0)+'>'+num(r.approved)+'</td>'
+    +'<td'+hl(Math.abs(r.conv-best.conv)<0.01&&r.conv>0)+'>'+r.conv.toFixed(0)+'%</td>'
+    +'<td'+hlm(r.spend===best.spend&&r.spend>0)+'>'+num(r.spend)+'</td>'
+    +'<td'+hlm(r.avg===best.avgLow&&r.avg>0)+'>'+num(r.avg)+'</td>'
+    +'<td'+hl(Math.abs(r.completion-best.completion)<0.01&&r.completion>0)+'>'+r.completion.toFixed(0)+'%</td>'
+    +'<td'+hl(r.reach===best.reach&&r.reach>0)+'>'+reachFmt(r.reach)+'</td>'
+    +'</tr>').join('');
+  const byConv=rows.slice().sort((a,b)=>b.conv-a.conv)[0];
+  const byReach=rows.slice().sort((a,b)=>b.reach-a.reach)[0];
+  const byCpr=rows.filter(r=>r.cpr>0).sort((a,b)=>a.cpr-b.cpr)[0];
+  let insight='';
+  if(byConv&&byConv.conv>0) insight+='<div class="ins"><span class="ic">🏆</span> أعلى كفاءة تحويل: <b>'+esc(byConv.title)+'</b> ('+byConv.conv.toFixed(0)+'% من العروض صارت صفقات معتمدة).</div>';
+  if(byCpr) insight+='<div class="ins"><span class="ic">💡</span> أوفر وصول مقابل الإنفاق: <b>'+esc(byCpr.title)+'</b> (~'+num(Math.round(byCpr.cpr))+' ر.س لكل ألف متابع محتمل).</div>';
+  if(byReach&&byReach.reach>0) insight+='<div class="ins"><span class="ic">📣</span> أوسع وصول محتمل: <b>'+esc(byReach.title)+'</b> ('+reachFmt(byReach.reach)+' متابع).</div>';
+  box.innerHTML='<div class="dsh-card"><h4>⚖️ مقارنة أداء الحملات</h4><div class="hint">كل حملاتك جنب بعض · الخلية المميّزة = الأفضل في عمودها · مرتّبة بأعلى كفاءة تحويل</div>'
+    +'<div style="overflow-x:auto"><table class="cmp"><thead><tr><th>الحملة</th><th>العروض</th><th>المعتمدة</th><th>التحويل</th><th>الإنفاق</th><th>متوسط الصفقة</th><th>الاكتمال</th><th>الوصول المحتمل</th></tr></thead><tbody>'+trows+'</tbody></table></div>'
+    +(insight?'<div class="ins-wrap">'+insight+'</div>':'')
+    +'</div>';
+}
+
 function payChip(a){
   const stg=a.stage||1, ps=a.payment_status||'unpaid';
   if(ps==='confirmed') return '<span class="pay-chip paid">✓ مدفوع ومؤكّد</span>';
@@ -652,7 +709,7 @@ async function loadData(silent){
       ALLAPPS=data||[];
     }
     try{ const {data:rr}=await supabaseClient.from('creator_ratings').select('stars').eq('brand_id',currentUser.id); RATINGS=rr||[]; }catch(e){ RATINGS=[]; }
-    renderLeaderBar(); renderOverview(); renderAnalytics(); renderDeals(); renderCreators();
+    renderLeaderBar(); renderOverview(); renderAnalytics(); renderCompare(); renderDeals(); renderCreators();
     const lu=$('#last-upd'); if(lu) lu.textContent='محدّث '+new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'2-digit',minute:'2-digit'});
   }catch(e){ console.error(e); if(!silent){ const ov=$('#ov-body'); if(ov) ov.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0;color:#c23b3b">حصل خطأ في التحميل. حدّث الصفحة.</div></div>'; } }
 }
