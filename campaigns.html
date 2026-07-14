@@ -793,6 +793,15 @@ body {
   0%, 100% { box-shadow: 0 0 0 0 rgba(19, 185, 178, 0); }
   50% { box-shadow: 0 0 0 6px rgba(19, 185, 178, 0.06); }
 }
+.ag-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.ag-btn { border: 0; padding: 12px 20px; border-radius: 100px; font-family: var(--font-body); font-size: 13.5px; font-weight: 700; cursor: pointer; transition: transform .15s, filter .2s, background .2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ag-btn:hover { transform: translateY(-1px); }
+.ag-btn.approve { background: linear-gradient(135deg, #16c2ba, #0e9a94); color: #fff; flex: 1; min-width: 160px; box-shadow: 0 6px 16px -8px rgba(14,154,148,.7); }
+.ag-btn.approve:hover { filter: brightness(1.06); }
+.ag-btn.reject { background: #fff; color: #b32d2d; border: 1.5px solid rgba(201,48,48,0.4); }
+.ag-btn.reject:hover { background: rgba(201,48,48,0.06); }
+.ag-btn.nego { background: var(--ink); color: #fff; }
+.ag-btn.nego:hover { background: var(--accent); }
 .ag-top {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -3411,17 +3420,14 @@ function renderCellDetail(a) {
           <div class="ag-info">
             <div class="ag-title">الوكيل توصّل لسعر نهائي:</div>
             <div class="ag-price">${(a.final_price || a.price).toLocaleString('en-US')} ر.س</div>
-            <div class="ag-desc">اعتمد الصفقة وابدأ التنفيذ مع المعلن.</div>
+            <div class="ag-desc">اعتمد المعلن وابدأ التنفيذ، أو ارفضه ويترقّى التالي من قائمة الانتظار.</div>
           </div>
         </div>
-        <div class="swipe-track" data-app-id="${a.id}" onclick="event.stopPropagation()">
-          <div class="swipe-fill"></div>
-          <div class="swipe-hint">اسحب لاعتماد الصفقة</div>
-          <div class="swipe-thumb">✓</div>
+        <div class="ag-actions">
+          <button class="ag-btn approve" onclick="event.stopPropagation(); approveDeal('${a.id}')">✓ اعتماد المعلن</button>
+          <button class="ag-btn reject" onclick="event.stopPropagation(); openRejectModal('${a.id}')">✗ رفض</button>
+          <button class="ag-btn nego" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 عرض المفاوضة</button>
         </div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
-        <button class="btn-negotiation" onclick="event.stopPropagation(); startNegotiation('${a.id}')">💬 عرض المفاوضة</button>
       </div>`;
   }
   if (!isApproved) return '';

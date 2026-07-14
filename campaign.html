@@ -216,6 +216,10 @@ body {
 .approve-wrap { padding: 14px 0 20px; }
 .approve-info { font-size: 14px; color: var(--ink-soft); line-height: 1.6; margin-bottom: 12px; text-align: center; }
 .approve-info strong { color: var(--accent-ink); }
+.ag-btn { border: 0; padding: 14px 22px; border-radius: 100px; font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; transition: transform .15s, filter .2s; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+.ag-btn:hover { transform: translateY(-1px); }
+.ag-btn.approve { background: linear-gradient(135deg, #16c2ba, #0e9a94); color: #fff; box-shadow: 0 8px 20px -8px rgba(14,154,148,.75); }
+.ag-btn.approve:hover { filter: brightness(1.06); }
 
 .deal-closed-banner {
   background: linear-gradient(135deg, #13B9B2, #0e9a94);
@@ -612,12 +616,8 @@ function render() {
   } else if (isAwaiting) {
     if (isBrand) {
       footer = `<div class="approve-wrap">
-        <div class="approve-info">الوكيل توصّل لاتفاق${application.final_price ? ' عند <strong>' + application.final_price.toLocaleString('en-US') + ' ر.س</strong>' : ''}. اسحب لاعتماد الصفقة.</div>
-        <div class="swipe-track" id="approve-swipe" onclick="event.stopPropagation()">
-          <div class="swipe-fill"></div>
-          <div class="swipe-hint">اسحب لاعتماد الصفقة</div>
-          <div class="swipe-thumb">✓</div>
-        </div>
+        <div class="approve-info">الوكيل توصّل لاتفاق${application.final_price ? ' عند <strong>' + application.final_price.toLocaleString('en-US') + ' ر.س</strong>' : ''}. اعتمد المعلن لبدء التنفيذ.</div>
+        <button class="ag-btn approve" onclick="event.stopPropagation(); approveDeal()">✓ اعتماد المعلن</button>
       </div>`;
     } else {
       footer = `<div class="chat-foot awaiting">⏳ تم الاتفاق${application.final_price ? ' عند ' + application.final_price.toLocaleString('en-US') + ' ر.س' : ''} · بانتظار تعميد الشركة</div>`;
