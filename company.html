@@ -825,9 +825,16 @@ async function init(){
   const cn=window.TEAM_WS?(window.TEAM_WS.owner_company_name||'الشركة'):(currentUser.company_name||'الشركة');
   WORKSPACE_NAME=cn;
   $('#co-name').textContent='أداء الحملات الإعلانية — '+cn;
-  // صلاحيات: عضو بلا صلاحية «المستحقات» ما يشوف صفحة المستحقات التفصيلية
-  if(window.TEAM_WS && (window.TEAM_WS.permissions||[]).indexOf('payments')<0){
-    const d=document.querySelector('.co-btn[href="/dues.html"]'); if(d) d.style.display='none';
+  // صلاحيات عضو الفريق (المالك: لا قيود)
+  if(window.TEAM_WS){
+    const perms=window.TEAM_WS.permissions||[];
+    const lacks=p=>perms.indexOf(p)<0;
+    const hideAll=sel=>document.querySelectorAll(sel).forEach(e=>{e.style.display='none';});
+    if(lacks('payments')) hideAll('.co-btn[href="/dues.html"]');
+    if(lacks('analytics')){
+      hideAll('.tab[data-tab="analytics"]'); hideAll('.tab[data-tab="compare"]');
+      hideAll('[onclick^="openCompanyReport"]'); hideAll('[onclick^="exportCompanyExcel"]');
+    }
   }
   let approvalStatus=currentUser.approval_status;
   try{ const {data:meRow}=await supabaseClient.from('users').select('approval_status').eq('id',currentUser.id).maybeSingle(); if(meRow&&meRow.approval_status){approvalStatus=meRow.approval_status; currentUser.approval_status=approvalStatus; saveCurrentUser(currentUser);} }catch(e){}

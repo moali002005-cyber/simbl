@@ -77,7 +77,13 @@ input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(19
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const PERMS=[{k:'campaigns',l:'إدارة الحملات'},{k:'deals',l:'التفاوض والصفقات'},{k:'payments',l:'المستحقات والدفع'}];
+const PERMS=[
+  {k:'campaigns',l:'إدارة الحملات',d:'إنشاء وتعديل وحذف الحملات'},
+  {k:'deals',l:'اعتماد الصفقات',d:'اعتماد/رفض المعلنين والتفاوض'},
+  {k:'workflow',l:'إدارة التنفيذ',d:'مراحل التنفيذ والموافقة على المحتوى'},
+  {k:'payments',l:'المستحقات والدفع',d:'رؤية وتأكيد الدفع والبيانات البنكية'},
+  {k:'analytics',l:'التحليلات والتقارير',d:'عرض التحليلات وتصدير التقارير'}
+];
 const PLABEL=Object.fromEntries(PERMS.map(p=>[p.k,p.l]));
 let currentUser=null, workspace=null, MEMBERS=[];
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
