@@ -2710,9 +2710,12 @@ async function approveDeal(applicationId) {
   if (!app) return;
 
   try {
+    // حملة الزيارة تبدأ من مرحلة 5 (بانتظار تصوير المعلن)؛ المنزلية تبدأ من 1 (الافتراضي)
+    const isVisit = campaign && campaign.campaign_type === 'visit';
+    const patch = isVisit ? { brand_approved: true, stage: 5 } : { brand_approved: true };
     const { data, error } = await supabaseClient
       .from('applications')
-      .update({ brand_approved: true })
+      .update(patch)
       .eq('id', applicationId)
       .select();
     if (error) throw error;
