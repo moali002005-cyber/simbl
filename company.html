@@ -251,6 +251,18 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 .deal-row .dn b{color:#0c4f4b;font-weight:600}
 .deal-row .dn small{display:block;color:var(--faint);font-size:11px;margin-top:1px}
 .deal-row .damt{font-weight:700;color:#0c4f4b;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ksub{font-size:11px;color:var(--faint);margin-top:4px}
+.an-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.an-c{border:1px solid var(--line);border-radius:14px;padding:15px 16px;background:#fbfdfc}
+.an-ch{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
+.an-ct{font-size:14px;font-weight:700;color:#0c4f4b}
+.an-meta{font-size:11.5px;color:var(--faint);margin-bottom:12px}
+.an-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.an-stats>div{text-align:center}
+.an-stats b{display:block;font-size:16px;font-weight:800;color:#0e7a74;font-variant-numeric:tabular-nums;line-height:1}
+.an-stats span{font-size:10.5px;color:var(--muted)}
+.an-spend{border-top:1px solid var(--line);padding-top:10px;font-size:17px;font-weight:800;color:#0c4f4b;font-variant-numeric:tabular-nums}
+.an-spend small{font-size:11px;font-weight:500;color:var(--faint)}
 
 </style>
 </head>
@@ -284,18 +296,19 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="co-actions">
     <a class="co-btn primary" href="/brand.html">🚀 إدارة الحملات والعروض</a>
     <a class="co-btn" href="/dues.html">📋 المستحقات بالتفصيل</a>
-    <a class="co-btn" href="/analytics.html">📊 تحليلات حملاتي</a>
   </div>
 
   <div class="lead-bar" id="lead"></div>
 
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
+    <button class="tab" data-tab="analytics">التحليلات</button>
     <button class="tab" data-tab="deals">صفقاتي</button>
     <button class="tab" data-tab="creators">المؤثرون</button>
   </div>
 
   <div class="panel active" id="panel-overview"><div id="ov-body"></div></div>
+  <div class="panel" id="panel-analytics"><div id="an-body"></div></div>
   <div class="panel" id="panel-deals"><div id="deals-body"></div></div>
   <div class="panel" id="panel-creators"><div id="creators-body"></div></div>
 </div>
@@ -313,11 +326,13 @@ const num=n=>(Number(n)||0).toLocaleString('en-US');
 const money=n=>(Number(n)||0).toLocaleString('en-US')+' ر.س';
 function fmtDate(x){if(!x)return '—';const d=new Date(x);if(isNaN(d))return '—';return d.toLocaleDateString('ar-SA-u-nu-latn',{year:'numeric',month:'short',day:'numeric'});}
 function ago(x){if(!x)return '';const d=new Date(x);const s=(Date.now()-d.getTime())/1000;if(s<60)return 'الآن';if(s<3600)return 'قبل '+Math.floor(s/60)+' د';if(s<86400)return 'قبل '+Math.floor(s/3600)+' س';if(s<2592000)return 'قبل '+Math.floor(s/86400)+' يوم';return fmtDate(x);}
+function parseFollowers(v){if(v==null)return 0;if(typeof v==='number')return v;var s=String(v).trim().replace(/,/g,'');var m=s.match(/^([\d.]+)\s*([kKmM]?)/);if(!m)return parseInt(s)||0;var n=parseFloat(m[1])||0,u=(m[2]||'').toLowerCase();if(u==='k')n*=1e3;if(u==='m')n*=1e6;return Math.round(n);}
+function reachFmt(n){n=Number(n||0);if(n>=1e6)return (n/1e6).toFixed(1).replace(/\.0$/,'')+' مليون';if(n>=1e3)return (n/1e3).toFixed(1).replace(/\.0$/,'')+' ألف';return num(n);}
 const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const CITY={riyadh:'الرياض',jeddah:'جدة',dammam:'الدمام',khobar:'الخبر',abha:'أبها',makkah:'مكة',madinah:'المدينة',taif:'الطائف',jazan:'جازان',khamis:'خميس مشيط',hofuf:'الهفوف',jubail:'الجبيل',tabuk:'تبوك',buraidah:'بريدة',qassim:'القصيم',ahsa:'الأحساء',unaizah:'عنيزة',dhahran:'الظهران',albaha:'الباحة',other:'أخرى'};
 const STATUS={closed:'صفقات مقفلة',active:'تفاوض نشط',waitlisted:'قائمة انتظار',rejected:'مرفوضة',pending:'قيد المراجعة',campaign_full:'اكتمال الحملة'};
 
-let currentUser=null, myCampaigns=[], ALLAPPS=[];
+let currentUser=null, myCampaigns=[], ALLAPPS=[], RATINGS=[];
 
 const val=a=>Number(a.final_price||a.price)||0;
 
@@ -461,6 +476,50 @@ function renderOverview(){
   +(owed>0?'<div class="dsh-alert"><div class="ic">⚠️</div><div class="tx">عليك <b>'+money(owed)+' مستحقة للمؤثرين</b> على صفقات مكتملة وغير مدفوعة. بادر بالدفع من صفحة «المستحقات بالتفصيل» حفاظًا على تفعيل حسابك.</div></div>':'');
 }
 
+function renderAnalytics(){
+  const box=$('#an-body'); if(!box) return;
+  const apps=ALLAPPS||[], camps=myCampaigns||[];
+  const isComp=a=>a.status==='closed'&&a.brand_approved===true;
+  const st7=a=>{const sd=(a&&typeof a.stage_data==='object'&&a.stage_data)?a.stage_data:{};return sd[7]||sd['7']||{};};
+  const published=apps.filter(a=>{const s=st7(a);return s&&(s.publish_link||s.reach||s.likes);});
+  const totalReach=apps.reduce((s,a)=>s+(parseInt(st7(a).reach)||0),0);
+  const totalLikes=apps.reduce((s,a)=>s+(parseInt(st7(a).likes)||0),0);
+  const totalComments=apps.reduce((s,a)=>s+(parseInt(st7(a).comments)||0),0);
+  const totalEng=totalLikes+totalComments;
+  const engRate=totalReach>0?(totalEng/totalReach*100):null;
+  const avgRating=RATINGS.length?(RATINGS.reduce((s,r)=>s+Number(r.stars||0),0)/RATINGS.length):null;
+  const collaborators=new Set(apps.filter(isComp).map(a=>a.creator_id).filter(Boolean)).size;
+
+  const kpi=(l,v,s,hl)=>'<div class="kpi'+(hl?' hl':'')+'"><div class="lbl">'+l+'</div><div class="val">'+v+'</div>'+(s?'<div class="ksub">'+s+'</div>':'')+'</div>';
+
+  const content='<div class="dsh-card"><h4>🎬 نتائج المحتوى المنشور</h4><div class="hint">أرقام حقيقية يُدخلها المؤثرون بعد النشر — وصول وتفاعل</div>'
+    +'<div class="kpi-grid" style="margin:0">'
+    +kpi('نسبة التفاعل', engRate!=null?engRate.toFixed(1)+' <small>٪</small>':'—', engRate!=null?'تفاعل ÷ وصول':'لا أرقام بعد', true)
+    +kpi('الوصول الكلي', totalReach>0?reachFmt(totalReach):'—','مشاهدات المنشورات')
+    +kpi('التفاعل الكلي', num(totalEng),'إعجابات + تعليقات')
+    +kpi('فيديوهات منشورة', num(published.length),'منشورات موثّقة')
+    +kpi('المتعاونون', num(collaborators),'مؤثر تعاملت معهم')
+    +kpi('متوسط تقييمك', avgRating!=null?avgRating.toFixed(1)+' <small>★</small>':'—', avgRating!=null?'من '+num(RATINGS.length)+' تقييم':'لا تقييمات بعد')
+    +'</div>'
+    +(published.length===0?'<div class="hint" style="margin:13px 0 0">الأرقام تتعبّأ تلقائيًا أول ما يؤكّد المؤثرون النشر ويُدخلون أرقام منشوراتهم.</div>':'')
+    +'</div>';
+
+  const rows=camps.map(c=>{const ca=apps.filter(a=>a.campaign_id===c.id);const capp=ca.filter(isComp);return{c,total:ca.length,done:ca.filter(a=>isComp(a)&&(a.stage||1)>=9).length,prog:ca.filter(a=>isComp(a)&&(a.stage||1)<9).length,spend:capp.reduce((s,a)=>s+val(a),0),reach:capp.reduce((s,a)=>s+parseFollowers(a.users&&a.users.followers),0)};});
+  const maxT=Math.max(1,...rows.map(r=>r.total));
+  const chart='<div class="dsh-card"><h4>📊 العروض لكل حملة</h4><div class="hint">إجمالي العروض المستلمة والمكتمل منها لكل حملة</div><div class="dsh-hb">'
+    +(rows.length?rows.map(r=>'<div class="dsh-hr"><span class="dsh-hn">'+esc(r.c.title||'حملة')+'</span><div class="dsh-ht"><div class="dsh-hf" style="width:'+Math.max(4,Math.round(r.total/maxT*100))+'%"></div></div><span class="dsh-hv">'+num(r.total)+' عرض <span class="dsh-ho">· '+num(r.done)+' مكتمل</span></span></div>').join(''):'<div class="hint">لا حملات بعد</div>')
+    +'</div></div>';
+
+  const cards='<div class="dsh-card"><h4>🗂️ تفصيل كل حملة</h4><div class="hint">أداء كل حملة على حِدة — العروض والمكتمل والوصول والإنفاق</div><div class="an-grid">'
+    +(rows.length?rows.map(r=>{const on=r.c.status!=='closed';return '<div class="an-c"><div class="an-ch"><span class="an-ct">'+esc(r.c.title||'حملة')+'</span><span class="pay-chip '+(on?'prog':'paid')+'">'+(on?'نشطة':'مغلقة')+'</span></div>'
+      +'<div class="an-meta">'+esc(r.c.platform||'—')+(r.c.budget?(' · ميزانية '+num(r.c.budget)+' ر.س'):'')+'</div>'
+      +'<div class="an-stats"><div><b>'+num(r.total)+'</b><span>عرض</span></div><div><b>'+num(r.prog)+'</b><span>تجهيز</span></div><div><b>'+num(r.done)+'</b><span>مكتمل</span></div><div><b>'+reachFmt(r.reach)+'</b><span>وصول</span></div></div>'
+      +'<div class="an-spend">'+money(r.spend)+' <small>إنفاق على الحملة</small></div></div>';}).join(''):'<div class="hint">ما عندك حملات بعد</div>')
+    +'</div></div>';
+
+  box.innerHTML='<div class="dsh-grid">'+content+'</div><div class="dsh-grid">'+chart+'</div><div class="dsh-grid">'+cards+'</div>';
+}
+
 function payChip(a){
   const stg=a.stage||1, ps=a.payment_status||'unpaid';
   if(ps==='confirmed') return '<span class="pay-chip paid">✓ مدفوع ومؤكّد</span>';
@@ -513,7 +572,8 @@ async function loadData(silent){
       if(error) throw error;
       ALLAPPS=data||[];
     }
-    renderLeaderBar(); renderOverview(); renderDeals(); renderCreators();
+    try{ const {data:rr}=await supabaseClient.from('creator_ratings').select('stars').eq('brand_id',currentUser.id); RATINGS=rr||[]; }catch(e){ RATINGS=[]; }
+    renderLeaderBar(); renderOverview(); renderAnalytics(); renderDeals(); renderCreators();
     const lu=$('#last-upd'); if(lu) lu.textContent='محدّث '+new Date().toLocaleTimeString('ar-SA-u-nu-latn',{hour:'2-digit',minute:'2-digit'});
   }catch(e){ console.error(e); if(!silent){ const ov=$('#ov-body'); if(ov) ov.innerHTML='<div class="dsh-card"><div class="hint" style="margin:0;color:#c23b3b">حصل خطأ في التحميل. حدّث الصفحة.</div></div>'; } }
 }
