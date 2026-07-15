@@ -1747,8 +1747,12 @@ async function simblExitImpersonation(){
       </div>
 
       <div class="field">
-        <label>البريف الإعلاني</label>
-        <textarea name="description" required rows="4" placeholder="وضّح للمعلن: المنتج، الجمهور المستهدف، المحاور والنقاط المطلوبة، نوع المحتوى، الكلمات المفتاحية، أي مراجع أو أمثلة... (يُرسل للمعلن تلقائيًا في مرحلة البريف)"></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <label style="margin:0;">البريف الإعلاني</label>
+          <button type="button" id="brief-ai-btn" onclick="suggestBrief(this)" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #12b5a3;background:#e9f8f5;color:#0b7d73;font-family:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;cursor:pointer;transition:.15s;">✨ اكتب لي البريف</button>
+        </div>
+        <textarea name="description" required rows="4" placeholder="وضّح للمعلن: المنتج، الجمهور المستهدف، المحاور والنقاط المطلوبة، نوع المحتوى، الكلمات المفتاحية، أي مراجع أو أمثلة... (يُرسل للمعلن تلقائيًا في مرحلة البريف) — أو اضغط «اكتب لي البريف» ويجهّزه لك النظام."></textarea>
+        <div class="hint">💡 عبّي العنوان والتصنيف والمنصة، ثم اضغط «اكتب لي البريف» — النظام يكتب لك بريف احترافي تقدر تعدّله.</div>
       </div>
 
       <div class="field-row">
@@ -2014,6 +2018,35 @@ if (!window._simblCountdownTick) {
 }
 
 // ====== إشعار لطيف يختفي تلقائياً (بديل alert) ======
+async function suggestBrief(btn) {
+  const form = btn.closest('form') || document;
+  const g = n => { const el = form.querySelector('[name="'+n+'"]'); return el ? (el.value||'').trim() : ''; };
+  const typeEl = form.querySelector('[name="campaign_type"]:checked');
+  const title = g('title');
+  if (!title) { showToast('اكتب عنوان الحملة أول عشان أقترح لك البريف', 'error'); return; }
+  const ta = form.querySelector('[name="description"]');
+  if (ta && ta.value.trim() && !confirm('فيه بريف مكتوب — تبي أستبدله بواحد جديد؟')) return;
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.style.opacity = '.6'; btn.style.cursor = 'default'; btn.innerHTML = '⏳ يكتب البريف…';
+  try {
+    const { data: sess } = await supabaseClient.auth.getSession();
+    const token = sess && sess.session ? sess.session.access_token : '';
+    const res = await fetch('/api/generate-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ title, industry: g('industry'), campaign_type: typeEl ? typeEl.value : 'home', platform: g('platform') })
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.ok) throw new Error(j.error || 'تعذّر توليد البريف');
+    if (ta) { ta.value = j.brief; ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus(); ta.scrollTop = 0; }
+    showToast('جهّزت لك البريف ✓ عدّله زي ما تحب', 'success');
+  } catch (e) {
+    showToast(e.message || 'تعذّر توليد البريف', 'error');
+  } finally {
+    btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = 'pointer'; btn.innerHTML = orig;
+  }
+}
+
 function showToast(message, type = 'success', duration = 3500) {
   const wrap = document.getElementById('toast-wrap');
   if (!wrap) { return; }
