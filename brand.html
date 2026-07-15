@@ -1665,10 +1665,17 @@ async function simblExitImpersonation(){
       <div class="field">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
           <label style="margin:0;">البريف الإعلاني</label>
-          <button type="button" id="brief-ai-btn" onclick="suggestBrief(this)" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #12b5a3;background:#e9f8f5;color:#0b7d73;font-family:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;cursor:pointer;transition:.15s;">✨ اكتب لي البريف</button>
+          <button type="button" id="brief-ai-btn" onclick="toggleBriefAI(this)" style="display:inline-flex;align-items:center;gap:6px;border:1px solid #12b5a3;background:#e9f8f5;color:#0b7d73;font-family:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;cursor:pointer;transition:.15s;">✨ اكتب لي البريف</button>
         </div>
-        <textarea name="description" required rows="4" placeholder="وضّح للمعلن: المنتج، الجمهور المستهدف، المحاور والنقاط المطلوبة، نوع المحتوى، الكلمات المفتاحية، أي مراجع أو أمثلة... (يُرسل للمعلن تلقائيًا في مرحلة البريف) — أو اضغط «اكتب لي البريف» ويجهّزه لك النظام."></textarea>
-        <div class="hint">💡 عبّي العنوان والتصنيف والمنصة، ثم اضغط «اكتب لي البريف» — النظام يكتب لك بريف احترافي تقدر تعدّله.</div>
+        <div id="brief-ai-panel" style="display:none;background:#f4faf9;border:1px solid #cdeae5;border-radius:12px;padding:13px;margin-bottom:11px;">
+          <label style="font-size:12.5px;color:#0b7d73;margin-bottom:6px;">اكتب باختصار وش تبي من الإعلان + المعلومات الأساسية، والنظام يوسّعها لبريف احترافي:</label>
+          <textarea id="brief-ai-note" rows="3" placeholder="مثال: عطر رجالي فخم جديد — أبي المؤثر يركّز على ثبات الرائحة والفخامة، يصوّره بإضاءة راقية، يذكر إنه مناسب للمناسبات والهدايا، ويحط رابط المتجر" style="width:100%;box-sizing:border-box;border:1px solid #cdeae5;border-radius:9px;padding:10px;font-family:inherit;font-size:13.5px;resize:vertical;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:9px;">
+            <button type="button" id="brief-ai-go" onclick="suggestBrief(this)" style="border:0;background:linear-gradient(135deg,#16c2ba,#0e9a94);color:#fff;font-family:inherit;font-size:13px;font-weight:700;padding:9px 16px;border-radius:100px;cursor:pointer;">✨ جهّز البريف</button>
+            <button type="button" onclick="toggleBriefAI(document.getElementById('brief-ai-btn'))" style="border:1px solid #d7e0dd;background:#fff;color:#5f6b66;font-family:inherit;font-size:13px;font-weight:600;padding:9px 16px;border-radius:100px;cursor:pointer;">إلغاء</button>
+          </div>
+        </div>
+        <textarea name="description" required rows="4" placeholder="وضّح للمعلن: المنتج، الجمهور المستهدف، المحاور والنقاط المطلوبة، نوع المحتوى، الكلمات المفتاحية... (يُرسل للمعلن تلقائيًا في مرحلة البريف) — أو اضغط «اكتب لي البريف» فوق واكتب فكرتك ويجهّزه لك النظام."></textarea>
       </div>
 
       <div class="field">
@@ -1858,12 +1865,22 @@ const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
 const toArabic = n => String(n);
 
 // ====== إشعار لطيف يختفي تلقائياً (بديل alert) ======
+function toggleBriefAI(btn) {
+  const panel = document.getElementById('brief-ai-panel');
+  if (!panel) return;
+  const open = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = open ? 'block' : 'none';
+  if (open) { const n = document.getElementById('brief-ai-note'); if (n) n.focus(); }
+}
 async function suggestBrief(btn) {
   const form = btn.closest('form') || document;
   const g = n => { const el = form.querySelector('[name="'+n+'"]'); return el ? (el.value||'').trim() : ''; };
   const typeEl = form.querySelector('[name="campaign_type"]:checked');
   const title = g('title');
   if (!title) { showToast('اكتب عنوان الحملة أول عشان أقترح لك البريف', 'error'); return; }
+  const noteEl = document.getElementById('brief-ai-note');
+  const note = noteEl ? (noteEl.value || '').trim() : '';
+  if (!note) { showToast('اكتب باختصار وش تبي من البريف عشان يطلع قريب لتصوّرك', 'error'); if (noteEl) noteEl.focus(); return; }
   const ta = form.querySelector('[name="description"]');
   if (ta && ta.value.trim() && !confirm('فيه بريف مكتوب — تبي أستبدله بواحد جديد؟')) return;
   const orig = btn.innerHTML;
@@ -1874,11 +1891,12 @@ async function suggestBrief(btn) {
     const res = await fetch('/api/generate-brief', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ title, industry: g('industry'), campaign_type: typeEl ? typeEl.value : 'home', platform: g('platform') })
+      body: JSON.stringify({ title, industry: g('industry'), campaign_type: typeEl ? typeEl.value : 'home', platform: g('platform'), note })
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok || !j.ok) throw new Error(j.error || 'تعذّر توليد البريف');
     if (ta) { ta.value = j.brief; ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus(); ta.scrollTop = 0; }
+    const panel = document.getElementById('brief-ai-panel'); if (panel) panel.style.display = 'none';
     showToast('جهّزت لك البريف ✓ عدّله زي ما تحب', 'success');
   } catch (e) {
     showToast(e.message || 'تعذّر توليد البريف', 'error');
