@@ -1936,13 +1936,30 @@ async function simblExitImpersonation(){
 </div>
 
 <!-- نافذة استبدال المعلن مع كتابة السبب -->
+<style>
+.reason-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.rchip{border:1px solid #e0e6e4;background:#fff;color:#33413c;font-family:inherit;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:100px;cursor:pointer;transition:.15s;text-align:right}
+.rchip:hover{border-color:#12b5a3}
+.rchip.active{border-color:#12b5a3;background:#e3f6f1;color:#0b7d73}
+</style>
 <div class="modal-backdrop" id="reject-modal">
   <div class="modal" style="max-width: 480px">
     <h3>استبدال المعلن</h3>
-    <p class="sub">اكتب سبب الاستبدال (مثل: تأخّر في الرد، أو المحتوى غير مناسب للحملة). راح يوصل للمعلن بنبرة مهنية، ويترقّى تلقائيًا التالي من قائمة الانتظار مكانه.</p>
+    <p class="sub">اختر سبب الاستبدال أو اكتبه بنفسك. راح يوصل للمعلن بنبرة مهنية، ويترقّى تلقائيًا التالي من قائمة الانتظار مكانه.</p>
+    <div class="field">
+      <label>أسباب شائعة (اختر أو عدّل)</label>
+      <div class="reason-chips" id="reject-reasons">
+        <button type="button" class="rchip" onclick="pickReason(this)">تأخّر في الرد أو التفاوض</button>
+        <button type="button" class="rchip" onclick="pickReason(this)">السعر أعلى من ميزانية الحملة</button>
+        <button type="button" class="rchip" onclick="pickReason(this)">الحساب غير مناسب للحملة</button>
+        <button type="button" class="rchip" onclick="pickReason(this)">المحتوى لا يناسب هوية العلامة</button>
+        <button type="button" class="rchip" onclick="pickReason(this)">جمهور أو تفاعل غير مناسب</button>
+        <button type="button" class="rchip" onclick="pickReason(this)">المعلن غير متجاوب أو انسحب</button>
+      </div>
+    </div>
     <div class="field">
       <label>سبب الاستبدال</label>
-      <textarea id="reject-reason" rows="4" placeholder="مثال: تأخّر في التفاوض، أو الحساب غير مناسب للحملة، أو..."></textarea>
+      <textarea id="reject-reason" rows="4" placeholder="مثال: تأخّر في التفاوض، أو الحساب غير مناسب للحملة، أو..." oninput="clearReasonChips()"></textarea>
     </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeRejectModal()">إلغاء</button>
@@ -3052,11 +3069,22 @@ async function approveDeal(applicationId) {
 // ============ استبدال المعلن مع كتابة السبب (يترقّى التالي تلقائيًا) ============
 let rejectingAppId = null;
 
+function pickReason(el) {
+  const ta = document.getElementById('reject-reason');
+  if (ta) ta.value = el.textContent.trim();
+  document.querySelectorAll('#reject-reasons .rchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+function clearReasonChips() {
+  document.querySelectorAll('#reject-reasons .rchip').forEach(c => c.classList.remove('active'));
+}
+
 function openRejectModal(applicationId) {
   if(!hasPerm('deals')){ showToast('ما عندك صلاحية رفض/استبدال المعلنين','error'); return; }
   rejectingAppId = applicationId;
   const ta = document.getElementById('reject-reason');
   if (ta) ta.value = '';
+  clearReasonChips();
   const modal = document.getElementById('reject-modal');
   if (modal) modal.classList.add('show');
 }
