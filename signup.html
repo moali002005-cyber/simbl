@@ -874,52 +874,68 @@ async function submitForm(event, role) {
       // أي خطأ آخر في الفحص (مثل منع القراءة من RLS) نتجاهله — القاعدة هي الحَكَم النهائي
     }
 
-    // 2) إنشاء حساب المصادقة
-    //    مع تفعيل تأكيد الإيميل، Supabase يرجّع identities فاضية لكل إيميل،
-    //    لذلك لا نعتمد على identities إطلاقاً للكشف عن التكرار (كان يسبب رفض كل إيميل جديد).
-    const { data: authData, error: authErr } = await supabaseClient.auth.signUp({
-      email,
-      password
-    });
+    // 2) المصادقة — بطريقة آمنة تمنع الحسابات اليتيمة:
+    //    (أ) لو فيه جلسة نشطة (إكمال ملف لحساب موجود عبر تحويل من الدخول) → نستخدمها.
+    //    (ب) غير كذا ننشئ حساب المصادقة. لو الإيميل موجود مسبقاً نحاول الدخول به:
+    //        - نجح الدخول (كلمة السر صحيحة) → حساب موجود؛ نكمّل ملفه لو كان ناقصاً.
+    //        - فشل الدخول → تسجيل مكرر فعلي بكلمة سر مختلفة → رسالة واضحة.
+    let authUser = null;
+    const { data: sessData0 } = await supabaseClient.auth.getSession();
+    if (sessData0 && sessData0.session && sessData0.session.user) {
+      authUser = sessData0.session.user;
+    } else {
+      const { data: authData, error: authErr } = await supabaseClient.auth.signUp({ email, password });
+      if (authErr) {
+        const am = (authErr.message || '').toLowerCase();
+        if (am.includes('already registered') || am.includes('already been registered') || am.includes('user already registered')) {
+          const { data: si, error: siErr } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (siErr || !si || !si.user) throw new Error('EMAIL_EXISTS');
+          authUser = si.user;
+        } else {
+          console.error('Auth signUp error:', authErr);
+          throw authErr;
+        }
+      } else {
+        authUser = authData && authData.user;
+      }
+    }
+    if (!authUser || !authUser.id) throw new Error('AUTH_FAILED');
+    userData.auth_id = authUser.id;
 
-    if (authErr) {
-      console.error('Auth signUp error:', authErr);
-      throw authErr;
+    // 2.1) لو فيه ملف مسبقاً لنفس حساب المصادقة → تسجيل مكرر فعلي (مو حساباً يتيماً)
+    try {
+      const { data: existingProf } = await supabaseClient
+        .from('users').select('id').eq('auth_id', authUser.id).maybeSingle();
+      if (existingProf && existingProf.id) throw new Error('EMAIL_EXISTS');
+    } catch (exErr) {
+      if (exErr && exErr.message === 'EMAIL_EXISTS') throw exErr;
     }
 
-    // 3) ربط الملف الشخصي بحساب المصادقة
-    if (authData && authData.user) {
-      userData.auth_id = authData.user.id;
-    }
-
-    // 3.1) رفع مستند السجل التجاري (للشركات فقط) إلى تخزين Supabase
+    // 3) رفع مستند السجل التجاري (للشركات) — غير حاجب: فشله ما يمنع إنشاء الحساب
     if (role === 'brand') {
       const crFile = fd.get('cr_file');
       if (crFile && crFile.size > 0) {
         try {
           const ext = (crFile.name.split('.').pop() || 'dat').toLowerCase().replace(/[^a-z0-9]/g, '');
-          const uid = (authData && authData.user && authData.user.id) ? authData.user.id : Date.now();
-          const path = 'cr/' + uid + '-' + Date.now() + '.' + ext;
+          const path = 'cr/' + authUser.id + '-' + Date.now() + '.' + ext;
           const { error: upErr } = await supabaseClient
             .storage.from('cr-docs')
             .upload(path, crFile, { contentType: crFile.type || undefined, upsert: false });
           if (upErr) throw upErr;
-          userData.cr_number = path; // نخزّن مسار الملف داخل الـ bucket
+          userData.cr_number = path;
         } catch (upErr) {
-          console.error('CR upload error:', upErr);
-          throw new Error('CR_UPLOAD_FAILED');
+          console.error('CR upload (non-blocking):', upErr);
         }
       }
     }
 
-    // 3.2) رفع صورة حساب المعلن إلى تخزين Supabase
+    // 3.2) رفع صورة المعلن — غير حاجب: لو فشل الرفع نكمّل التسجيل بدون صورة (يضيفها لاحقاً)
     if (role === 'creator') {
       const avatarFile = fd.get('avatar_file');
       if (avatarFile && avatarFile.size > 0) {
         try {
           const ext = (avatarFile.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-          const uid = (authData && authData.user && authData.user.id) ? authData.user.id : Date.now();
-          const path = uid + '-' + Date.now() + '.' + ext;
+          const path = authUser.id + '-' + Date.now() + '.' + ext;
           const { error: avErr } = await supabaseClient
             .storage.from('avatars')
             .upload(path, avatarFile, { contentType: avatarFile.type || undefined, upsert: true });
@@ -927,15 +943,12 @@ async function submitForm(event, role) {
           const { data: avPub } = supabaseClient.storage.from('avatars').getPublicUrl(path);
           userData.avatar_url = avPub.publicUrl;
         } catch (avErr) {
-          console.error('Avatar upload error:', avErr);
-          throw new Error('AVATAR_UPLOAD_FAILED');
+          console.error('Avatar upload (non-blocking):', avErr);
         }
       }
     }
 
-    // 4) حفظ بيانات المستخدم في جدول users
-    //    القاعدة هي الحَكَم النهائي للتكرار: لو عمود email فريد (unique)،
-    //    أي إيميل مكرر يُرفض هنا بخطأ duplicate نلتقطه ونعرضه برسالة واضحة.
+    // 4) حفظ بيانات المستخدم في جدول users (الحَكَم النهائي للتكرار)
     let savedUser;
     try {
       savedUser = await dbSignup(userData);
@@ -1006,6 +1019,37 @@ function goToDashboard(role) {
     if (sub) sub.style.display = 'none';
     selectRole(role);
   }
+})();
+
+// ===== الاسترجاع التلقائي: حساب مصادقة بلا ملف (يتيم) → وضع «إكمال الملف» =====
+function enterResumeMode(email) {
+  window.__resumeMode = true;
+  document.querySelectorAll('input[name="email"]').forEach(i => { if (email) i.value = email; i.readOnly = true; });
+  document.querySelectorAll('input[name="password"]').forEach(i => {
+    i.required = false;
+    const grp = i.closest('.field') || i.parentElement;
+    if (grp) grp.style.display = 'none';
+  });
+  const host = document.getElementById('role-selection');
+  if (host && !document.getElementById('resume-banner')) {
+    const b = document.createElement('div');
+    b.id = 'resume-banner';
+    b.style.cssText = 'background:#e3f6f1;border:1px solid #b8e6dd;color:#0b7d73;border-radius:12px;padding:14px 16px;margin:0 0 18px;font-weight:600;line-height:1.7;';
+    b.innerHTML = 'حسابك شبه جاهز — بس ناقص ملفك. اختر نوع حسابك وكمّل بياناتك مرة وحدة عشان نفعّله (ما نطلب كلمة سر جديدة).';
+    host.insertBefore(b, host.firstChild);
+  }
+}
+(async function initResume() {
+  try {
+    if (!window.supabaseClient) return;
+    const { data } = await supabaseClient.auth.getSession();
+    const session = data && data.session;
+    if (!session || !session.user) return;
+    const { data: prof } = await supabaseClient
+      .from('users').select('id').eq('auth_id', session.user.id).maybeSingle();
+    if (prof && prof.id) return;               // عنده ملف — تسجيل عادي، لا شي
+    enterResumeMode(session.user.email || '');  // يتيم — فعّل وضع الإكمال
+  } catch (e) { /* تجاهل */ }
 })();
 </script>
 

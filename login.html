@@ -370,7 +370,9 @@ async function finishLogin(email, authUser) {
   }
 
   if (!profile) {
-    showError('لا يوجد ملف حساب مرتبط بهذا البريد. <a href="/signup.html">سجل حساب جديد</a>');
+    // حساب مصادقة صحيح لكن بلا ملف (يتيم) — نبقي الجلسة ونوجّهه لإكمال ملفه
+    // بدل الطريق المسدود. صفحة التسجيل تكتشف الجلسة وتفتح «وضع الإكمال».
+    window.location.href = '/signup.html?complete=1';
     return false;
   }
 
