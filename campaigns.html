@@ -3538,7 +3538,10 @@ function renderDealRow(a, idx, campaignType) {
 // ============ شيت بيانات التوصيل للحملة (إكسل) ============
 // يجمع المعلنين اللي عبّؤوا عنوانهم (مرحلة العنوان فأعلى): الاسم + الجوال + العنوان
 function getDeliveryRows(campaignId) {
-  const apps = campaignApps[campaignId] || [];
+  // لازم يطابق «شيت الصفقات» المعروض تمامًا: نستبعد قائمة الانتظار والمرفوض/المستبدل
+  // (نفس فلتر sheetApps)، وإلا تظهر أسماء المستبدَلين في التوصيل وما تطابق الشيت.
+  const apps = (campaignApps[campaignId] || []).filter(a =>
+    a.status !== 'waitlisted' && a.status !== 'rejected' && a.status !== 'campaign_full');
   // كل المعلنين بنفس ترتيب الجدول؛ اللي ما عبّأ عنوان يطلع صفه فاضي
   return apps.map(a => {
     const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
