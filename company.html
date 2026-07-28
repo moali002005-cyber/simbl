@@ -783,11 +783,8 @@ async function loadData(silent){
     const ids=myCampaigns.map(c=>c.id);
     ALLAPPS=[];
     if(ids.length){
-      const {data,error}=await supabaseClient.from('applications')
-        .select('*, users!applications_creator_id_fkey(name,platform,handle,followers,category,website,city)')
-        .in('campaign_id',ids).order('created_at',{ascending:false});
-      if(error) throw error;
-      ALLAPPS=data||[];
+      // ⚠️ بلا قصّ 1000 صف
+      ALLAPPS = await dbGetAppsForCampaigns(ids,'*, users!applications_creator_id_fkey(name,platform,handle,followers,category,website,city)');
     }
     try{ const {data:rr}=await supabaseClient.from('creator_ratings').select('stars').eq('brand_id',WORKSPACE_ID||currentUser.id); RATINGS=rr||[]; }catch(e){ RATINGS=[]; }
     renderLeaderBar(); renderOverview(); renderAnalytics(); renderCompare(); renderDeals(); renderCreators();
