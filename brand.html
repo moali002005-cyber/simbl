@@ -2294,13 +2294,8 @@ async function loadData() {
     const campIds = myCampaigns.map(c => c.id);
     let allApps = [];
     if (campIds.length) {
-      const { data, error } = await supabaseClient
-        .from('applications')
-        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website)')
-        .in('campaign_id', campIds)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      allApps = data || [];
+      // ⚠️ يمرّ عبر dbGetAppsForCampaigns لتفادي قصّ PostgREST عند 1000 صف (كان يُفرغ أقدم الحملات)
+      allApps = await dbGetAppsForCampaigns(campIds);
     }
     campaignApps = {};
     myCampaigns.forEach(c => { campaignApps[c.id] = []; });
