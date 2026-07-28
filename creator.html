@@ -1774,9 +1774,11 @@ async function loadCampaignApprovedCounts() {
       return;
     }
     // احتياط: لو الدالة غير منشورة بعد — قراءة مباشرة (قد تحدّها RLS فتظهر أصفار)
-    const { data: d2 } = await supabaseClient
+    // ⚠️ بلا قصّ 1000 صف — وإلا ظهرت حملة ممتلئة كأنها مفتوحة
+    const d2 = await simblFetchAll(() => supabaseClient
       .from('applications').select('campaign_id, status, brand_approved')
-      .in('status', ['closed', 'waitlisted']).in('campaign_id', ids);
+      .in('status', ['closed', 'waitlisted']).in('campaign_id', ids)
+      .order('id', { ascending: true }));
     (d2 || []).forEach(a => {
       if (a.status === 'closed') {
         campaignClosedCount[a.campaign_id] = (campaignClosedCount[a.campaign_id] || 0) + 1;
