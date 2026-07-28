@@ -244,6 +244,36 @@ async function dbApply(applicationData) {
   return data;
 }
 
+// ⚠️ مهم: PostgREST يقصّ أي استعلام عند 1000 صف **بصمت** (بلا خطأ).
+// أي شركة عندها أكثر من 1000 عرض عبر حملاتها كانت تفقد صفوف أقدم حملاتها،
+// فتظهر الحملة بصفر معلنين وصفر مستحقات. هذه الدالة تجلب كل الصفوف على دفعات.
+// ملاحظة: لازم ترتيب حاسم (created_at + id) وإلا تكرّرت/ضاعت صفوف بين الدفعات.
+async function simblFetchAll(build, pageSize) {
+  const SZ = pageSize || 1000;
+  let out = [];
+  for (let page = 0; page < 60; page++) {
+    const from = page * SZ;
+    const { data, error } = await build().range(from, from + SZ - 1);
+    if (error) throw error;
+    const rows = data || [];
+    out = out.concat(rows);
+    if (rows.length < SZ) break;
+  }
+  return out;
+}
+// جلب كل عروض مجموعة حملات بلا قصّ — المصدر الموحّد لكل الصفحات
+async function dbGetAppsForCampaigns(campIds, selectStr) {
+  if (!campIds || !campIds.length) return [];
+  const sel = selectStr || '*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website)';
+  return await simblFetchAll(() => supabaseClient
+    .from('applications')
+    .select(sel)
+    .in('campaign_id', campIds)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: true }));
+}
+window.simblFetchAll = simblFetchAll;
+window.dbGetAppsForCampaigns = dbGetAppsForCampaigns;
 async function dbGetMyApplications(creatorId) {
   const { data, error } = await supabaseClient
     .from('applications')
