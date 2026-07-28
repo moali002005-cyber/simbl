@@ -149,10 +149,8 @@ async function init(){
   var allApps=[];
   if(campIds.length){
     try{
-      var res = await supabaseClient.from('applications')
-        .select('*, users!applications_creator_id_fkey(name, platform, handle, followers, category)')
-        .in('campaign_id', campIds);
-      allApps = res.data || [];
+      // ⚠️ بلا قصّ 1000 صف
+      allApps = await dbGetAppsForCampaigns(campIds,'*, users!applications_creator_id_fkey(name, platform, handle, followers, category)');
     }catch(e){ allApps=[]; }
   }
   var ratings=[];
