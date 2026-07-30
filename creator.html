@@ -1856,6 +1856,9 @@ function renderCreatorDealCard(c, a) {
   const price = (a.final_price || a.price || 0);
   const briefText = getBriefText(a);
   const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
+  // المرفقات تظهر بعد اعتماد الصفقة فقط (نفس شرط سياسة القراءة في التخزين)
+  const attachCount = isApproved ? simblBriefList(a.campaigns).length : 0;
+  const attachBtnHtml = attachCount ? `<button class="brief-pill" onclick="event.stopPropagation(); openAttachModal('${a.id}')">📎 المرفقات (${attachCount})</button>` : '';
 
   let badge;
   const isCompleted = isApproved && stageNow >= 9;
@@ -1930,7 +1933,7 @@ function renderCreatorDealCard(c, a) {
     <div class="deal-card${(isCompleted || didntWin) ? ' completed' : ''}" id="ac-${a.id}">
       <div class="dc-head">
         <span class="dc-av">${escHtml(initial)}</span>
-        <div class="dc-main"><div class="dc-title">${escHtml(c.title || 'حملة')}</div><div class="dc-sub">${escHtml(brandName)}${(!isNegotiating) ? ' · ' + price.toLocaleString('en-US') + ' ر.س' : ''}</div>${briefBtnHtml}</div>
+        <div class="dc-main"><div class="dc-title">${escHtml(c.title || 'حملة')}</div><div class="dc-sub">${escHtml(brandName)}${(!isNegotiating) ? ' · ' + price.toLocaleString('en-US') + ' ر.س' : ''}</div>${briefBtnHtml}${attachBtnHtml}</div>
         ${badge}
       </div>
       ${body}
@@ -2183,6 +2186,9 @@ function renderOfferCard(c, a) {
   const priceLabel = (a.final_price && isClosed) ? 'السعر النهائي' : 'عرضك';
   const briefText = getBriefText(a);
   const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
+  // المرفقات تظهر بعد اعتماد الصفقة فقط (نفس شرط سياسة القراءة في التخزين)
+  const attachCount = isApproved ? simblBriefList(a.campaigns).length : 0;
+  const attachBtnHtml = attachCount ? `<button class="brief-pill" onclick="event.stopPropagation(); openAttachModal('${a.id}')">📎 المرفقات (${attachCount})</button>` : '';
 
   // الشارة على اليمين: تفاوض=زر، بانتظار التعميد=شارة، معمّدة=المطلوب الحالي
   let headRight;
@@ -2220,7 +2226,7 @@ function renderOfferCard(c, a) {
         <div class="ac-main">
           <div class="ac-title">${campaignTitle}</div>
           <div class="ac-brand">${brandName}</div>
-          ${briefBtnHtml}
+          ${briefBtnHtml}${attachBtnHtml}
         </div>
         <div class="ac-side">
           ${isNegotiating ? '' : `<div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('en-US')} ر.س</div>`}
@@ -2495,6 +2501,52 @@ function openBriefModal(appId) {
   document.getElementById('briefModalTitle').textContent = c.title || a.title || 'بريف الحملة';
   document.getElementById('briefModalBody').textContent = text;
   document.getElementById('briefModal').classList.add('show');
+}
+// ===== مرفقات الحملة (صور من الشركة) =====
+let _attachList = [];
+function escAtt(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+  });
+}
+function openAttachModal(appId) {
+  const a = (Array.isArray(myApplications) ? myApplications : []).find(x => x.id === appId);
+  if (!a) return;
+  const c = a.campaigns || {};
+  _attachList = simblBriefList(c);
+  document.getElementById('attachModalTitle').textContent = 'مرفقات: ' + (c.title || a.title || 'الحملة');
+  const body = document.getElementById('attachModalBody');
+  if (!_attachList.length) {
+    body.textContent = 'ما فيه مرفقات لهذه الحملة.';
+  } else {
+    body.innerHTML = '<p style="margin:0 0 10px;font-size:12px;color:#6B7B74;line-height:1.7;">صور من الشركة — نزّلها واستخدمها في الفيديو حسب البريف.</p>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:12px;">'
+      + _attachList.map(function (f, i) {
+          return '<div style="width:132px;border:1px solid #E7EDEA;border-radius:12px;overflow:hidden;background:#fff;">'
+            + '<div id="att-thumb-' + i + '" style="height:100px;background:#F3F6F5;display:flex;align-items:center;justify-content:center;font-size:22px;">🖼</div>'
+            + '<div style="padding:6px;font-size:10px;color:#4A5A53;word-break:break-all;line-height:1.35;">' + escAtt(f.name || 'صورة') + '</div>'
+            + '<div style="padding:0 6px 8px;"><button style="width:100%;font-family:inherit;font-size:11px;font-weight:700;border:0;background:#12b5a3;color:#fff;border-radius:8px;padding:6px 0;cursor:pointer;" onclick="downloadAttach(' + i + ')">⬇ تنزيل</button></div>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+    _attachList.forEach(function (f, i) {
+      simblBriefSignedUrl(f.path, 3600).then(function (url) {
+        const box = document.getElementById('att-thumb-' + i);
+        if (url && box) box.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+      });
+    });
+  }
+  document.getElementById('attachModal').classList.add('show');
+}
+function closeAttachModal() { document.getElementById('attachModal').classList.remove('show'); }
+async function downloadAttach(idx) {
+  const item = _attachList[idx];
+  if (!item) return;
+  const url = await simblBriefSignedUrl(item.path, 300);
+  if (!url) { kitToast('تعذّر تجهيز رابط التنزيل'); return; }
+  const a = document.createElement('a');
+  a.href = url; a.download = item.name || 'attachment'; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 function closeBriefModal() { document.getElementById('briefModal').classList.remove('show'); }
 function copyBriefModal() {
@@ -3364,6 +3416,17 @@ init();
     <div class="brief-modal-foot">
       <button class="brief-modal-copy" onclick="copyBriefModal()">📋 نسخ البريف</button>
     </div>
+  </div>
+</div>
+
+<!-- مودال مرفقات الحملة (يفتحه زر «📎 المرفقات» — للمعلن المعتمد فقط) -->
+<div class="brief-modal" id="attachModal" onclick="if(event.target===this)closeAttachModal()">
+  <div class="brief-modal-card">
+    <div class="brief-modal-head">
+      <strong id="attachModalTitle">مرفقات الحملة</strong>
+      <button class="brief-modal-x" onclick="closeAttachModal()" aria-label="إغلاق">×</button>
+    </div>
+    <div class="brief-modal-body" id="attachModalBody"></div>
   </div>
 </div>
 
