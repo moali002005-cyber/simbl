@@ -274,12 +274,75 @@ async function dbGetAppsForCampaigns(campIds, selectStr) {
 }
 window.simblFetchAll = simblFetchAll;
 window.dbGetAppsForCampaigns = dbGetAppsForCampaigns;
+// ===== مرفقات البريف (صور) =====
+// السلة `brief-files` خاصة (غير عامة): الروابط تُوقَّع لحظيًا، وسياسات RLS تسمح بالقراءة
+// للشركة صاحبة الحملة/فريقها، ولأي معلن معتمد (brand_approved) على نفس الحملة فقط.
+const SIMBL_BRIEF_BUCKET = 'brief-files';
+const SIMBL_BRIEF_MAX_BYTES = 10 * 1024 * 1024;
+const SIMBL_BRIEF_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const SIMBL_BRIEF_MAX_FILES = 10;
+
+// قراءة قائمة المرفقات من سجل الحملة مهما كان شكل العمود (jsonb أو نص)
+function simblBriefList(camp) {
+  const raw = camp && camp.attachments;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch (e) { return []; }
+  }
+  return [];
+}
+// رابط موقّت لعرض/تنزيل مرفق — السلة خاصة فما فيه رابط عام
+async function simblBriefSignedUrl(path, seconds) {
+  if (!path) return '';
+  const { data, error } = await supabaseClient.storage
+    .from(SIMBL_BRIEF_BUCKET).createSignedUrl(path, seconds || 3600);
+  if (error) { console.error('brief signed url failed:', path, error); return ''; }
+  return (data && data.signedUrl) || '';
+}
+// المسار لازم يبدأ بـ<campaign_id>/ لأن سياسات RLS تقرأ اسم المجلد الأول
+async function simblBriefUpload(campaignId, file) {
+  if (!campaignId) throw new Error('حملة غير معروفة');
+  if (SIMBL_BRIEF_TYPES.indexOf(file.type) < 0) throw new Error('الصيغة غير مدعومة — صور فقط (JPG / PNG / WebP)');
+  if (file.size > SIMBL_BRIEF_MAX_BYTES) throw new Error('حجم «' + (file.name || 'الصورة') + '» أكبر من ١٠ ميجا');
+  const safe = (file.name || 'image').replace(/[^\w.\-]+/g, '_').slice(-60);
+  const path = campaignId + '/' + Date.now() + '_' + safe;
+  const { error } = await supabaseClient.storage
+    .from(SIMBL_BRIEF_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  return { path: path, name: file.name || safe, size: file.size, type: file.type, uploaded_at: new Date().toISOString() };
+}
+async function simblBriefRemove(path) {
+  const { error } = await supabaseClient.storage.from(SIMBL_BRIEF_BUCKET).remove([path]);
+  if (error) throw error;
+}
+async function simblBriefSaveList(campaignId, list) {
+  const { data, error } = await supabaseClient.from('campaigns')
+    .update({ attachments: list }).eq('id', campaignId).select('id');
+  if (error) throw error;
+  if (!data || !data.length) throw new Error('ما تم الحفظ — تحقّق من صلاحياتك على الحملة');
+  return true;
+}
+window.simblBriefList = simblBriefList;
+window.simblBriefSignedUrl = simblBriefSignedUrl;
+window.simblBriefUpload = simblBriefUpload;
+window.simblBriefRemove = simblBriefRemove;
+window.simblBriefSaveList = simblBriefSaveList;
+
 async function dbGetMyApplications(creatorId) {
-  const { data, error } = await supabaseClient
+  // احتياط: لو عمود attachments ما انضاف بعد لقاعدة البيانات، نرجع للاستعلام القديم
+  // بدل ما تنكسر صفحة المعلن كاملة (PostgREST يرمي 400 على عمود غير موجود).
+  const SEL_NEW = '*, campaigns(title, description, status, attachments, users!campaigns_brand_id_fkey(company_name))';
+  const SEL_OLD = '*, campaigns(title, description, status, users!campaigns_brand_id_fkey(company_name))';
+  const run = (sel) => supabaseClient
     .from('applications')
-    .select('*, campaigns(title, description, status, users!campaigns_brand_id_fkey(company_name))')
+    .select(sel)
     .eq('creator_id', creatorId)
     .order('created_at', { ascending: false });
+  let { data, error } = await run(SEL_NEW);
+  if (error) {
+    console.warn('attachments column missing? falling back:', error.message);
+    ({ data, error } = await run(SEL_OLD));
+  }
   if (error) throw error;
   return data;
 }
