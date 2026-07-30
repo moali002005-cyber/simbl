@@ -2001,6 +2001,17 @@ async function simblExitImpersonation(){
     <p class="sub">نص البريف الكامل للحملة — تقدر تنسخه أو تعدّله (يُحفظ ويظهر للجميع).</p>
     <div class="brief-content expanded" id="brief-modal-content" style="max-height:55vh;overflow-y:auto;"></div>
     <textarea id="brief-modal-edit-text" rows="10" style="display:none;width:100%;box-sizing:border-box;max-height:55vh;"></textarea>
+    <div id="brief-attach-wrap" style="margin-top:14px;border-top:1px solid #E7EDEA;padding-top:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <strong style="font-size:13px;">📎 مرفقات الحملة <span id="brief-attach-count" style="color:#6B7B74;font-weight:400;font-size:12px;"></span></strong>
+        <label id="brief-attach-add" style="display:none;align-items:center;gap:6px;border:1px solid #12b5a3;background:#e9f8f5;color:#0b7d73;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;cursor:pointer;">
+          ＋ أضف صورة
+          <input type="file" id="brief-attach-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" onchange="uploadBriefAttachments(this)">
+        </label>
+      </div>
+      <p style="font-size:11px;color:#6B7B74;margin:6px 0 0;line-height:1.6;">صور فقط (JPG / PNG / WebP) — ١٠ ميجا للصورة كحد أقصى، و١٠ صور للحملة. تظهر للمعلن بعد اعتماد صفقته فقط.</p>
+      <div id="brief-attach-grid" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
+    </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeBriefModal()">إغلاق</button>
       <button type="button" class="btn-secondary" id="brief-modal-copy" onclick="copyBriefModal()">📋 نسخ</button>
@@ -2959,6 +2970,7 @@ function openBriefModal(campaignId) {
   document.getElementById('brief-modal-edit').style.display = '';
   document.getElementById('brief-modal-copy').style.display = '';
   document.getElementById('brief-modal-save').style.display = 'none';
+  renderBriefAttachments(false);
   document.getElementById('brief-modal').classList.add('show');
 }
 function toggleBriefEdit() {
@@ -2971,6 +2983,7 @@ function toggleBriefEdit() {
   document.getElementById('brief-modal-edit').style.display = 'none';
   document.getElementById('brief-modal-copy').style.display = 'none';
   document.getElementById('brief-modal-save').style.display = '';
+  renderBriefAttachments(true);
   setTimeout(function () { ta.focus(); }, 50);
 }
 async function saveBriefEdit() {
@@ -2991,12 +3004,99 @@ async function saveBriefEdit() {
     document.getElementById('brief-modal-edit').style.display = '';
     document.getElementById('brief-modal-copy').style.display = '';
     saveBtn.style.display = 'none';
+    renderBriefAttachments(false);
     showToast('تم حفظ البريف — ظهر للجميع ✓', 'success');
   } catch (err) {
     console.error('brief save failed:', err);
     showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
   } finally { saveBtn.disabled = false; saveBtn.textContent = orig; }
 }
+// ============ مرفقات البريف (صور تُسلَّم للمعلن المعتمد) ============
+function _briefCamp() { return (myCampaigns || []).find(c => c.id === _briefCampaignId); }
+function escHtmlBrief(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+  });
+}
+function renderBriefAttachments(editable) {
+  const grid = document.getElementById('brief-attach-grid');
+  const cntEl = document.getElementById('brief-attach-count');
+  const addBtn = document.getElementById('brief-attach-add');
+  if (!grid) return;
+  const canEdit = !!editable && hasPerm('campaigns');
+  const list = simblBriefList(_briefCamp());
+  if (addBtn) addBtn.style.display = canEdit ? 'inline-flex' : 'none';
+  if (cntEl) cntEl.textContent = list.length ? '(' + list.length + ')' : '— ما فيه مرفقات';
+  if (!list.length) { grid.innerHTML = ''; return; }
+  grid.innerHTML = list.map(function (f, i) {
+    return '<div style="width:104px;border:1px solid #E7EDEA;border-radius:10px;overflow:hidden;background:#fff;">'
+      + '<div id="brief-thumb-' + i + '" style="height:80px;background:#F3F6F5;display:flex;align-items:center;justify-content:center;font-size:20px;">🖼</div>'
+      + '<div style="padding:6px;font-size:10px;color:#4A5A53;word-break:break-all;line-height:1.35;">' + escHtmlBrief(f.name || 'صورة') + '</div>'
+      + '<div style="display:flex;gap:4px;padding:0 6px 6px;">'
+      + '<button type="button" style="flex:1;font-family:inherit;font-size:10px;border:1px solid #12b5a3;background:#e9f8f5;color:#0b7d73;border-radius:6px;padding:4px 0;cursor:pointer;" onclick="downloadBriefAttachment(' + i + ')">تنزيل</button>'
+      + (canEdit ? '<button type="button" style="font-family:inherit;font-size:10px;border:1px solid #E3B3B3;background:#FDECEC;color:#B04141;border-radius:6px;padding:4px 6px;cursor:pointer;" onclick="deleteBriefAttachment(' + i + ')">✕</button>' : '')
+      + '</div></div>';
+  }).join('');
+  // المعاينات بروابط موقّتة (السلة خاصة)
+  list.forEach(function (f, i) {
+    simblBriefSignedUrl(f.path, 3600).then(function (url) {
+      const box = document.getElementById('brief-thumb-' + i);
+      if (url && box) box.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+    });
+  });
+}
+async function uploadBriefAttachments(input) {
+  const files = Array.prototype.slice.call(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  const camp = _briefCamp();
+  if (!camp) return;
+  if (!hasPerm('campaigns')) { showToast('ما عندك صلاحية تعديل الحملات', 'error'); return; }
+  const list = simblBriefList(camp).slice();
+  if (list.length + files.length > 10) { showToast('الحد الأقصى ١٠ مرفقات للحملة', 'error'); return; }
+  showToast('جاري رفع ' + files.length + ' صورة...');
+  try {
+    for (let i = 0; i < files.length; i++) list.push(await simblBriefUpload(camp.id, files[i]));
+    await simblBriefSaveList(camp.id, list);
+    camp.attachments = list;                 // حدّث النسخة المحلية
+    renderBriefAttachments(true);
+    renderCampaigns();
+    showToast('تم رفع المرفقات ✓', 'success');
+  } catch (err) {
+    console.error('brief attach upload failed:', err);
+    showToast('تعذّر الرفع: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+async function deleteBriefAttachment(idx) {
+  const camp = _briefCamp();
+  if (!camp) return;
+  const list = simblBriefList(camp).slice();
+  const item = list[idx];
+  if (!item) return;
+  if (!confirm('حذف «' + (item.name || 'الصورة') + '» من مرفقات الحملة؟')) return;
+  try {
+    list.splice(idx, 1);
+    await simblBriefSaveList(camp.id, list);
+    camp.attachments = list;
+    simblBriefRemove(item.path).catch(console.error);  // تنظيف التخزين — فشله ما يوقف الحذف
+    renderBriefAttachments(true);
+    renderCampaigns();
+    showToast('تم حذف المرفق');
+  } catch (err) {
+    console.error('brief attach delete failed:', err);
+    showToast('تعذّر الحذف: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+async function downloadBriefAttachment(idx) {
+  const item = simblBriefList(_briefCamp())[idx];
+  if (!item) return;
+  const url = await simblBriefSignedUrl(item.path, 300);
+  if (!url) { showToast('تعذّر تجهيز رابط التنزيل', 'error'); return; }
+  const a = document.createElement('a');
+  a.href = url; a.download = item.name || 'attachment'; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
 function closeBriefModal() {
   document.getElementById('brief-modal').classList.remove('show');
 }
@@ -3599,7 +3699,7 @@ function renderSingleCampaign(c) {
         <div class="top">
           <div>
             <h3>${c.title}</h3>
-            <button class="brief-trigger" onclick="openBriefModal('${c.id}')">📋 عرض البريف الإعلاني</button>
+            <button class="brief-trigger" onclick="openBriefModal('${c.id}')">📋 عرض البريف الإعلاني${simblBriefList(c).length ? ' <span style="opacity:.85">· 📎 ' + simblBriefList(c).length + '</span>' : ''}</button>
             <div class="campaign-meta">
               <span><strong>الميزانية للمعلن الواحد:</strong> ${c.budget} ر.س</span>
               ${c.publish_timing ? `<span><strong>موعد النشر:</strong> ${publishTimingText(c)}</span>` : ''}
