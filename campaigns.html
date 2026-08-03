@@ -2561,6 +2561,20 @@ async function loadData() {
       (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a);
     });
 
+    // قادم من لوحة الشركة بحملة فيديو جديدة؟ افتح صندوق المرفقات مباشرة
+    try {
+      const _oa = new URLSearchParams(location.search).get('open_attach');
+      if (_oa && !window._openAttachDone && (myCampaigns || []).some(x => x.id === _oa)) {
+        window._openAttachDone = true;
+        history.replaceState(null, '', location.pathname);
+        setTimeout(() => {
+          openBriefModal(_oa);
+          toggleBriefEdit();
+          showToast('أضف فيديوهات الحملة الآن من زر «＋ أضف ملف» 🎬');
+        }, 600);
+      }
+    } catch (e) { console.warn(e); }
+
     // مخزون أكواد حملات «كود الخصم» (عدّاد + كود كل معلن)
     window.CAMP_CODES = {};
     try {

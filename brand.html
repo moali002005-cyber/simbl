@@ -1648,6 +1648,37 @@ async function simblExitImpersonation(){
         <div class="ctype-seg">
           <label><input type="radio" name="campaign_type" value="home" checked onchange="toggleCampaignType()"><span>🏠 منزلي</span></label>
           <label><input type="radio" name="campaign_type" value="visit" onchange="toggleCampaignType()"><span>📍 زيارة</span></label>
+          <label><input type="radio" name="campaign_type" value="video" onchange="toggleCampaignType()"><span>🎬 فيديو جاهز</span></label>
+        </div>
+      </div>
+
+      <div class="field" id="fulfillment-field">
+        <label>طريقة تسليم المنتج</label>
+        <div class="ctype-seg">
+          <label><input type="radio" name="fulfillment_mode" value="shipping" checked onchange="toggleFulfillment()"><span>📦 شحن للمعلن</span></label>
+          <label><input type="radio" name="fulfillment_mode" value="code" onchange="toggleFulfillment()"><span>🎟️ كود خصم</span></label>
+        </div>
+        <div class="hint">كود الخصم: كل معلن معتمد يستلم كوداً خاصاً يطلب فيه المنتج من متجرك بـ0 ريال — بدون شحن يدوي منك.</div>
+      </div>
+
+      <div class="field" id="product-url-field" style="display:none;">
+        <label>رابط المنتج</label>
+        <input type="url" name="product_url" placeholder="https://yourstore.com/product" dir="ltr">
+        <div class="hint">الرابط اللي يفتح صفحة المنتج ليضيفه المعلن للسلة ويطبّق كوده.</div>
+      </div>
+
+      <div class="field" id="codes-field" style="display:none;">
+        <label>أكواد الخصم</label>
+        <textarea name="codes_list" rows="4" dir="ltr" placeholder="كل كود بسطر مستقل — مثال:
+SIMBL-01
+SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textarea>
+        <div class="hint">كل كود يُصرف تلقائياً لمعلن واحد فقط عند اعتماده. تقدر تضيف أكواداً جديدة من «تعديل الحملة» بأي وقت.</div>
+      </div>
+
+      <div class="field" id="video-note-field" style="display:none;">
+        <div style="background:#e9f8f5;border:1px solid #bfe9e2;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#0b7d73;line-height:1.9;">
+          🎬 <b>فيديو جاهز للنشر:</b> أنت ترفق الفيديوهات الجاهزة وتكتب في البريف طلبك بالضبط. المعلن المعتمد يحمّلها، يعدّلها ويرتّبها حسب البريف، يرسل لك النسخة النهائية للتعميد، وبعد موافقتك ينشرها بنفسه.<br>
+          بعد نشر الحملة بننقلك لصفحة الحملات ويفتح لك صندوق المرفقات مباشرة لإضافة الفيديوهات (MP4/MOV/WebM أو صورة — حتى ٥٠ ميجا للملف).
         </div>
       </div>
 
@@ -2087,7 +2118,8 @@ function togglePublishDate() {
 }
 function toggleCampaignType() {
   const sel = document.querySelector('[name="campaign_type"]:checked');
-  const isVisit = sel && sel.value === 'visit';
+  const typ = sel ? sel.value : 'home';
+  const isVisit = typ === 'visit', isVideo = typ === 'video';
   const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
   show('visit-location-field', isVisit);
   show('home-timing-field', !isVisit);
@@ -2097,6 +2129,36 @@ function toggleCampaignType() {
   const vd = document.querySelector('[name="visit_date"]');
   if (pt) pt.required = !isVisit;
   if (vd) vd.required = isVisit;
+  // خيار الكود/الشحن للحملة المنزلية فقط — الزيارة والفيديو الجاهز ما فيهما منتج يُسلَّم
+  show('fulfillment-field', typ === 'home');
+  if (typ !== 'home') { const fs = document.querySelector('[name="fulfillment_mode"][value="shipping"]'); if (fs) fs.checked = true; }
+  show('video-note-field', isVideo);
+  toggleFulfillment();
+}
+
+function toggleFulfillment() {
+  const sel = document.querySelector('[name="fulfillment_mode"]:checked');
+  const isCode = sel && sel.value === 'code';
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('product-url-field', isCode);
+  show('codes-field', isCode);
+  const pu = document.querySelector('[name="product_url"]');
+  if (pu) pu.required = isCode;
+}
+
+// إدخال دفعة أكواد لمخزون الحملة
+async function saveCampaignCodes(campaignId, rawText) {
+  const codes = [...new Set((rawText || '').split(/[\n,;]+/).map(x => x.trim()).filter(Boolean))];
+  if (!codes.length) return 0;
+  const { error } = await supabaseClient.from('campaign_codes')
+    .insert(codes.map(code => ({ campaign_id: campaignId, code })));
+  if (error) {
+    if ((error.code || '') === '23505' || /duplicate/i.test(error.message || '')) {
+      throw new Error('فيه أكواد مكررة موجودة مسبقاً بنفس الحملة — احذف المكرر من القائمة وحاول.');
+    }
+    throw error;
+  }
+  return codes.length;
 }
 function populateVisitDates() {
   const box = document.getElementById('visit-days');
@@ -2672,9 +2734,9 @@ async function approveDeal(applicationId) {
   if (!app) return;
 
   try {
-    // حملة الزيارة تبدأ من مرحلة 5 (بانتظار تصوير المعلن)؛ المنزلية تبدأ من 1 (الافتراضي)
-    const isVisit = campaign && campaign.campaign_type === 'visit';
-    const patch = isVisit ? { brand_approved: true, stage: 5 } : { brand_approved: true };
+    // الزيارة والفيديو الجاهز يبدآن من مرحلة 5 مباشرة؛ المنزلية من 1 (الافتراضي)
+    const _skipShip = campaign && (campaign.campaign_type === 'visit' || campaign.campaign_type === 'video');
+    const patch = _skipShip ? { brand_approved: true, stage: 5 } : { brand_approved: true };
     const { data, error } = await supabaseClient
       .from('applications')
       .update(patch)
@@ -2700,7 +2762,11 @@ async function approveDeal(applicationId) {
     await loadData();
   } catch (err) {
     console.error('Approve error:', err);
-    showToast('حصل خطأ في الاعتماد: ' + (err.message || 'حاول مرة أخرى'), 'error');
+    if (String(err.message || '').includes('NO_CODES_LEFT')) {
+      showToast('نفدت أكواد الخصم لهذه الحملة — أضف أكواداً جديدة من «تعديل الحملة» ثم أعد الاعتماد. ما ينعتمد معلن بدون كود.', 'error');
+    } else {
+      showToast('حصل خطأ في الاعتماد: ' + (err.message || 'حاول مرة أخرى'), 'error');
+    }
   }
 }
 
@@ -3369,6 +3435,11 @@ function setModalMode(mode, campaign) {
     const _ct = campaign.campaign_type || 'home';
     const _ctR = form.querySelector('[name="campaign_type"][value="' + _ct + '"]');
     if (_ctR) _ctR.checked = true;
+    const _fm = campaign.fulfillment_mode || 'shipping';
+    const _fmR = form.querySelector('[name="fulfillment_mode"][value="' + _fm + '"]');
+    if (_fmR) _fmR.checked = true;
+    const _pu = form.querySelector('[name="product_url"]'); if (_pu) _pu.value = campaign.product_url || '';
+    const _cl = form.querySelector('[name="codes_list"]'); if (_cl) _cl.value = '';
     toggleCampaignType();
     const _setv = (n, v) => { const el = form.querySelector('[name="' + n + '"]'); if (el && v != null) el.value = v; };
     _setv('visit_location', campaign.visit_location);
@@ -3618,8 +3689,15 @@ async function submitCampaign(event) {
     city: selCountry ? (selCity || null) : null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
     payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
+    fulfillment_mode: ((fd.get('campaign_type') || 'home') !== 'home') ? 'shipping' : (fd.get('fulfillment_mode') || 'shipping'),
+    product_url: (fd.get('product_url') || '').trim() || null,
     tags: [industry]
   };
+  const _codesRaw = fd.get('codes_list') || '';
+  if (campaign.fulfillment_mode === 'code' && !editingCampaignId) {
+    const _n = [...new Set(_codesRaw.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean))].length;
+    if (!_n) { showToast('حملة الكود تحتاج أكواد خصم — الصق الأكواد (كل كود بسطر).', 'error'); submitBtn.disabled = false; submitBtn.textContent = original; return; }
+  }
 
   try {
     if (editingCampaignId) {
@@ -3644,6 +3722,10 @@ async function submitCampaign(event) {
     campaign.status = 'active';
     campaign.is_test = !!currentUser.is_test;
     const createdCampaign = await dbCreateCampaign(campaign);
+    if (createdCampaign?.id && campaign.fulfillment_mode === 'code') {
+      try { await saveCampaignCodes(createdCampaign.id, _codesRaw); }
+      catch (codeErr) { showToast('الحملة انطلقت لكن الأكواد ما انحفظت: ' + (codeErr.message || '') + ' — أضفها من «تعديل الحملة».', 'error'); }
+    }
     if (createdCampaign?.id) selectedCampaignId = createdCampaign.id;
     closeModal();
     submitBtn.disabled = false;
@@ -3678,7 +3760,12 @@ async function submitCampaign(event) {
     }
 
     // عرض رادار الإطلاق ثم الانتقال لصفحة الحملات لعرض الحملة الجديدة
-    showLaunchRadar(() => { window.location.href = '/campaigns.html'; });
+    showLaunchRadar(() => {
+      // حملة الفيديو الجاهز: نفتح صندوق المرفقات مباشرة في صفحة الحملات لرفع الفيديوهات
+      window.location.href = (campaign.campaign_type === 'video' && createdCampaign?.id)
+        ? '/campaigns.html?open_attach=' + createdCampaign.id
+        : '/campaigns.html';
+    });
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
