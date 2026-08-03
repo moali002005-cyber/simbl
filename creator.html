@@ -1740,6 +1740,7 @@ async function loadData() {
         dbGetMyApplications(currentUser.id)
       ]);
       await loadCampaignApprovedCounts();
+      await loadMyCodes();
       updateHeroStats();
       renderUnified();
       _lastLoadAt = Date.now();
@@ -1826,7 +1827,8 @@ const MX_LABELS = ['العنوان','الشحن','الاستلام','البري�
 // مراحل مرئية (نتخطّى البريف=4). الزيارة تعرض 5 فقط.
 const HOME_FLOW = [{s:1,n:'العنوان'},{s:2,n:'الشحن'},{s:3,n:'الاستلام'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
 const VISIT_FLOW = [{s:5,n:'بانتظار التصوير'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
-function flowFor(type){ return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
+const CODE_FLOW = [{s:1,n:'الكود والطلب'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+function flowFor(type, mode){ if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
 
 // المرحلة اللي عليها طلب تصحيح معلّق (لم يُنجَز/يُراجَع) — مستقل عن رقم مرحلة الصفقة
 // (القاعدة تمنع رجوع stage للخلف، فنعتمد على العلامة نفسها لعرض خطوة التصحيح حتى لو الصفقة "مكتملة")
@@ -1892,7 +1894,7 @@ function renderCreatorDealCard(c, a) {
   } else if (isWaitlisted) {
     body = `<div class="dc-note" style="background:#FFF6EC;color:#9A4B06;border-right:3px solid #E8850C;">🕓 أنت في قائمة الانتظار لهذي الحملة<span data-wpos="${a.id}"></span>. العدد المطلوب اكتمل حالياً، وبمجرد ما ينفتح مكان بننبّهك فورًا ويبدأ الوكيل يفاوضك. خلّك متابع 🌿</div>`;
   } else if (isApproved) {
-    const flow = flowFor(c.campaign_type);
+    const flow = flowFor(c.campaign_type, c.fulfillment_mode);
     let strip = '';
     flow.forEach((st) => {
       const s = st.s;
@@ -2668,7 +2670,99 @@ async function setCreatorPayment(applicationId, newStatus) {
   }
 }
 
+// ====== حملات «كود الخصم»: كود المعلن + بطاقة الطلب ======
+async function loadMyCodes() {
+  window.MY_CODES = {};
+  try {
+    const ids = (myApplications || []).filter(a => a.brand_approved === true).map(a => a.id);
+    if (!ids.length) return;
+    const { data: rows } = await supabaseClient
+      .from('campaign_codes').select('application_id, code').in('application_id', ids);
+    (rows || []).forEach(r => { window.MY_CODES[r.application_id] = r.code; });
+  } catch (e) { console.warn('codes load failed:', e); }
+}
+
+function campaignForApp(app) {
+  if (!app) return {};
+  return allCampaigns.find(x => x.id === app.campaign_id) || app.campaigns || {};
+}
+
+function renderCodeCard(app, c) {
+  const code = (window.MY_CODES || {})[app.id];
+  const codeHtml = code
+    ? `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f0faf8;border:1.5px dashed #12b5a3;border-radius:12px;padding:12px 14px;margin:10px 0 4px;">
+         <span style="font-size:12.5px;font-weight:700;color:#0b7d73;">كودك الخاص:</span>
+         <span dir="ltr" style="font-family:monospace;font-size:18px;font-weight:800;letter-spacing:1px;color:#0F1420;">${escHtml(code)}</span>
+         <button class="sa-btn" style="padding:7px 14px;font-size:12.5px;" onclick="event.stopPropagation(); copyMyCode('${app.id}')">📋 نسخ الكود</button>
+       </div>`
+    : `<div style="background:#FFF6EC;color:#9A4B06;border-radius:10px;padding:10px 12px;margin:10px 0 4px;font-size:13px;">⏳ جاري إصدار كودك الخاص — حدّث الصفحة بعد لحظات.</div>`;
+  const linkBtn = c.product_url
+    ? `<a href="${escHtml(c.product_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="sa-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">🛒 افتح صفحة المنتج</a>`
+    : '';
+  return `<div class="stage-action mine" onclick="event.stopPropagation()">
+    <div class="sa-title">🎟️ كودك وطلب المنتج</div>
+    <div class="sa-desc">١· افتح صفحة المنتج وأضفه للسلة.&nbsp; ٢· أدخل كودك عند إتمام الطلب ليصير الإجمالي 0 ريال.&nbsp; ٣· أكمل الطلب على عنوانك، وأول ما يوصلك المنتج أكّد هنا وننتقل للمحتوى مباشرة.</div>
+    ${codeHtml}
+    <div class="pay-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+      ${linkBtn}
+      <button class="sa-btn" ${code ? '' : 'disabled'} onclick="event.stopPropagation(); confirmCodeReceived('${app.id}')">✓ طلبت المنتج ووصلني</button>
+    </div>
+  </div>`;
+}
+
+function copyMyCode(appId) {
+  const code = (window.MY_CODES || {})[appId];
+  if (!code) return;
+  const done = () => showToast('انسخ الكود ✓ — الصقه عند إتمام الطلب');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(done).catch(() => fallbackCopyCode(code, done));
+  } else { fallbackCopyCode(code, done); }
+}
+function fallbackCopyCode(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+async function confirmCodeReceived(applicationId) {
+  const app = myApplications.find(a => a.id === applicationId);
+  if (!app) return;
+  const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
+  existing[1] = { ...(existing[1] || {}), code_flow: true, received: 'yes', code: (window.MY_CODES || {})[applicationId] || '', _at: new Date().toISOString() };
+  try {
+    const { data: updated, error } = await supabaseClient
+      .from('applications')
+      .update({ stage: 5, stage_data: existing })
+      .eq('id', applicationId)
+      .select('*, campaigns(brand_id, title)');
+    if (error) throw error;
+    if (!updated || updated.length === 0) throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+    const brandId = updated[0]?.campaigns?.brand_id;
+    const campaignTitle = updated[0]?.campaigns?.title || 'صفقة';
+    if (brandId) {
+      createNotification(brandId, 'workflow_update', '📦 المعلن استلم المنتج', `${campaignTitle}: طلب المنتج بكوده واستلمه — بدأ تجهيز المحتوى 🎬`, '/brand.html').catch(console.error);
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title: '📦 المعلن استلم المنتج', body: `${campaignTitle}: بدأ تجهيز المحتوى`, url: '/brand.html', target_users: [brandId] })
+      }).catch(console.error);
+    }
+    await loadData();
+    showToast('تم التأكيد ✓ — ننتقل لمرحلة المحتوى 🎬');
+  } catch (err) {
+    console.error('Code confirm error:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
 function renderStageAction(applicationId, currentStage, viewerRole) {
+  const _capp = myApplications.find(x => x.id === applicationId);
+  const _cc = campaignForApp(_capp);
+  if (_cc.fulfillment_mode === 'code' && _cc.campaign_type !== 'visit' && currentStage < 5 && viewerRole === 'creator') {
+    return renderCodeCard(_capp, _cc);
+  }
   if (currentStage >= 9) {
     const app = myApplications.find(a => a.id === applicationId);
     return renderPaymentCard(app);

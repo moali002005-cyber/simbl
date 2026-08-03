@@ -331,6 +331,7 @@ window.simblBriefSaveList = simblBriefSaveList;
 async function dbGetMyApplications(creatorId) {
   // احتياط: لو عمود attachments ما انضاف بعد لقاعدة البيانات، نرجع للاستعلام القديم
   // بدل ما تنكسر صفحة المعلن كاملة (PostgREST يرمي 400 على عمود غير موجود).
+  const SEL_CODE = '*, campaigns(title, description, status, attachments, fulfillment_mode, product_url, campaign_type, users!campaigns_brand_id_fkey(company_name))';
   const SEL_NEW = '*, campaigns(title, description, status, attachments, users!campaigns_brand_id_fkey(company_name))';
   const SEL_OLD = '*, campaigns(title, description, status, users!campaigns_brand_id_fkey(company_name))';
   const run = (sel) => supabaseClient
@@ -338,7 +339,11 @@ async function dbGetMyApplications(creatorId) {
     .select(sel)
     .eq('creator_id', creatorId)
     .order('created_at', { ascending: false });
-  let { data, error } = await run(SEL_NEW);
+  let { data, error } = await run(SEL_CODE);
+  if (error) {
+    console.warn('code columns missing? falling back:', error.message);
+    ({ data, error } = await run(SEL_NEW));
+  }
   if (error) {
     console.warn('attachments column missing? falling back:', error.message);
     ({ data, error } = await run(SEL_OLD));

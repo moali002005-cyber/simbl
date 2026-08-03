@@ -1735,6 +1735,29 @@ async function simblExitImpersonation(){
         </div>
       </div>
 
+      <div class="field" id="fulfillment-field">
+        <label>طريقة تسليم المنتج</label>
+        <div class="ctype-seg">
+          <label><input type="radio" name="fulfillment_mode" value="shipping" checked onchange="toggleFulfillment()"><span>📦 شحن للمعلن</span></label>
+          <label><input type="radio" name="fulfillment_mode" value="code" onchange="toggleFulfillment()"><span>🎟️ كود خصم</span></label>
+        </div>
+        <div class="hint">كود الخصم: كل معلن معتمد يستلم كوداً خاصاً يطلب فيه المنتج من متجرك بـ0 ريال — بدون شحن يدوي منك.</div>
+      </div>
+
+      <div class="field" id="product-url-field" style="display:none;">
+        <label>رابط المنتج</label>
+        <input type="url" name="product_url" placeholder="https://yourstore.com/product" dir="ltr">
+        <div class="hint">الرابط اللي يفتح صفحة المنتج ليضيفه المعلن للسلة ويطبّق كوده.</div>
+      </div>
+
+      <div class="field" id="codes-field" style="display:none;">
+        <label>أكواد الخصم <span id="codes-pool-status" style="font-weight:600;color:#0b7d73;font-size:12px;"></span></label>
+        <textarea name="codes_list" rows="4" dir="ltr" placeholder="كل كود بسطر مستقل — مثال:
+SIMBL-01
+SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textarea>
+        <div class="hint">كل كود يُصرف تلقائياً لمعلن واحد فقط لحظة اعتماده. تقدر تضيف أكواداً جديدة من «تعديل الحملة» بأي وقت.</div>
+      </div>
+
       <div class="field">
         <label>عنوان الحملة</label>
         <input type="text" name="title" required placeholder="مثل: إطلاق عطر العيد الجديد">
@@ -2275,6 +2298,35 @@ function toggleCampaignType() {
   const vd = document.querySelector('[name="visit_date"]');
   if (pt) pt.required = !isVisit;
   if (vd) vd.required = isVisit;
+  // حملة الزيارة ما فيها منتج يُسلَّم — نخفي خيار الكود ونثبّت الشحن
+  show('fulfillment-field', !isVisit);
+  if (isVisit) { const fs = document.querySelector('[name="fulfillment_mode"][value="shipping"]'); if (fs) fs.checked = true; }
+  toggleFulfillment();
+}
+
+function toggleFulfillment() {
+  const sel = document.querySelector('[name="fulfillment_mode"]:checked');
+  const isCode = sel && sel.value === 'code';
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('product-url-field', isCode);
+  show('codes-field', isCode);
+  const pu = document.querySelector('[name="product_url"]');
+  if (pu) pu.required = isCode;
+}
+
+// إدخال دفعة أكواد لمخزون الحملة (تُستخدم عند الإنشاء وعند الإضافة لاحقاً من التعديل)
+async function saveCampaignCodes(campaignId, rawText) {
+  const codes = [...new Set((rawText || '').split(/[\n,;]+/).map(x => x.trim()).filter(Boolean))];
+  if (!codes.length) return 0;
+  const { error } = await supabaseClient.from('campaign_codes')
+    .insert(codes.map(code => ({ campaign_id: campaignId, code })));
+  if (error) {
+    if ((error.code || '') === '23505' || /duplicate/i.test(error.message || '')) {
+      throw new Error('فيه أكواد مكررة موجودة مسبقاً بنفس الحملة — احذف المكرر من القائمة وحاول.');
+    }
+    throw error;
+  }
+  return codes.length;
 }
 function populateVisitDates() {
   const sel = document.querySelector('[name="visit_date"]');
@@ -2498,6 +2550,22 @@ async function loadData() {
       if (a.is_reserve === true) return; // احتياط مخفي — جاهز في الخلفية، لا يظهر للشركة
       (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a);
     });
+
+    // مخزون أكواد حملات «كود الخصم» (عدّاد + كود كل معلن)
+    window.CAMP_CODES = {};
+    try {
+      const codeCampIds = myCampaigns.filter(c => c.fulfillment_mode === 'code').map(c => c.id);
+      if (codeCampIds.length) {
+        const { data: codeRows } = await supabaseClient
+          .from('campaign_codes').select('campaign_id, code, application_id')
+          .in('campaign_id', codeCampIds);
+        (codeRows || []).forEach(r => {
+          const b = window.CAMP_CODES[r.campaign_id] = window.CAMP_CODES[r.campaign_id] || { total: 0, used: 0, byApp: {} };
+          b.total++;
+          if (r.application_id) { b.used++; b.byApp[r.application_id] = r.code; }
+        });
+      }
+    } catch (e) { console.warn('codes load failed:', e); }
 
     // إقفال أي حملة اكتمل عددها المطلوب تلقائيًا قبل العرض
     await autoCompleteCampaigns();
@@ -3155,7 +3223,11 @@ async function approveDeal(applicationId) {
     await loadData();
   } catch (err) {
     console.error('Approve error:', err);
-    showToast('حصل خطأ في الاعتماد: ' + (err.message || 'حاول مرة أخرى'), 'error');
+    if (String(err.message || '').includes('NO_CODES_LEFT')) {
+      showToast('نفدت أكواد الخصم لهذه الحملة — أضف أكواداً جديدة من «تعديل الحملة» ثم أعد الاعتماد. ما ينعتمد معلن بدون كود.', 'error');
+    } else {
+      showToast('حصل خطأ في الاعتماد: ' + (err.message || 'حاول مرة أخرى'), 'error');
+    }
   }
 }
 
@@ -3474,7 +3546,15 @@ const MX_LABELS = ['العنوان','الشحن','الاستلام','البري�
 // مراحل مرئية (نتخطّى البريف=4). الزيارة تعرض 5 فقط. الأرقام الداخلية للمراحل ما تتغيّر.
 const HOME_FLOW = [{s:1,n:'العنوان'},{s:2,n:'الشحن'},{s:3,n:'الاستلام'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
 const VISIT_FLOW = [{s:5,n:'بانتظار التصوير'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
-function flowFor(type){ return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
+function codesChipHtml(cid) {
+  const b = (window.CAMP_CODES || {})[cid] || { total: 0, used: 0 };
+  const free = b.total - b.used;
+  const danger = free <= 0;
+  return `· <strong style="color:${danger ? '#b32d2d' : '#0b7d73'};">🎟️ الأكواد: ${free} متاح من ${b.total}</strong>` +
+         (danger ? ` <span style="color:#b32d2d;font-weight:700;">— أضف أكواداً من «تعديل الحملة» قبل أي اعتماد جديد</span>` : '');
+}
+const CODE_FLOW = [{s:1,n:'الكود والطلب'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+function flowFor(type, mode){ if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
 let expandedCellStage = null;
 
 function openCell(appId, stage) {
@@ -3554,11 +3634,15 @@ function renderCellDetail(a) {
       + renderStageAction(a.id, stageNow, 'brand');
   }
   if (stageNow >= 9) return `<div style="font-size:13px;color:#0F6E56;padding:6px 2px;font-weight:600;">الصفقة مكتملة 🎉</div>`;
-  return `<div style="font-size:13px;color:var(--ink-muted);padding:6px 2px;">بانتظار المعلن في مرحلة «${MX_LABELS[stageNow-1] || ''}».</div>`;
+  const _cc = (findAppById(a.id) || {}).campaign;
+  const _lbl = (flowFor(_cc?.campaign_type, _cc?.fulfillment_mode).find(st => st.s === stageNow) || {}).n || MX_LABELS[stageNow-1] || '';
+  const _myCode = (_cc?.fulfillment_mode === 'code') ? (((window.CAMP_CODES || {})[_cc.id] || {}).byApp || {})[a.id] : null;
+  const _codeLine = _myCode ? `<div style="font-size:12.5px;color:#0b7d73;padding:2px 2px 6px;font-weight:700;">🎟️ كود هذا المعلن: <span dir="ltr">${escHtml(_myCode)}</span></div>` : '';
+  return _codeLine + `<div style="font-size:13px;color:var(--ink-muted);padding:6px 2px;">بانتظار المعلن في مرحلة «${_lbl}».</div>`;
 }
 
-function renderDealRow(a, idx, campaignType) {
-  const flow = flowFor(campaignType);
+function renderDealRow(a, idx, campaignType, fulfillmentMode) {
+  const flow = flowFor(campaignType, fulfillmentMode);
   const NCOL = flow.length;
   const creator = a.users || {};
   const initial = (creator.name || 'م')[0];
@@ -3739,14 +3823,15 @@ function renderSingleCampaign(c) {
               ${apps.filter(a => a.status === 'closed').length > 0 ? `· <strong>${apps.filter(a => a.status === 'closed').length}</strong> صفقة مقفلة` : ''}
               ${pendingApps.length > 0 ? `· <strong style="color:var(--ink-muted)">${pendingApps.length}</strong> قيد المراجعة` : ''}
               ${waitlistApps.length > 0 ? `· <strong style="color:#5B6B7A">${waitlistApps.length}</strong> في قائمة الانتظار` : ''}
+              ${c.fulfillment_mode === 'code' ? codesChipHtml(c.id) : ''}
             </div>
           </div>
           <div class="mx-wrap"><table class="mx-table" id="apps-${c.id}">
             <thead><tr>
               <th class="mx-idx">#</th><th class="mx-name" style="text-align:right;">المعلن</th>
-              ${flowFor(c.campaign_type).map((st, i) => `<th>${toArabic(i + 1)}·${st.n}</th>`).join('')}
+              ${flowFor(c.campaign_type, c.fulfillment_mode).map((st, i) => `<th>${toArabic(i + 1)}·${st.n}</th>`).join('')}
             </tr></thead>
-            <tbody>${sheetApps.map((a, idx) => renderDealRow(a, idx, c.campaign_type)).join('')}</tbody>
+            <tbody>${sheetApps.map((a, idx) => renderDealRow(a, idx, c.campaign_type, c.fulfillment_mode)).join('')}</tbody>
           </table></div>
         ` : `
           <div class="applications-summary">
@@ -4410,6 +4495,18 @@ function setModalMode(mode, campaign) {
       c.classList.toggle('active', c.dataset.value === campaign.platform);
     });
     form.querySelector('#platform-input').value = campaign.platform || '';
+    // طريقة التسليم + رابط المنتج + حالة مخزون الأكواد
+    const _fm = campaign.fulfillment_mode || 'shipping';
+    const _fmR = form.querySelector('[name="fulfillment_mode"][value="' + _fm + '"]');
+    if (_fmR) _fmR.checked = true;
+    _setv('product_url', campaign.product_url || '');
+    const _cl = form.querySelector('[name="codes_list"]'); if (_cl) _cl.value = '';
+    toggleFulfillment();
+    const _st = document.getElementById('codes-pool-status');
+    if (_st) {
+      const _b = (window.CAMP_CODES || {})[campaign.id];
+      _st.textContent = _b ? '· المخزون الحالي: ' + (_b.total - _b.used) + ' متاح من ' + _b.total + ' — اللي تلصقه هنا ينضاف فوقها' : '';
+    }
   } else {
     h3.textContent = 'إنشاء حملة جديدة';
     sub.textContent = 'عبّئ تفاصيل الحملة وراح تظهر للمؤثرين المسجّلين في سيمبل.';
@@ -4427,6 +4524,7 @@ function setModalMode(mode, campaign) {
     form.querySelector('#follower-range-input').value = '';
     togglePublishDate();
     simblPopulateCities();
+    const _st = document.getElementById('codes-pool-status'); if (_st) _st.textContent = '';
     toggleCampaignType();
   }
 }
@@ -4590,8 +4688,15 @@ async function submitCampaign(event) {
     city: selCountry ? (selCity || null) : null,
     payment_min_days: parseInt(fd.get('payment_min_days')) || 7,
     payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
+    fulfillment_mode: ((fd.get('campaign_type') || 'home') === 'visit') ? 'shipping' : (fd.get('fulfillment_mode') || 'shipping'),
+    product_url: (fd.get('product_url') || '').trim() || null,
     tags: [industry]
   };
+  const _codesRaw = fd.get('codes_list') || '';
+  if (campaign.fulfillment_mode === 'code' && !editingCampaignId) {
+    const _n = [...new Set(_codesRaw.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean))].length;
+    if (!_n) { showToast('حملة الكود تحتاج أكواد خصم — الصق الأكواد (كل كود بسطر).', 'error'); submitBtn.disabled = false; submitBtn.textContent = original; return; }
+  }
 
   try {
     if (editingCampaignId) {
@@ -4602,12 +4707,16 @@ async function submitCampaign(event) {
         .eq('id', editingCampaignId);
       if (error) throw error;
 
+      let _added = 0;
+      try { _added = await saveCampaignCodes(editingCampaignId, _codesRaw); }
+      catch (codeErr) { showToast('حُفظت الحملة لكن الأكواد ما انضافت: ' + (codeErr.message || ''), 'error'); }
+
       const editedId = editingCampaignId;
       closeModal();
       submitBtn.disabled = false;
       submitBtn.textContent = original;
       await loadData();
-      setTimeout(() => showToast('تم حفظ التعديلات بنجاح.'), 100);
+      setTimeout(() => showToast('تم حفظ التعديلات بنجاح.' + (_added ? ' وأضيف ' + _added + ' كود للمخزون 🎟️' : '')), 100);
       return;
     }
 
@@ -4617,6 +4726,10 @@ async function submitCampaign(event) {
     campaign.is_test = !!currentUser.is_test;
     const createdCampaign = await dbCreateCampaign(campaign);
     if (createdCampaign?.id) selectedCampaignId = createdCampaign.id;
+    if (createdCampaign?.id && campaign.fulfillment_mode === 'code') {
+      try { const _nc = await saveCampaignCodes(createdCampaign.id, _codesRaw); if (_nc) showToast('انحفظ ' + _nc + ' كود في مخزون الحملة 🎟️'); }
+      catch (codeErr) { showToast('الحملة انطلقت لكن الأكواد ما انحفظت: ' + (codeErr.message || '') + ' — أضفها من «تعديل الحملة».', 'error'); }
+    }
     closeModal();
     submitBtn.disabled = false;
     submitBtn.textContent = original;
