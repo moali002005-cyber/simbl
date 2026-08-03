@@ -1678,9 +1678,20 @@ SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textar
       <div class="field" id="video-note-field" style="display:none;">
         <div style="background:#e9f8f5;border:1px solid #bfe9e2;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#0b7d73;line-height:1.9;">
           🎬 <b>فيديو جاهز للنشر:</b> أنت ترفق الفيديوهات الجاهزة وتكتب في البريف طلبك بالضبط. المعلن المعتمد يحمّلها، يعدّلها ويرتّبها حسب البريف، يرسل لك النسخة النهائية للتعميد، وبعد موافقتك ينشرها بنفسه.<br>
-          بعد نشر الحملة بننقلك لصفحة الحملات ويفتح لك صندوق المرفقات مباشرة لإضافة الفيديوهات (MP4/MOV/WebM أو صورة — حتى ٥٠ ميجا للملف).
+          أرفق الفيديوهات في الخانة تحت — تُرفع تلقائياً مع نشر الحملة.
         </div>
       </div>
+
+      <div class="field" id="video-files-field" style="display:none;">
+        <label>فيديوهات الحملة</label>
+        <label style="display:inline-flex;align-items:center;gap:8px;border:1.5px dashed #12b5a3;background:#f0faf8;color:#0b7d73;font-size:13px;font-weight:700;padding:10px 18px;border-radius:12px;cursor:pointer;">
+          🎬 اختر الفيديوهات من جهازك
+          <input type="file" id="video-files-input" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" multiple style="display:none;" onchange="pickVideoFiles(this)">
+        </label>
+        <div id="video-files-list" style="margin-top:9px;display:flex;flex-direction:column;gap:6px;"></div>
+        <div class="hint">MP4 / MOV / WebM حتى ٥٠ ميجا للملف (وتقدر تضيف صوراً حتى ١٠ ميجا) — تُرفع تلقائياً مع نشر الحملة وتظهر للمعلن المعتمد فقط.</div>
+      </div>
+
 
       <div class="field">
         <label>عنوان الحملة</label>
@@ -2133,6 +2144,7 @@ function toggleCampaignType() {
   show('fulfillment-field', typ === 'home');
   if (typ !== 'home') { const fs = document.querySelector('[name="fulfillment_mode"][value="shipping"]'); if (fs) fs.checked = true; }
   show('video-note-field', isVideo);
+  show('video-files-field', isVideo);
   toggleFulfillment();
 }
 
@@ -2160,6 +2172,52 @@ async function saveCampaignCodes(campaignId, rawText) {
   }
   return codes.length;
 }
+// ===== إرفاق فيديوهات حملة «الفيديو الجاهز» من نافذة الإنشاء مباشرة =====
+window._vidFiles = [];
+function pickVideoFiles(input) {
+  const files = Array.prototype.slice.call(input.files || []);
+  input.value = '';
+  for (const f of files) {
+    if (window._vidFiles.length >= 10) { showToast('الحد الأقصى ١٠ ملفات للحملة', 'error'); break; }
+    const isV = ['video/mp4', 'video/quicktime', 'video/webm'].indexOf(f.type) >= 0;
+    const isI = ['image/jpeg', 'image/png', 'image/webp'].indexOf(f.type) >= 0;
+    if (!isV && !isI) { showToast('«' + f.name + '» صيغة غير مدعومة (MP4/MOV/WebM أو صورة)', 'error'); continue; }
+    if (f.size > (isV ? 50 : 10) * 1024 * 1024) { showToast('«' + f.name + '» أكبر من الحد (' + (isV ? '٥٠' : '١٠') + ' ميجا)', 'error'); continue; }
+    window._vidFiles.push(f);
+  }
+  renderPickedVideos();
+}
+function removePickedVideo(i) { window._vidFiles.splice(i, 1); renderPickedVideos(); }
+function renderPickedVideos() {
+  const box = document.getElementById('video-files-list');
+  if (!box) return;
+  const esc = (t) => String(t || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  if (!(window._vidFiles || []).length) { box.innerHTML = ''; return; }
+  box.innerHTML = window._vidFiles.map(function (f, i) {
+    const isV = (f.type || '').indexOf('video/') === 0;
+    const mb = (f.size / 1048576).toFixed(1);
+    return '<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E7EDEA;border-radius:10px;padding:7px 10px;font-size:12px;color:#374751;">'
+      + '<span>' + (isV ? '🎬' : '🖼') + '</span>'
+      + '<span style="flex:1;word-break:break-all;">' + esc(f.name) + ' <span style="color:#8A99A6;">(' + mb + ' م.ب)</span></span>'
+      + '<button type="button" onclick="removePickedVideo(' + i + ')" style="border:1px solid #E3B3B3;background:#FDECEC;color:#B04141;border-radius:7px;font-family:inherit;font-size:11px;padding:3px 8px;cursor:pointer;">✕</button>'
+      + '</div>';
+  }).join('');
+}
+// رفع الملفات المختارة لحملة موجودة وتحديث قائمة مرفقاتها
+async function uploadPickedVideos(campaignId, existingList, submitBtn) {
+  const files = window._vidFiles || [];
+  if (!files.length) return 0;
+  const list = (existingList || []).slice();
+  for (let i = 0; i < files.length; i++) {
+    if (submitBtn) submitBtn.textContent = 'جاري رفع الملف ' + (i + 1) + '/' + files.length + '...';
+    list.push(await simblBriefUpload(campaignId, files[i], true));
+  }
+  await simblBriefSaveList(campaignId, list);
+  window._vidFiles = [];
+  renderPickedVideos();
+  return files.length;
+}
+
 function populateVisitDates() {
   const box = document.getElementById('visit-days');
   if (!box || box.dataset.filled) return;
@@ -3440,6 +3498,7 @@ function setModalMode(mode, campaign) {
     if (_fmR) _fmR.checked = true;
     const _pu = form.querySelector('[name="product_url"]'); if (_pu) _pu.value = campaign.product_url || '';
     const _cl = form.querySelector('[name="codes_list"]'); if (_cl) _cl.value = '';
+    window._vidFiles = []; renderPickedVideos();
     toggleCampaignType();
     const _setv = (n, v) => { const el = form.querySelector('[name="' + n + '"]'); if (el && v != null) el.value = v; };
     _setv('visit_location', campaign.visit_location);
@@ -3478,6 +3537,7 @@ function setModalMode(mode, campaign) {
     submitBtn.textContent = 'نشر الحملة';
 
     form.reset();
+    window._vidFiles = []; renderPickedVideos();
     form.querySelector('[name="payment_min_days"]').value = 7;
     form.querySelector('[name="payment_max_days"]').value = 30;
     const pledgeEl = form.querySelector('[name="payment_pledge"]');
@@ -3694,6 +3754,10 @@ async function submitCampaign(event) {
     tags: [industry]
   };
   const _codesRaw = fd.get('codes_list') || '';
+  if (campaign.campaign_type === 'video' && !editingCampaignId && !(window._vidFiles || []).length) {
+    showToast('أرفق فيديوهات الحملة أولاً — زر «🎬 اختر الفيديوهات من جهازك».', 'error');
+    submitBtn.disabled = false; submitBtn.textContent = original; return;
+  }
   if (campaign.fulfillment_mode === 'code' && !editingCampaignId) {
     const _n = [...new Set(_codesRaw.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean))].length;
     if (!_n) { showToast('حملة الكود تحتاج أكواد خصم — الصق الأكواد (كل كود بسطر).', 'error'); submitBtn.disabled = false; submitBtn.textContent = original; return; }
@@ -3722,6 +3786,15 @@ async function submitCampaign(event) {
     campaign.status = 'active';
     campaign.is_test = !!currentUser.is_test;
     const createdCampaign = await dbCreateCampaign(campaign);
+    if (createdCampaign?.id && campaign.campaign_type === 'video' && (window._vidFiles || []).length) {
+      try {
+        const _nv = await uploadPickedVideos(createdCampaign.id, [], submitBtn);
+        if (_nv) showToast('انرفع ' + _nv + ' ملف مع الحملة 🎬', 'success');
+      } catch (upErr) {
+        console.error('video upload failed:', upErr);
+        showToast('الحملة انطلقت لكن بعض الملفات ما انرفعت: ' + (upErr.message || '') + ' — أضفها من «البريف → المرفقات».', 'error');
+      }
+    }
     if (createdCampaign?.id && campaign.fulfillment_mode === 'code') {
       try { await saveCampaignCodes(createdCampaign.id, _codesRaw); }
       catch (codeErr) { showToast('الحملة انطلقت لكن الأكواد ما انحفظت: ' + (codeErr.message || '') + ' — أضفها من «تعديل الحملة».', 'error'); }
@@ -3760,12 +3833,7 @@ async function submitCampaign(event) {
     }
 
     // عرض رادار الإطلاق ثم الانتقال لصفحة الحملات لعرض الحملة الجديدة
-    showLaunchRadar(() => {
-      // حملة الفيديو الجاهز: نفتح صندوق المرفقات مباشرة في صفحة الحملات لرفع الفيديوهات
-      window.location.href = (campaign.campaign_type === 'video' && createdCampaign?.id)
-        ? '/campaigns.html?open_attach=' + createdCampaign.id
-        : '/campaigns.html';
-    });
+    showLaunchRadar(() => { window.location.href = '/campaigns.html'; });
   } catch (err) {
     console.error(err);
     submitBtn.disabled = false;
