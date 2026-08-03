@@ -1828,7 +1828,8 @@ const MX_LABELS = ['العنوان','الشحن','الاستلام','البري�
 const HOME_FLOW = [{s:1,n:'العنوان'},{s:2,n:'الشحن'},{s:3,n:'الاستلام'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
 const VISIT_FLOW = [{s:5,n:'بانتظار التصوير'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
 const CODE_FLOW = [{s:1,n:'الكود والطلب'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
-function flowFor(type, mode){ if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
+const VIDEO_FLOW = [{s:5,n:'تجهيز الفيديو'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+function flowFor(type, mode){ if (type === 'video') return VIDEO_FLOW; if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
 
 // المرحلة اللي عليها طلب تصحيح معلّق (لم يُنجَز/يُراجَع) — مستقل عن رقم مرحلة الصفقة
 // (القاعدة تمنع رجوع stage للخلف، فنعتمد على العلامة نفسها لعرض خطوة التصحيح حتى لو الصفقة "مكتملة")
@@ -2137,6 +2138,7 @@ function renderBrowseCard(c) {
       </div>
       <div class="ac-metarow">
         ${isDone ? '<span class="meta-item">✓ اكتمل العدد المطلوب لهذي الحملة</span>' : `
+        ${c.campaign_type === 'video' ? `<span class="meta-item">🎬 فيديو جاهز من الشركة</span>` : c.campaign_type === 'visit' ? `<span class="meta-item">📍 زيارة</span>` : ''}
         ${c.publish_timing ? `<span class="meta-item">⏱ ${publishTimingText(c)}</span>` : ''}
         ${c.platform ? `<span class="meta-item">◇ ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
         ${c.follower_range ? `<span class="meta-item">◯ ${followerRangeText(c)}</span>` : ''}
@@ -2532,6 +2534,7 @@ function openAttachModal(appId) {
         }).join('')
       + '</div>';
     _attachList.forEach(function (f, i) {
+      if (((f.type || '').indexOf('video/') === 0)) return; // الفيديو يبقى برمز 🎬 وزر التنزيل
       simblBriefSignedUrl(f.path, 3600).then(function (url) {
         const box = document.getElementById('att-thumb-' + i);
         if (url && box) box.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
@@ -2774,6 +2777,8 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   const myInfo = info[viewerRole] || {};
   const fields = STAGE_FIELDS[currentStage] || [];
 
+  // حملة «الفيديو الجاهز»: نفس آلية رفع المحتوى لكن بنصوص تشرح التعديل والتعميد
+  const _isVidCamp = (_cc.campaign_type === 'video');
   if (isMyTurn && currentStage === 5 && viewerRole === 'creator') {
     const _app5 = myApplications.find(a => a.id === applicationId);
     const _rej = (_app5 && _app5.stage_data && _app5.stage_data[5] && _app5.stage_data[5]._rejected) ? _app5.stage_data[5]._reject_reason : null;
@@ -2782,8 +2787,8 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
       : (_fix5 !== null ? `<div style="background:#fdecea;border:1px solid #f5c6c0;color:#a93226;border-radius:10px;padding:11px 13px;margin-bottom:12px;font-size:13px;line-height:1.6;">⚠︎ الشركة تطلب تصحيح المحتوى.${_fix5 ? '<br><b>الملاحظة:</b> ' + escHtml(_fix5) : ''}<br>ارفع الفيديو الصحيح — والباقي يكمل تلقائيًا.</div>` : '');
     return `
       <div class="stage-action mine" onclick="event.stopPropagation()">
-        <div class="sa-title">المرحلة الحالية: ${stageName}</div>
-        <div class="sa-desc">${myInfo.desc || ''}</div>
+        <div class="sa-title">المرحلة الحالية: ${_isVidCamp ? 'تجهيز الفيديو' : stageName}</div>
+        <div class="sa-desc">${_isVidCamp ? 'حمّل فيديوهات الشركة من زر 📎 المرفقات في بطاقة الحملة، عدّلها ورتّبها حسب البريف بالضبط، ثم ارفع النسخة النهائية هنا وأرسلها لتعميد الشركة. بعد موافقتها تنشرها بنفسك في المرحلة التالية.' : (myInfo.desc || '')}</div>
         ${_rejBanner}
         <form class="sa-form" id="stage-form-${applicationId}" onclick="event.stopPropagation()" onsubmit="event.preventDefault(); event.stopPropagation(); submitStageForm('${applicationId}')">
           <input type="hidden" id="sf-${applicationId}-content_link" name="content_link">
@@ -2792,7 +2797,7 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
           <button type="button" id="vid-btn-${applicationId}" class="sa-btn" style="background:#fff;color:var(--accent);border:1.5px solid var(--accent);margin-bottom:10px;" onclick="event.stopPropagation(); document.getElementById('vid-input-${applicationId}').click()">🎬 اختر الفيديو من جهازك</button>
           <div id="vid-wrap-${applicationId}" style="margin-bottom:10px;"></div>
           <div class="sa-field"><label for="sf-${applicationId}-note">ملاحظة (اختياري)</label><input type="text" id="sf-${applicationId}-note" name="note" placeholder="تفاصيل أو ملاحظات للشركة" onclick="event.stopPropagation()"></div>
-          <button type="submit" class="sa-btn" disabled onclick="event.stopPropagation()">${myInfo.label}</button>
+          <button type="submit" class="sa-btn" disabled onclick="event.stopPropagation()">${_isVidCamp ? '✓ إرسال الفيديو للتعميد' : myInfo.label}</button>
         </form>
         <div style="font-size:11px;color:var(--ink-muted);margin-top:8px;">📹 ارفع الفيديو مباشرة من جهازك. يُحذف تلقائيًا من سيرفرنا بعد موافقة الشركة.</div>
       </div>

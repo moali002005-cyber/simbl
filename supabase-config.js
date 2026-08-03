@@ -300,11 +300,18 @@ async function simblBriefSignedUrl(path, seconds) {
   return (data && data.signedUrl) || '';
 }
 // المسار لازم يبدأ بـ<campaign_id>/ لأن سياسات RLS تقرأ اسم المجلد الأول
-async function simblBriefUpload(campaignId, file) {
+const SIMBL_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+const SIMBL_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+async function simblBriefUpload(campaignId, file, allowVideo) {
   if (!campaignId) throw new Error('حملة غير معروفة');
-  if (SIMBL_BRIEF_TYPES.indexOf(file.type) < 0) throw new Error('الصيغة غير مدعومة — صور فقط (JPG / PNG / WebP)');
-  if (file.size > SIMBL_BRIEF_MAX_BYTES) throw new Error('حجم «' + (file.name || 'الصورة') + '» أكبر من ١٠ ميجا');
-  const safe = (file.name || 'image').replace(/[^\w.\-]+/g, '_').slice(-60);
+  const isVideo = SIMBL_VIDEO_TYPES.indexOf(file.type) >= 0;
+  if (isVideo && !allowVideo) throw new Error('الفيديو مسموح في حملات «الفيديو الجاهز» فقط');
+  if (!isVideo && SIMBL_BRIEF_TYPES.indexOf(file.type) < 0) {
+    throw new Error('الصيغة غير مدعومة — صور (JPG / PNG / WebP)' + (allowVideo ? ' أو فيديو (MP4 / MOV / WebM)' : ' فقط'));
+  }
+  const maxBytes = isVideo ? SIMBL_VIDEO_MAX_BYTES : SIMBL_BRIEF_MAX_BYTES;
+  if (file.size > maxBytes) throw new Error('حجم «' + (file.name || 'الملف') + '» أكبر من ' + (isVideo ? '٥٠' : '١٠') + ' ميجا');
+  const safe = (file.name || (isVideo ? 'video' : 'image')).replace(/[^\w.\-]+/g, '_').slice(-60);
   const path = campaignId + '/' + Date.now() + '_' + safe;
   const { error } = await supabaseClient.storage
     .from(SIMBL_BRIEF_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
