@@ -2323,6 +2323,9 @@ function toggleCampaignType() {
   if (typ !== 'home') { const fs = document.querySelector('[name="fulfillment_mode"][value="shipping"]'); if (fs) fs.checked = true; }
   show('video-note-field', isVideo);
   show('video-files-field', isVideo);
+  // حملة الفيديو: السعر حرّ — نلمّح بنطاق منخفض
+  const _bud = document.querySelector('[name="budget"]');
+  if (_bud) _bud.placeholder = isVideo ? 'مثل: 100 - 300' : 'مثل: 800 - 1500';
   toggleFulfillment();
 }
 

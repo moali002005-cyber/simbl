@@ -2145,6 +2145,7 @@ function toggleCampaignType() {
   if (typ !== 'home') { const fs = document.querySelector('[name="fulfillment_mode"][value="shipping"]'); if (fs) fs.checked = true; }
   show('video-note-field', isVideo);
   show('video-files-field', isVideo);
+  if (typeof updateBudgetBounds === 'function') updateBudgetBounds();
   toggleFulfillment();
 }
 
@@ -2273,6 +2274,12 @@ function tierBudgetBounds(tiers) {
 function updateBudgetBounds() {
   const hint = document.getElementById('budget-hint');
   const inp = document.querySelector('[name="budget"]');
+  const _sel = document.querySelector('[name="campaign_type"]:checked');
+  if (_sel && _sel.value === 'video') {
+    if (hint) hint.textContent = 'السعر حرّ لحملات الفيديو الجاهز — حدد النطاق اللي يناسبك بدون حد أدنى.';
+    if (inp) inp.placeholder = 'مثل: 100 - 300';
+    return;
+  }
   const tiers = currentSelectedTiers();
   const b = tierBudgetBounds(tiers);
   if (b) {
@@ -3694,7 +3701,9 @@ async function submitCampaign(event) {
     return;
   }
   // حدود السعر الإجبارية حسب التصنيف المختار
-  const _bnds = tierBudgetBounds(selectedTiers);
+  // حملات «الفيديو الجاهز» مستثناة: جهد المعلن فيها أقل (مونتاج ونشر) فالسعر حرّ بدون حد أدنى
+  const _isVideoBudget = (fd.get('campaign_type') || 'home') === 'video';
+  const _bnds = _isVideoBudget ? null : tierBudgetBounds(selectedTiers);
   if (_bnds) {
     const _budStr = String(fd.get('budget') || '')
       .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
