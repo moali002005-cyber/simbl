@@ -403,7 +403,7 @@ ALTER TABLE public.memberships ADD CONSTRAINT memberships_role_check CHECK ((rol
 ALTER TABLE public.users ADD CONSTRAINT users_org_role_chk CHECK (((org_role IS NULL) OR (org_role = ANY (ARRAY['owner'::text, 'manager'::text, 'employee'::text]))));
 ALTER TABLE public.users ADD CONSTRAINT users_role_check CHECK ((role = ANY (ARRAY['creator'::text, 'brand'::text])));
 ALTER TABLE public._backup_deleted_apps ADD CONSTRAINT applications_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'active'::text, 'closed'::text, 'rejected'::text])));
-ALTER TABLE public.campaigns ADD CONSTRAINT campaigns_campaign_type_check CHECK ((campaign_type = ANY (ARRAY['home'::text, 'visit'::text])));
+ALTER TABLE public.campaigns ADD CONSTRAINT campaigns_campaign_type_check CHECK ((campaign_type = ANY (ARRAY['home'::text, 'visit'::text, 'video'::text])));
 ALTER TABLE public.campaigns ADD CONSTRAINT campaigns_status_check CHECK ((status = ANY (ARRAY['active'::text, 'closed'::text, 'paused'::text])));
 ALTER TABLE public.creator_ratings ADD CONSTRAINT creator_ratings_q_communication_check CHECK (((q_communication >= 1) AND (q_communication <= 5)));
 ALTER TABLE public.creator_ratings ADD CONSTRAINT creator_ratings_q_content_check CHECK (((q_content >= 1) AND (q_content <= 5)));
