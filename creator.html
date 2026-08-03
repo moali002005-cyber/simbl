@@ -2218,7 +2218,7 @@ function renderOfferCard(c, a) {
   } else if (isApproved) {
     const _esFix = pendingFixStage(a);
     const _es = (_esFix != null) ? _esFix : (a.stage || 1);
-    expandedInner = renderStageHistory(a.stage_data, _es, _es >= 9)
+    expandedInner = renderStageHistory(a.stage_data, _es, _es >= 9, a)
       + renderStageAction(a.id, _es, 'creator');
   }
 
@@ -2401,7 +2401,12 @@ function renderWorkflowStrip(currentStage) {
     </div>`;
 }
 
-function renderStageHistory(stageData, currentStage, expanded) {
+function renderStageHistory(stageData, currentStage, expanded, app) {
+  const _histFlowName = (sid) => {
+    const c = app ? campaignForApp(app) : {};
+    const hit = flowFor(c.campaign_type, c.fulfillment_mode).find(st => st.s === sid);
+    return (hit && hit.n) || null;
+  };
   if (!stageData) return '';
   const completedStages = Object.keys(stageData)
     .map(k => parseInt(k))
@@ -2411,7 +2416,7 @@ function renderStageHistory(stageData, currentStage, expanded) {
 
   const items = completedStages.map(stageId => {
     const data = stageData[stageId] || {};
-    const stageName = WORKFLOW_STAGES.find(s => s.id === stageId)?.name || '';
+    const stageName = _histFlowName(stageId) || WORKFLOW_STAGES.find(s => s.id === stageId)?.name || '';
     const fields = STAGE_FIELDS[stageId] || [];
 
     const inlineFields = [];

@@ -3600,7 +3600,9 @@ function renderStageDataView(a, s) {
   const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
   const data = sd[s] || {};
   const fields = STAGE_FIELDS[s] || [];
-  const stageName = WORKFLOW_STAGES.find(x => x.id === s)?.name || '';
+  const _sdCamp = (findAppById(a.id) || {}).campaign || {};
+  const _sdHit = flowFor(_sdCamp.campaign_type, _sdCamp.fulfillment_mode).find(st => st.s === s);
+  const stageName = (_sdHit && _sdHit.n) || WORKFLOW_STAGES.find(x => x.id === s)?.name || '';
   const rows = fields.filter(f => data[f.name] !== undefined && data[f.name] !== '').map(f => {
     const val = data[f.name];
     let body;
