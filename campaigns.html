@@ -3255,11 +3255,10 @@ async function deleteBriefAttachment(idx) {
 async function downloadBriefAttachment(idx) {
   const item = simblBriefList(_briefCamp())[idx];
   if (!item) return;
-  const url = await simblBriefSignedUrl(item.path, 300);
+  const url = await simblBriefSignedUrl(item.path, 300, item.name || true);
   if (!url) { showToast('تعذّر تجهيز رابط التنزيل', 'error'); return; }
-  const a = document.createElement('a');
-  a.href = url; a.download = item.name || 'attachment'; a.target = '_blank'; a.rel = 'noopener';
-  document.body.appendChild(a); a.click(); a.remove();
+  window.location.href = url;
+  showToast('بدأ تنزيل «' + (item.name || 'الملف') + '» ⬇');
 }
 
 function closeBriefModal() {

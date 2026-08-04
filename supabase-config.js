@@ -292,10 +292,13 @@ function simblBriefList(camp) {
   return [];
 }
 // رابط موقّت لعرض/تنزيل مرفق — السلة خاصة فما فيه رابط عام
-async function simblBriefSignedUrl(path, seconds) {
+async function simblBriefSignedUrl(path, seconds, downloadName) {
   if (!path) return '';
+  // downloadName: يضيف Content-Disposition=attachment فيصير الرابط «تنزيل» حقيقي
+  // (بدون فتح الملف في المتصفح — وهذا اللي يخلي التنزيل يشتغل على الجوال)
+  const opts = downloadName ? { download: (downloadName === true ? true : String(downloadName)) } : undefined;
   const { data, error } = await supabaseClient.storage
-    .from(SIMBL_BRIEF_BUCKET).createSignedUrl(path, seconds || 3600);
+    .from(SIMBL_BRIEF_BUCKET).createSignedUrl(path, seconds || 3600, opts);
   if (error) { console.error('brief signed url failed:', path, error); return ''; }
   return (data && data.signedUrl) || '';
 }

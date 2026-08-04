@@ -2552,11 +2552,12 @@ function closeAttachModal() { document.getElementById('attachModal').classList.r
 async function downloadAttach(idx) {
   const item = _attachList[idx];
   if (!item) return;
-  const url = await simblBriefSignedUrl(item.path, 300);
+  // رابط بتنزيل قسري (Content-Disposition) + تنقّل مباشر بنفس التبويب:
+  // ما فيه نافذة منبثقة تنحجب على الجوال، والصفحة تبقى مفتوحة والتنزيل يبدأ
+  const url = await simblBriefSignedUrl(item.path, 300, item.name || true);
   if (!url) { kitToast('تعذّر تجهيز رابط التنزيل'); return; }
-  const a = document.createElement('a');
-  a.href = url; a.download = item.name || 'attachment'; a.target = '_blank'; a.rel = 'noopener';
-  document.body.appendChild(a); a.click(); a.remove();
+  window.location.href = url;
+  kitToast('بدأ تنزيل «' + (item.name || 'الملف') + '» ⬇');
 }
 function closeBriefModal() { document.getElementById('briefModal').classList.remove('show'); }
 function copyBriefModal() {
