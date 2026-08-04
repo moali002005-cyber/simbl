@@ -111,3 +111,11 @@ DROP TRIGGER IF EXISTS assign_code_on_approval ON public.applications;
 CREATE TRIGGER assign_code_on_approval
   AFTER UPDATE OF brand_approved ON public.applications
   FOR EACH ROW EXECUTE FUNCTION public.trg_assign_code_on_approval();
+
+-- 6) توسيع أنواع الإشعارات المسموحة (كان القيد القديم يُفشل الاعتماد عند إشعار الكود)
+ALTER TABLE public.notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check
+  CHECK (type = ANY (ARRAY['new_campaign'::text, 'new_application'::text, 'new_message'::text,
+    'workflow_update'::text, 'deal_closed'::text, 'deal_approved'::text, 'deal_rejected'::text,
+    'payment_marked'::text, 'campaign_full'::text, 'waitlist_promoted'::text, 'profile_reminder'::text,
+    'code_assigned'::text]));
