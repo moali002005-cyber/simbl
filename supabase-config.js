@@ -307,7 +307,11 @@ async function simblBriefSignedUrl(path, seconds, downloadName) {
 }
 // المسار لازم يبدأ بـ<campaign_id>/ لأن سياسات RLS تقرأ اسم المجلد الأول
 const SIMBL_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
-const SIMBL_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+// الحد الأقصى لحجم الفيديو الواحد بالميجا — غيّر الرقم هنا فقط (لازم يطابق حد bucket brief-files في Supabase)
+const SIMBL_VIDEO_MAX_MB = 200;
+const SIMBL_VIDEO_MAX_BYTES = SIMBL_VIDEO_MAX_MB * 1024 * 1024;
+// الحد الأقصى لحجم الصورة الواحدة بالميجا
+const SIMBL_BRIEF_MAX_MB = 10;
 async function simblBriefUpload(campaignId, file, allowVideo) {
   if (!campaignId) throw new Error('حملة غير معروفة');
   const isVideo = SIMBL_VIDEO_TYPES.indexOf(file.type) >= 0;
@@ -316,7 +320,7 @@ async function simblBriefUpload(campaignId, file, allowVideo) {
     throw new Error('الصيغة غير مدعومة — صور (JPG / PNG / WebP)' + (allowVideo ? ' أو فيديو (MP4 / MOV / WebM)' : ' فقط'));
   }
   const maxBytes = isVideo ? SIMBL_VIDEO_MAX_BYTES : SIMBL_BRIEF_MAX_BYTES;
-  if (file.size > maxBytes) throw new Error('حجم «' + (file.name || 'الملف') + '» أكبر من ' + (isVideo ? '٥٠' : '١٠') + ' ميجا');
+  if (file.size > maxBytes) throw new Error('حجم «' + (file.name || 'الملف') + '» أكبر من ' + simblArNum(isVideo ? SIMBL_VIDEO_MAX_MB : SIMBL_BRIEF_MAX_MB) + ' ميجا');
   const safe = (file.name || (isVideo ? 'video' : 'image')).replace(/[^\w.\-]+/g, '_').slice(-60);
   const path = campaignId + '/' + Date.now() + '_' + safe;
   const { error } = await supabaseClient.storage
@@ -338,6 +342,8 @@ async function simblBriefSaveList(campaignId, list) {
 window.simblBriefList = simblBriefList;
 window.simblBriefSignedUrl = simblBriefSignedUrl;
 window.SIMBL_BRIEF_MAX_FILES = SIMBL_BRIEF_MAX_FILES;
+window.SIMBL_VIDEO_MAX_MB = SIMBL_VIDEO_MAX_MB;
+window.SIMBL_BRIEF_MAX_MB = SIMBL_BRIEF_MAX_MB;
 window.simblArNum = simblArNum;
 window.simblBriefUpload = simblBriefUpload;
 window.simblBriefRemove = simblBriefRemove;

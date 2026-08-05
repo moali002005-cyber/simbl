@@ -1773,7 +1773,7 @@ SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textar
           <input type="file" id="video-files-input" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" multiple style="display:none;" onchange="pickVideoFiles(this)">
         </label>
         <div id="video-files-list" style="margin-top:9px;display:flex;flex-direction:column;gap:6px;"></div>
-        <div class="hint">MP4 / MOV / WebM حتى ٥٠ ميجا للملف، حتى ١٥ ملفاً للحملة (وتقدر تضيف صوراً حتى ١٠ ميجا) — تُرفع تلقائياً مع نشر الحملة وتظهر للمعلن المعتمد فقط.</div>
+        <div class="hint">MP4 / MOV / WebM حتى ٢٠٠ ميجا للملف، حتى ١٥ ملفاً للحملة (وتقدر تضيف صوراً حتى ١٠ ميجا) — تُرفع تلقائياً مع نشر الحملة وتظهر للمعلن المعتمد فقط.</div>
       </div>
 
 
@@ -2051,7 +2051,7 @@ SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textar
           <input type="file" id="brief-attach-input" accept="image/jpeg,image/png,image/webp" multiple style="display:none;" onchange="uploadBriefAttachments(this)">
         </label>
       </div>
-      <p id="brief-attach-hint" style="font-size:11px;color:#6B7B74;margin:6px 0 0;line-height:1.6;">صور فقط (JPG / PNG / WebP) — ١٠ ميجا للصورة كحد أقصى، و١٠ مرفقات للحملة. تظهر للمعلن بعد اعتماد صفقته فقط.</p>
+      <p id="brief-attach-hint" style="font-size:11px;color:#6B7B74;margin:6px 0 0;line-height:1.6;">صور فقط (JPG / PNG / WebP) — ١٠ ميجا للصورة كحد أقصى، و١٥ مرفقاً للحملة. تظهر للمعلن بعد اعتماد صفقته فقط.</p>
       <div id="brief-attach-grid" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
     </div>
     <div class="modal-actions">
@@ -2364,7 +2364,8 @@ function pickVideoFiles(input) {
     const isV = ['video/mp4', 'video/quicktime', 'video/webm'].indexOf(f.type) >= 0;
     const isI = ['image/jpeg', 'image/png', 'image/webp'].indexOf(f.type) >= 0;
     if (!isV && !isI) { showToast('«' + f.name + '» صيغة غير مدعومة (MP4/MOV/WebM أو صورة)', 'error'); continue; }
-    if (f.size > (isV ? 50 : 10) * 1024 * 1024) { showToast('«' + f.name + '» أكبر من الحد (' + (isV ? '٥٠' : '١٠') + ' ميجا)', 'error'); continue; }
+    const _lim = isV ? (window.SIMBL_VIDEO_MAX_MB || 200) : (window.SIMBL_BRIEF_MAX_MB || 10);
+    if (f.size > _lim * 1024 * 1024) { showToast('«' + f.name + '» أكبر من الحد (' + (window.simblArNum ? window.simblArNum(_lim) : _lim) + ' ميجا)', 'error'); continue; }
     window._vidFiles.push(f);
   }
   renderPickedVideos();
@@ -3131,9 +3132,11 @@ function openBriefModal(campaignId) {
     ? 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm'
     : 'image/jpeg,image/png,image/webp');
   const _hint = document.getElementById('brief-attach-hint');
+  const _n = window.simblArNum || (x => x);
+  const _arV = _n(window.SIMBL_VIDEO_MAX_MB || 200), _arI = _n(window.SIMBL_BRIEF_MAX_MB || 10), _arF = _n(window.SIMBL_BRIEF_MAX_FILES || 15);
   if (_hint) _hint.textContent = _vidCamp
-    ? 'فيديو (MP4 / MOV / WebM حتى ٥٠ ميجا) أو صورة (حتى ١٠ ميجا) — ١٠ مرفقات للحملة. تظهر للمعلن بعد اعتماد صفقته فقط.'
-    : 'صور فقط (JPG / PNG / WebP) — ١٠ ميجا للصورة كحد أقصى، و١٠ مرفقات للحملة. تظهر للمعلن بعد اعتماد صفقته فقط.';
+    ? 'فيديو (MP4 / MOV / WebM حتى ' + _arV + ' ميجا) أو صورة (حتى ' + _arI + ' ميجا) — ' + _arF + ' مرفقات للحملة. تظهر للمعلن بعد اعتماد صفقته فقط.'
+    : 'صور فقط (JPG / PNG / WebP) — ' + _arI + ' ميجا للصورة كحد أقصى، و' + _arF + ' مرفقات للحملة. تظهر للمعلن بعد اعتماد صفقته فقط.';
   renderBriefAttachments(false);
   document.getElementById('brief-modal').classList.add('show');
 }

@@ -1689,7 +1689,7 @@ SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textar
           <input type="file" id="video-files-input" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" multiple style="display:none;" onchange="pickVideoFiles(this)">
         </label>
         <div id="video-files-list" style="margin-top:9px;display:flex;flex-direction:column;gap:6px;"></div>
-        <div class="hint">MP4 / MOV / WebM حتى ٥٠ ميجا للملف، حتى ١٥ ملفاً للحملة (وتقدر تضيف صوراً حتى ١٠ ميجا) — تُرفع تلقائياً مع نشر الحملة وتظهر للمعلن المعتمد فقط.</div>
+        <div class="hint">MP4 / MOV / WebM حتى ٢٠٠ ميجا للملف، حتى ١٥ ملفاً للحملة (وتقدر تضيف صوراً حتى ١٠ ميجا) — تُرفع تلقائياً مع نشر الحملة وتظهر للمعلن المعتمد فقط.</div>
       </div>
 
 
@@ -2184,7 +2184,8 @@ function pickVideoFiles(input) {
     const isV = ['video/mp4', 'video/quicktime', 'video/webm'].indexOf(f.type) >= 0;
     const isI = ['image/jpeg', 'image/png', 'image/webp'].indexOf(f.type) >= 0;
     if (!isV && !isI) { showToast('«' + f.name + '» صيغة غير مدعومة (MP4/MOV/WebM أو صورة)', 'error'); continue; }
-    if (f.size > (isV ? 50 : 10) * 1024 * 1024) { showToast('«' + f.name + '» أكبر من الحد (' + (isV ? '٥٠' : '١٠') + ' ميجا)', 'error'); continue; }
+    const _lim = isV ? (window.SIMBL_VIDEO_MAX_MB || 200) : (window.SIMBL_BRIEF_MAX_MB || 10);
+    if (f.size > _lim * 1024 * 1024) { showToast('«' + f.name + '» أكبر من الحد (' + (window.simblArNum ? window.simblArNum(_lim) : _lim) + ' ميجا)', 'error'); continue; }
     window._vidFiles.push(f);
   }
   renderPickedVideos();
