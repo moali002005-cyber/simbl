@@ -96,6 +96,7 @@ td.iban-bad{ background:#fff2f2 !important; color:#c0392b !important; box-shadow
 .camp-exp-btn { cursor:pointer; border:1px solid #e0e7e5; background:#fff; border-radius:100px; padding:6px 12px; font-family:inherit; font-size:12px; font-weight:600; color:#0f1512; }
 .camp-exp-btn.pay { background:#1D9E75; color:#fff; border-color:#1D9E75; }
 .camp-exp-btn.edit { background:#0f1512; color:#fff; border-color:#0f1512; }
+.camp-exp-btn.links { background:#0B6BB8; color:#fff; border-color:#0B6BB8; }
 .camp-exp-btn:hover { filter:brightness(0.97); }
 .dim { color:var(--ink-faint); }
 .dues-mark { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:5px 12px; font-family:var(--font-body); font-size:11.5px; font-weight:600; cursor:pointer; }
@@ -622,7 +623,7 @@ function renderCampaignBlock(camp, deals) {
     +       '<span>✅ معتمد: <strong>' + toArabic(deals.length) + (size ? '/' + toArabic(size) : '') + '</strong></span>'
     +     '</div>'
     +   '</div>'
-    +   '<div class="dues-sum">' + sumChips + '<div class="camp-exports"><button class="camp-exp-btn edit" onclick="toggleCampEdit(\'' + camp.id + '\', this)">✏️ تعديل</button><button class="camp-exp-btn pay" onclick="exportPaySheetCSV(\'' + camp.id + '\')">💳 شيت الدفع</button><button class="camp-exp-btn xls" onclick="exportDuesCSV(\'' + camp.id + '\')">📥 Excel</button></div></div>'
+    +   '<div class="dues-sum">' + sumChips + '<div class="camp-exports"><button class="camp-exp-btn edit" onclick="toggleCampEdit(\'' + camp.id + '\', this)">✏️ تعديل</button><button class="camp-exp-btn pay" onclick="exportPaySheetCSV(\'' + camp.id + '\')">💳 شيت الدفع</button><button class="camp-exp-btn links" onclick="exportLinksPDF(\'' + camp.id + '\')">🔗 شيت الروابط PDF</button><button class="camp-exp-btn xls" onclick="exportDuesCSV(\'' + camp.id + '\')">📥 Excel</button></div></div>'
     + '</div>'
     + '<div class="dues-grid-wrap"><table class="xl">'
     + '<thead>'
@@ -751,6 +752,168 @@ function exportPaySheetCSV(onlyCampId) {
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast('تم تصدير شيت الدفع المختصر (' + toArabic(count) + ' صف) ✓');
+}
+
+// ============ شيت الروابط (PDF) — روابط فقط، وتشتغل بالضغط داخل الـ PDF ============
+// ليش نبنيه بصفحة طباعة بدل مكتبة PDF؟ لأن مكتبات الـ PDF (jsPDF وأخواتها) تكسر
+// العربي (حروف مقطّعة ومقلوبة) وتحتاج خط مضمّن بميقات. أما طباعة كروم → «حفظ كـ PDF»
+// فتطبع العربي صح، والأهم: تحوّل كل <a href> إلى وصلة حقيقية داخل الملف (PDF link
+// annotation) — يعني الروابط تنضغط فعلاً من داخل الملف، وهذا المطلوب الأساسي.
+
+function _lnkShort(u) {                    // شكل مختصر للعرض تحت اسم الرابط
+  var s = String(u || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+  return s.length > 46 ? s.slice(0, 46) + '…' : s;
+}
+function _lnkPlatform(u) {
+  var s = String(u || '').toLowerCase();
+  if (s.indexOf('tiktok') >= 0) return 'تيك توك';
+  if (s.indexOf('instagram') >= 0) return 'انستقرام';
+  if (s.indexOf('snapchat') >= 0) return 'سناب';
+  if (s.indexOf('youtu') >= 0) return 'يوتيوب';
+  if (s.indexOf('x.com') >= 0 || s.indexOf('twitter') >= 0) return 'إكس';
+  return '';
+}
+function _lnkCell(url, label) {
+  if (!url) return '<td class="empty">—</td>';
+  return '<td><a href="' + escHtml(url) + '" target="_blank" rel="noopener">'
+    + escHtml(label) + '<span class="u">' + escHtml(_lnkShort(url)) + '</span></a></td>';
+}
+
+// يجمع صفوف الروابط لحملة واحدة (نفس فلتر الشيت: معتمدة فقط)
+function _linkRowsOf(camp) {
+  var deals = (campaignApps[camp.id] || []).filter(function (a) {
+    return a.status === 'closed' && a.brand_approved === true;
+  });
+  var rows = [];
+  deals.forEach(function (a) {
+    var ov = duesOverrides[a.id] || {};
+    var creator = a.users || {};
+    var sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
+    var st7 = sd[7] || sd['7'] || {};
+    var pub = cleanUrl(st7.publish_link || '');
+    var acct = duesAccountLink(creator);
+    var phone = String(creator.whatsapp || creator.phone || '').trim();
+    // شيت الروابط = الروابط بس؛ صف بلا أي رابط ما له معنى هنا
+    if (!pub && !acct) return;
+    rows.push({
+      name: ov.name != null ? ov.name : (creator.name || 'معلن'),
+      pub: pub,
+      acct: acct,
+      wa: phone ? duesWaLink(phone) : '',
+      phone: phone,
+      at: st7._at || a.completed_at || a.created_at || ''
+    });
+  });
+  // الأحدث نشراً أولاً، واللي عنده فيديو قبل اللي ما عنده
+  rows.sort(function (x, y) {
+    if (!!x.pub !== !!y.pub) return x.pub ? -1 : 1;
+    return new Date(y.at || 0) - new Date(x.at || 0);
+  });
+  return rows;
+}
+
+function exportLinksPDF(onlyCampId) {
+  var camps = (myCampaigns || []).slice().sort(function (a, b) {
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+  if (onlyCampId) camps = camps.filter(function (c) { return c.id === onlyCampId; });
+  if (!camps.length) { showToast('ما فيه حملة للتصدير', 'error'); return; }
+
+  var total = 0, withVideo = 0, sections = '';
+  camps.forEach(function (c) {
+    var rows = _linkRowsOf(c);
+    if (!rows.length) return;
+    total += rows.length;
+    var body = rows.map(function (r, i) {
+      if (r.pub) withVideo++;
+      var plat = _lnkPlatform(r.acct || r.pub);   // منصّة المعلن نفسه، مو منصّة الرابط
+      return '<tr>'
+        + '<td class="n"><span class="iso">' + toArabic(i + 1) + '</span></td>'
+        + '<td class="nm">' + escHtml(r.name) + (plat ? '<span class="pl">' + plat + '</span>' : '') + '</td>'
+        + _lnkCell(r.pub, '▶ فتح الفيديو')
+        + _lnkCell(r.acct, '👤 حساب المعلن')
+        + _lnkCell(r.wa, '💬 واتساب')
+        + '</tr>';
+    }).join('');
+    sections += '<section>'
+      + (camps.length > 1 ? '<h2>📦 ' + escHtml(c.title || 'حملة') + ' <span class="cnt">' + toArabic(rows.length) + ' رابط</span></h2>' : '')
+      + '<table><thead><tr>'
+      + '<th style="width:7%">#</th><th style="width:23%">المعلن</th>'
+      + '<th style="width:28%">رابط الفيديو</th><th style="width:24%">رابط الحساب</th><th style="width:18%">واتساب</th>'
+      + '</tr></thead><tbody>' + body + '</tbody></table></section>';
+  });
+
+  if (!total) { showToast('ما فيه روابط للتصدير في هالحملة', 'error'); return; }
+
+  var today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+  var campName = onlyCampId ? String((camps[0] && camps[0].title) || 'حملة') : 'كل الحملات';
+  var docTitle = 'شيت الروابط - ' + campName.replace(/[\\/:*?"<>|]/g, '') + ' - ' + today;
+
+  var css = ''
+    + '@page{size:A4;margin:12mm 9mm 13mm}'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;color:#0a0a0a;background:#fff;font-size:12px;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+    + '.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#0f1512;color:#fff;padding:12px 18px;position:sticky;top:0;z-index:9}'
+    + '.bar b{font-size:13px;font-weight:600}.bar small{opacity:.75;font-size:11px;display:block;font-weight:400}'
+    + '.bar button{cursor:pointer;border:0;border-radius:100px;padding:9px 18px;background:#13B9B2;color:#04302e;font-family:inherit;font-size:12.5px;font-weight:700}'
+    + '.doc{padding:20px 18px 26px}'
+    + 'h1{font-size:17px;font-weight:700;margin-bottom:3px}'
+    + '.meta{color:#5d6b67;font-size:11.5px;margin-bottom:4px;display:flex;gap:14px;flex-wrap:wrap}'
+    + '.meta span{unicode-bidi:isolate}'
+    + '.tip{background:#eaf5ff;border:1px solid #cbe4fa;color:#0b4f80;border-radius:8px;padding:7px 11px;font-size:11px;margin:9px 0 13px}'
+    + 'h2{font-size:13.5px;font-weight:700;margin:16px 0 7px;padding-bottom:5px;border-bottom:2px solid #0f1512}'
+    + 'h2 .cnt{font-size:11px;font-weight:400;color:#5d6b67;unicode-bidi:isolate}'
+    + 'table{width:100%;border-collapse:collapse;table-layout:fixed}'
+    + 'thead{display:table-header-group}'
+    + 'th{background:#0f1512;color:#fff;font-size:11px;font-weight:600;padding:8px 6px;border:1px solid #0f1512;text-align:center}'
+    + 'td{border:1px solid #dfe5e3;padding:7px 6px;font-size:11.5px;text-align:center;vertical-align:middle;word-wrap:break-word}'
+    + 'tbody tr:nth-child(even) td{background:#f7faf9}'
+    + 'tr{break-inside:avoid;page-break-inside:avoid}'
+    + 'td.n{color:#8a9793;width:7%}.iso{unicode-bidi:isolate}'
+    + 'td.nm{text-align:right;font-weight:600}'
+    + 'td.nm .pl{display:block;font-weight:400;font-size:10px;color:#8a9793}'
+    + 'td.empty{color:#c3ccc9}'
+    + 'a{color:#0B6BB8;text-decoration:none;font-weight:600;display:block}'
+    + 'a .u{display:block;margin-top:2px;font-size:9px;font-weight:400;color:#7d8b87;'
+    +   'direction:ltr;unicode-bidi:isolate;text-align:center;word-break:break-all;text-decoration:underline}'
+    + 'footer{margin-top:16px;padding-top:9px;border-top:1px solid #e3e9e7;color:#7d8b87;font-size:10px;text-align:center}'
+    + '@media print{.bar{display:none}.doc{padding:0}.tip{margin-top:0}}';
+
+  var html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'
+    + '<title>' + escHtml(docTitle) + '</title>'
+    + '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">'
+    + '<style>' + css + '</style></head><body>'
+    + '<div class="bar"><b>شيت الروابط جاهز'
+    +   '<small>يفتح حوار الطباعة — اختر الوجهة «حفظ كـ PDF» ثم حفظ</small></b>'
+    +   '<button id="pbtn">🖨️ حفظ كـ PDF</button></div>'
+    + '<div class="doc">'
+    +   '<h1>🔗 شيت الروابط — ' + escHtml(campName) + '</h1>'
+    +   '<div class="meta"><span>📅 ' + toArabic(today.replace(/-/g, '/')) + '</span>'
+    +     '<span>🔗 ' + toArabic(total) + ' صف</span>'
+    +     '<span>▶️ ' + toArabic(withVideo) + ' فيديو منشور</span></div>'
+    +   '<div class="tip">الروابط في هذا الملف شغّالة: اضغط «فتح الفيديو» أو «حساب المعلن» أو «واتساب» من داخل ملف الـ PDF وينفتح الرابط مباشرة.</div>'
+    +   sections
+    +   '<footer>صُدِّر من سيمبل · ' + escHtml(docTitle) + '</footer>'
+    + '</div></body></html>';
+
+  var w = window.open('', '_blank');
+  if (!w) { showToast('المتصفح منع فتح النافذة — اسمح بالنوافذ المنبثقة وأعد المحاولة', 'error'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+
+  // كل السكربت من هنا (النافذة الجديدة بلا سكربت داخلي) — أنظف وما يتعارض مع أي CSP
+  var fire = function () { try { w.focus(); w.print(); } catch (e) {} };
+  try {
+    var btn = w.document.getElementById('pbtn');
+    if (btn) btn.onclick = function () { w.print(); };
+  } catch (e) {}
+  try {
+    // ننتظر الخط العربي ينزل، وإلا تطلع المعاينة بخط بديل ثم تتزحلق
+    w.document.fonts.ready.then(function () { setTimeout(fire, 350); });
+  } catch (e) { setTimeout(fire, 1200); }
+
+  showToast('فتحت شيت الروابط (' + toArabic(total) + ' رابط) — اختر «حفظ كـ PDF» ✓');
 }
 
 async function clearFix(appId, stage){
