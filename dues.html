@@ -760,56 +760,34 @@ function exportPaySheetCSV(onlyCampId) {
 // فتطبع العربي صح، والأهم: تحوّل كل <a href> إلى وصلة حقيقية داخل الملف (PDF link
 // annotation) — يعني الروابط تنضغط فعلاً من داخل الملف، وهذا المطلوب الأساسي.
 
-function _lnkShort(u) {                    // شكل مختصر للعرض تحت اسم الرابط
+function _lnkShort(u) {                    // نص الرابط المعروض (بدون البروتوكول)
   var s = String(u || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
-  return s.length > 46 ? s.slice(0, 46) + '…' : s;
-}
-function _lnkPlatform(u) {
-  var s = String(u || '').toLowerCase();
-  if (s.indexOf('tiktok') >= 0) return 'تيك توك';
-  if (s.indexOf('instagram') >= 0) return 'انستقرام';
-  if (s.indexOf('snapchat') >= 0) return 'سناب';
-  if (s.indexOf('youtu') >= 0) return 'يوتيوب';
-  if (s.indexOf('x.com') >= 0 || s.indexOf('twitter') >= 0) return 'إكس';
-  return '';
-}
-function _lnkCell(url, label) {
-  if (!url) return '<td class="empty">—</td>';
-  return '<td><a href="' + escHtml(url) + '" target="_blank" rel="noopener">'
-    + escHtml(label) + '<span class="u">' + escHtml(_lnkShort(url)) + '</span></a></td>';
+  return s.length > 62 ? s.slice(0, 62) + '…' : s;
 }
 
-// يجمع صفوف الروابط لحملة واحدة (نفس فلتر الشيت: معتمدة فقط)
+// يجمع روابط الفيديو لحملة واحدة (نفس فلتر الشيت: معتمدة فقط)
+// شيت الروابط = روابط الفيديو بس؛ أي صف ما فيه رابط فيديو يُستبعد.
 function _linkRowsOf(camp) {
   var deals = (campaignApps[camp.id] || []).filter(function (a) {
     return a.status === 'closed' && a.brand_approved === true;
   });
   var rows = [];
   deals.forEach(function (a) {
-    var ov = duesOverrides[a.id] || {};
-    var creator = a.users || {};
     var sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
     var st7 = sd[7] || sd['7'] || {};
     var pub = cleanUrl(st7.publish_link || '');
-    var acct = duesAccountLink(creator);
-    var phone = String(creator.whatsapp || creator.phone || '').trim();
-    // شيت الروابط = الروابط بس؛ صف بلا أي رابط ما له معنى هنا
-    if (!pub && !acct) return;
-    rows.push({
-      name: ov.name != null ? ov.name : (creator.name || 'معلن'),
-      pub: pub,
-      acct: acct,
-      wa: phone ? duesWaLink(phone) : '',
-      phone: phone,
-      at: st7._at || a.completed_at || a.created_at || ''
-    });
+    if (!pub) return;
+    rows.push({ pub: pub, at: st7._at || a.completed_at || a.created_at || '' });
   });
-  // الأحدث نشراً أولاً، واللي عنده فيديو قبل اللي ما عنده
-  rows.sort(function (x, y) {
-    if (!!x.pub !== !!y.pub) return x.pub ? -1 : 1;
-    return new Date(y.at || 0) - new Date(x.at || 0);
-  });
+  rows.sort(function (x, y) { return new Date(y.at || 0) - new Date(x.at || 0); });   // الأحدث نشراً أولاً
   return rows;
+}
+
+// خلية رابط واحد: الرقم + الرابط، والرابط كله <a> واحد عشان يطلع وصلة شغّالة في الـ PDF
+function _lnkPair(url, n) {
+  return '<td class="n">' + toArabic(n) + '</td>'
+    + '<td class="l"><a href="' + escHtml(url) + '" target="_blank" rel="noopener">'
+    + escHtml(_lnkShort(url)) + '</a></td>';
 }
 
 function exportLinksPDF(onlyCampId) {
@@ -819,31 +797,37 @@ function exportLinksPDF(onlyCampId) {
   if (onlyCampId) camps = camps.filter(function (c) { return c.id === onlyCampId; });
   if (!camps.length) { showToast('ما فيه حملة للتصدير', 'error'); return; }
 
-  var total = 0, withVideo = 0, sections = '';
+  var total = 0, sections = '';
   camps.forEach(function (c) {
     var rows = _linkRowsOf(c);
     if (!rows.length) return;
     total += rows.length;
-    var body = rows.map(function (r, i) {
-      if (r.pub) withVideo++;
-      var plat = _lnkPlatform(r.acct || r.pub);   // منصّة المعلن نفسه، مو منصّة الرابط
-      return '<tr>'
-        + '<td class="n"><span class="iso">' + toArabic(i + 1) + '</span></td>'
-        + '<td class="nm">' + escHtml(r.name) + (plat ? '<span class="pl">' + plat + '</span>' : '') + '</td>'
-        + _lnkCell(r.pub, '▶ فتح الفيديو')
-        + _lnkCell(r.acct, '👤 حساب المعلن')
-        + _lnkCell(r.wa, '💬 واتساب')
-        + '</tr>';
-    }).join('');
+
+    // عمودان جنب بعض لما تكثر الروابط — ٢٠٠ رابط في عمود واحد = ست صفحات بلا داعي
+    var twoUp = rows.length > 34;
+    var body = '';
+    if (twoUp) {
+      var half = Math.ceil(rows.length / 2);          // اليمين ١..٨٠ واليسار ٨١..١٦٠ (ترتيب طبيعي بالعربي)
+      for (var i = 0; i < half; i++) {
+        var r2 = rows[i + half];
+        body += '<tr>' + _lnkPair(rows[i].pub, i + 1)
+          + (r2 ? _lnkPair(r2.pub, i + half + 1) : '<td class="n"></td><td class="l"></td>')
+          + '</tr>';
+      }
+    } else {
+      body = rows.map(function (r, i) { return '<tr>' + _lnkPair(r.pub, i + 1) + '</tr>'; }).join('');
+    }
+
+    var head = twoUp
+      ? '<th class="hn">#</th><th>رابط الفيديو</th><th class="hn">#</th><th>رابط الفيديو</th>'
+      : '<th class="hn">#</th><th>رابط الفيديو</th>';
     sections += '<section>'
-      + (camps.length > 1 ? '<h2>📦 ' + escHtml(c.title || 'حملة') + ' <span class="cnt">' + toArabic(rows.length) + ' رابط</span></h2>' : '')
-      + '<table><thead><tr>'
-      + '<th style="width:7%">#</th><th style="width:23%">المعلن</th>'
-      + '<th style="width:28%">رابط الفيديو</th><th style="width:24%">رابط الحساب</th><th style="width:18%">واتساب</th>'
-      + '</tr></thead><tbody>' + body + '</tbody></table></section>';
+      + (camps.length > 1 ? '<h2>' + escHtml(c.title || 'حملة') + '</h2>' : '')
+      + '<table class="' + (twoUp ? 'two' : 'one') + '"><thead><tr>' + head + '</tr></thead>'
+      + '<tbody>' + body + '</tbody></table></section>';
   });
 
-  if (!total) { showToast('ما فيه روابط للتصدير في هالحملة', 'error'); return; }
+  if (!total) { showToast('ما فيه روابط فيديو للتصدير في هالحملة', 'error'); return; }
 
   var today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
   var campName = onlyCampId ? String((camps[0] && camps[0].title) || 'حملة') : 'كل الحملات';
@@ -856,28 +840,20 @@ function exportLinksPDF(onlyCampId) {
     + '.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#0f1512;color:#fff;padding:12px 18px;position:sticky;top:0;z-index:9}'
     + '.bar b{font-size:13px;font-weight:600}.bar small{opacity:.75;font-size:11px;display:block;font-weight:400}'
     + '.bar button{cursor:pointer;border:0;border-radius:100px;padding:9px 18px;background:#13B9B2;color:#04302e;font-family:inherit;font-size:12.5px;font-weight:700}'
-    + '.doc{padding:20px 18px 26px}'
-    + 'h1{font-size:17px;font-weight:700;margin-bottom:3px}'
-    + '.meta{color:#5d6b67;font-size:11.5px;margin-bottom:4px;display:flex;gap:14px;flex-wrap:wrap}'
-    + '.meta span{unicode-bidi:isolate}'
-    + '.tip{background:#eaf5ff;border:1px solid #cbe4fa;color:#0b4f80;border-radius:8px;padding:7px 11px;font-size:11px;margin:9px 0 13px}'
-    + 'h2{font-size:13.5px;font-weight:700;margin:16px 0 7px;padding-bottom:5px;border-bottom:2px solid #0f1512}'
-    + 'h2 .cnt{font-size:11px;font-weight:400;color:#5d6b67;unicode-bidi:isolate}'
+    + '.doc{padding:16px 18px 22px}'
+    + 'h2{font-size:12.5px;font-weight:700;margin:14px 0 6px}'   // يظهر فقط عند تصدير كل الحملات
+    + 'section:first-child h2{margin-top:0}'
     + 'table{width:100%;border-collapse:collapse;table-layout:fixed}'
     + 'thead{display:table-header-group}'
-    + 'th{background:#0f1512;color:#fff;font-size:11px;font-weight:600;padding:8px 6px;border:1px solid #0f1512;text-align:center}'
-    + 'td{border:1px solid #dfe5e3;padding:7px 6px;font-size:11.5px;text-align:center;vertical-align:middle;word-wrap:break-word}'
-    + 'tbody tr:nth-child(even) td{background:#f7faf9}'
+    + 'th{background:#0f1512;color:#fff;font-size:10.5px;font-weight:600;padding:6px 6px;border:1px solid #0f1512;text-align:center}'
+    + 'th.hn{width:8%}table.two th.hn{width:6%}'
+    + 'td{border:1px solid #e3e9e7;padding:5px 7px;font-size:11px;vertical-align:middle}'
+    + 'tbody tr:nth-child(even) td{background:#f8faf9}'
     + 'tr{break-inside:avoid;page-break-inside:avoid}'
-    + 'td.n{color:#8a9793;width:7%}.iso{unicode-bidi:isolate}'
-    + 'td.nm{text-align:right;font-weight:600}'
-    + 'td.nm .pl{display:block;font-weight:400;font-size:10px;color:#8a9793}'
-    + 'td.empty{color:#c3ccc9}'
-    + 'a{color:#0B6BB8;text-decoration:none;font-weight:600;display:block}'
-    + 'a .u{display:block;margin-top:2px;font-size:9px;font-weight:400;color:#7d8b87;'
-    +   'direction:ltr;unicode-bidi:isolate;text-align:center;word-break:break-all;text-decoration:underline}'
-    + 'footer{margin-top:16px;padding-top:9px;border-top:1px solid #e3e9e7;color:#7d8b87;font-size:10px;text-align:center}'
-    + '@media print{.bar{display:none}.doc{padding:0}.tip{margin-top:0}}';
+    + 'td.n{color:#8a9793;text-align:center;unicode-bidi:isolate;font-size:10px}'
+    + 'td.l{direction:ltr;unicode-bidi:isolate;text-align:right;word-break:break-all}'   // يمين = ملاصق لرقمه
+    + 'a{color:#0B6BB8;text-decoration:underline;font-weight:500;display:block}'
+    + '@media print{.bar{display:none}.doc{padding:0}}';
 
   var html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'
     + '<title>' + escHtml(docTitle) + '</title>'
@@ -888,15 +864,7 @@ function exportLinksPDF(onlyCampId) {
     + '<div class="bar"><b>شيت الروابط جاهز'
     +   '<small>يفتح حوار الطباعة — اختر الوجهة «حفظ كـ PDF» ثم حفظ</small></b>'
     +   '<button id="pbtn">🖨️ حفظ كـ PDF</button></div>'
-    + '<div class="doc">'
-    +   '<h1>🔗 شيت الروابط — ' + escHtml(campName) + '</h1>'
-    +   '<div class="meta"><span>📅 ' + toArabic(today.replace(/-/g, '/')) + '</span>'
-    +     '<span>🔗 ' + toArabic(total) + ' صف</span>'
-    +     '<span>▶️ ' + toArabic(withVideo) + ' فيديو منشور</span></div>'
-    +   '<div class="tip">الروابط في هذا الملف شغّالة: اضغط «فتح الفيديو» أو «حساب المعلن» أو «واتساب» من داخل ملف الـ PDF وينفتح الرابط مباشرة.</div>'
-    +   sections
-    +   '<footer>صُدِّر من سيمبل · ' + escHtml(docTitle) + '</footer>'
-    + '</div></body></html>';
+    + '<div class="doc">' + sections + '</div></body></html>';
 
   var w = window.open('', '_blank');
   if (!w) { showToast('المتصفح منع فتح النافذة — اسمح بالنوافذ المنبثقة وأعد المحاولة', 'error'); return; }
