@@ -2973,10 +2973,37 @@ async function enterNegotiation(campaignId, btn) {
   const existingApp = myApplications.find(a => a.campaign_id === campaignId);
   if (existingApp) { startNegotiation(existingApp.id); return; }
 
-  // (أُلغي 2026-08-05) كان هنا «منع الاحتكار»: يمنع المعلن من التقديم على حملتين لنفس الشركة
+  // (أُلغي 2026-08-05) كان هنا «منع الاحتكار» العام: يمنع المعلن من التقديم على حملتين لنفس الشركة
   // خلال 24 ساعة. أُزيل بطلب المالك — المعلن الآن يقدّم على أي عدد من حملات نفس الشركة بنفس الوقت.
   // الحماية الباقية: قيد فريد (creator_id, campaign_id) يمنع التكرار على *نفس* الحملة،
   // وحدود سعة الحملة/الاحتياط/قائمة الانتظار تبقى كما هي أدناه.
+
+  // (أُعيد جزئيًا 2026-08-11 بطلب المالك) قيد خاص بشركة «اوسما للعطور» فقط:
+  // من **انقبل بصفقة** (status='closed') على حملة اوسما، ينحجب عن التقديم على
+  // حملاتها 3 أيام من وقت قبوله. من قدّم وما انقبل (معلّق/انتظار/مرفوض) يقدّم عادي.
+  // باقي الشركات بلا أي قيد.
+  {
+    const OSMA_BRAND_ID = '36be4af8-aafa-49c3-ba0b-38838fd7a8cc';
+    const OSMA_NAME = 'اوسما';
+    const campIsOsma = campaign.brand_id === OSMA_BRAND_ID
+      || ((campaign.users && campaign.users.company_name) || '').includes(OSMA_NAME);
+    if (campIsOsma) {
+      const windowAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+      const recentOsmaDeal = (myApplications || []).find(a => {
+        if (a.status !== 'closed') return false;                       // المقبولون فقط — غيرهم أحرار
+        const when = new Date(a.closed_at || a.created_at || 0).getTime();
+        if (!when || when <= windowAgo) return false;                  // قبوله أقدم من 3 أيام → مسموح
+        const appBrandName = (a.campaigns && a.campaigns.users && a.campaigns.users.company_name) || '';
+        if (appBrandName.includes(OSMA_NAME)) return true;
+        const appCamp = (typeof allCampaigns !== 'undefined' ? allCampaigns : []).find(c => c.id === a.campaign_id);
+        return !!(appCamp && appCamp.brand_id === OSMA_BRAND_ID);
+      });
+      if (recentOsmaDeal) {
+        showToast('انقبلت بصفقة مع هذي الشركة خلال آخر ٣ أيام — افسح المجال لغيرك، وتقدر تقدّم من جديد بعد انتهاء المدة 🌿', 'error');
+        return;
+      }
+    }
+  }
 
   // تسجيل مباشر في قائمة الانتظار (بلا فتح محادثة الوكيل) لو اكتمل عدد الحملة
   if (campaignWaitlistMode(campaign)) {
