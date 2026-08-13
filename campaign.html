@@ -552,8 +552,14 @@ async function init() {
     dealDetails = application.deal_details;
 
     await loadMessagesFromDB();
-    await loadDirectMessages();
-    render();
+    render();  // اعرض الصفحة فورًا — لا تنتظر المحادثة المباشرة
+
+    // المحادثة المباشرة تُحمّل خارج مسار العرض؛ لو تأخّرت لا تُعلّق الصفحة
+    loadDirectMessages().then(() => {
+      const t = document.getElementById('direct-thread');
+      if (t) { t.innerHTML = renderDirectMsgs(); t.scrollTop = t.scrollHeight; }
+      updateTabBadge();
+    }).catch(e => console.error('direct load:', e));
 
     // لو ما فيه رسائل بعد، شغّل أول رسالة من الوكيل (العرض المبدئي)
     if (messages.length === 0 && !dealClosed) {
