@@ -68,6 +68,28 @@ body {
   flex-direction: column;
   min-height: calc(100vh - 90px);
 }
+/* ====== تبويبات المحادثة (وكيل / مباشر) ====== */
+.conv-tabs {
+  max-width: 720px; width: 100%; margin: 0 auto 4px; display: flex; gap: 8px;
+  padding: 10px 4px 0;
+}
+.conv-tab {
+  flex: 1; border: 1px solid var(--line, rgba(10,10,10,.08)); background: #fff;
+  color: var(--ink-muted, #6b6b6b); font-family: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: .15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; position: relative;
+}
+.conv-tab:hover { border-color: rgba(19,185,178,.4); }
+.conv-tab.on { border-color: var(--accent, #13B9B2); background: rgba(19,185,178,.07); color: var(--accent-ink, #0c4f4b); }
+.conv-badge {
+  background: #e5484d; color: #fff; font-size: 10px; font-weight: 700; min-width: 17px; height: 17px;
+  border-radius: 100px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center;
+}
+.direct-hint {
+  text-align: center; font-size: 12.5px; color: var(--ink-soft, #3a3a3a); opacity: .8;
+  background: rgba(19,185,178,.06); border: 1px solid rgba(19,185,178,.16);
+  border-radius: 12px; padding: 9px 12px; margin: 8px 4px 4px;
+}
 .messages {
   flex: 1;
   padding: 16px 4px 8px;
@@ -408,6 +430,11 @@ let dealClosed = false;
 let approvedClose = false;
 let dealDetails = null;
 let pollInterval = null;
+// ====== محادثة مباشرة (شركة ↔ معلن) ======
+let directMsgs = [];
+let directDraft = '';
+let activeTab = 'agent';
+let directPoll = null;
 
 // ====== خرائط عرض الحقول الجديدة ======
 const PUBLISH_TIMING_LABELS = {
@@ -524,6 +551,7 @@ async function init() {
     dealDetails = application.deal_details;
 
     await loadMessagesFromDB();
+    await loadDirectMessages();
     render();
 
     // لو ما فيه رسائل بعد، شغّل أول رسالة من الوكيل (العرض المبدئي)
@@ -535,6 +563,8 @@ async function init() {
     if (!dealClosed || !approvedClose) {
       pollInterval = setInterval(checkNewMessages, 5000);
     }
+    // المحادثة المباشرة تعمل دائماً (حتى بعد إقفال الصفقة)
+    directPoll = setInterval(checkDirectMessages, 4000);
   } catch (err) {
     console.error(err);
     document.getElementById('content').innerHTML = '<div class="loading">حصل خطأ. حدث الصفحة.</div>';
@@ -559,6 +589,38 @@ async function loadMessagesFromDB() {
   } catch (err) {
     console.error('Failed to load messages:', err);
     messages = [];
+  }
+}
+
+// ====== تحميل رسائل المحادثة المباشرة ======
+async function loadDirectMessages() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('chat_messages')
+      .select('*')
+      .eq('application_id', application.id)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    directMsgs = (data || []).map(m => ({
+      id: m.id,
+      mine: m.sender_id === currentUser.id,
+      role: m.sender_role,
+      text: m.message,
+      time: m.created_at
+    }));
+  } catch (err) {
+    console.error('Failed to load direct messages:', err);
+  }
+}
+
+// تحديث خيط المحادثة المباشرة فقط دون إعادة رسم الصفحة (يحفظ ما يكتبه المستخدم)
+async function checkDirectMessages() {
+  const prev = directMsgs.length;
+  await loadDirectMessages();
+  if (directMsgs.length !== prev) {
+    const thread = document.getElementById('direct-thread');
+    if (thread) { thread.innerHTML = renderDirectMsgs(); thread.scrollTop = thread.scrollHeight; }
+    updateTabBadge();
   }
 }
 
@@ -632,15 +694,119 @@ function render() {
     </div>`;
   }
 
-  document.getElementById('content').innerHTML = `
-    <div class="chat-wrap">
-      ${pledgeBanner}
-      <div class="messages" id="messages">${renderMessages()}</div>
-      ${footer}
-    </div>
-  `;
+  // اسم الطرف الآخر في المحادثة المباشرة
+  const otherName = isBrand
+    ? (application.creator_name || 'المعلن')
+    : (campaign.brand_name || 'الشركة');
+  const unread = directMsgs.filter(m => !m.mine).length; // مؤشر بسيط
+  const tabBar = `
+    <div class="conv-tabs">
+      <button class="conv-tab ${activeTab === 'agent' ? 'on' : ''}" onclick="switchTab('agent')">🤖 مفاوضة الوكيل</button>
+      <button class="conv-tab ${activeTab === 'direct' ? 'on' : ''}" onclick="switchTab('direct')">💬 محادثة ${escapeHtml(otherName)}<span class="conv-badge" id="conv-badge"${activeTab === 'direct' || unread === 0 ? ' style="display:none"' : ''}>${unread}</span></button>
+    </div>`;
 
-  scrollToBottom();
+  let body;
+  if (activeTab === 'direct') {
+    body = `
+      <div class="chat-wrap">
+        <div class="direct-hint">تواصل مباشر بينك وبين ${escapeHtml(otherName)} — يصله إشعار بكل رسالة.</div>
+        <div class="messages" id="direct-thread">${renderDirectMsgs()}</div>
+        <div class="chat-input">
+          <textarea id="direct-input" placeholder="اكتب رسالتك المباشرة..." rows="1"
+                    oninput="directDraft=this.value"
+                    onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendDirectMessage();}"></textarea>
+          <button onclick="sendDirectMessage()" id="direct-send" aria-label="إرسال">↑</button>
+        </div>
+      </div>`;
+  } else {
+    body = `
+      <div class="chat-wrap">
+        ${pledgeBanner}
+        <div class="messages" id="messages">${renderMessages()}</div>
+        ${footer}
+      </div>`;
+  }
+
+  document.getElementById('content').innerHTML = tabBar + body;
+
+  if (activeTab === 'direct') {
+    const di = document.getElementById('direct-input');
+    if (di) { di.value = directDraft; di.focus(); }
+    const t = document.getElementById('direct-thread');
+    if (t) t.scrollTop = t.scrollHeight;
+  } else {
+    scrollToBottom();
+  }
+}
+
+function renderDirectMsgs() {
+  if (!directMsgs.length) {
+    return '<div class="chat-start">لا توجد رسائل بعد — ابدأ المحادثة المباشرة</div>';
+  }
+  return directMsgs.map(m => `
+    <div class="cmsg ${m.mine ? 'user' : 'agent'}">
+      ${m.mine ? '' : '<div class="cmsg-label">' + escapeHtml(m.role === 'brand' ? (campaign.brand_name || 'الشركة') : (application.creator_name || 'المعلن')) + '</div>'}
+      <div class="${m.mine ? 'cmsg-bubble' : 'cmsg-text'}">${escapeHtml(m.text)}</div>
+    </div>`).join('');
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  render();
+}
+
+function updateTabBadge() {
+  const badge = document.getElementById('conv-badge');
+  if (!badge) return;
+  const unread = directMsgs.filter(m => !m.mine).length;
+  if (activeTab === 'direct' || unread === 0) { badge.style.display = 'none'; }
+  else { badge.style.display = ''; badge.textContent = unread; }
+}
+
+async function sendDirectMessage() {
+  const input = document.getElementById('direct-input');
+  if (!input) return;
+  const text = (input.value || '').trim();
+  if (!text) return;
+  input.value = '';
+  directDraft = '';
+
+  // إضافة تفاؤلية فورية
+  directMsgs.push({ mine: true, role: currentUser.role, text, time: new Date().toISOString() });
+  const thread = document.getElementById('direct-thread');
+  if (thread) { thread.innerHTML = renderDirectMsgs(); thread.scrollTop = thread.scrollHeight; }
+
+  try {
+    const { error } = await supabaseClient.from('chat_messages').insert([{
+      application_id: application.id,
+      sender_id: currentUser.id,
+      sender_role: currentUser.role,
+      message: text
+    }]);
+    if (error) throw error;
+
+    // إشعار + Push للطرف الآخر (يصله فقط إذا مفعّل الإشعارات)
+    const recipientId = currentUser.role === 'brand' ? application.creator_id : campaign.brand_id;
+    if (recipientId) {
+      const senderLabel = currentUser.role === 'brand'
+        ? (campaign.brand_name || 'الشركة')
+        : (application.creator_name || 'المعلن');
+      const title = '💬 رسالة جديدة من ' + senderLabel;
+      const link = '/campaign.html?app=' + application.id;
+      try { await createNotification(recipientId, 'new_message', title, text, link); } catch (e) { console.error(e); }
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title, body: text, url: link, target_users: [recipientId] })
+      }).catch(console.error);
+    }
+  } catch (err) {
+    console.error('Failed to send direct message:', err);
+    alert('تعذّر إرسال الرسالة. حاول مرة أخرى.');
+    await loadDirectMessages();
+    const t2 = document.getElementById('direct-thread');
+    if (t2) t2.innerHTML = renderDirectMsgs();
+  }
 }
 
 function renderMessages() {
@@ -812,6 +978,7 @@ async function approveDeal() {
 
 window.addEventListener('beforeunload', () => {
   if (pollInterval) clearInterval(pollInterval);
+  if (directPoll) clearInterval(directPoll);
 });
 
 init();
