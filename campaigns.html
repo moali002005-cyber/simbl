@@ -2664,20 +2664,32 @@ async function loadData() {
     document.getElementById('campaigns-list').innerHTML = '<div class="loading-wrap"><div class="loading-pill"><span class="loading-pill-dot"></span>جاري التحميل...</div></div>';
     myCampaigns = await dbGetMyCampaigns(WORKSPACE_ID || currentUser.id);
 
-    // جلب عروض كل الحملات بطلب واحد بدل طلب لكل حملة (إصلاح N+1)
     const campIds = myCampaigns.map(c => c.id);
-    let allApps = [];
-    if (campIds.length) {
-      // ⚠️ يمرّ عبر dbGetAppsForCampaigns لتفادي قصّ PostgREST عند 1000 صف (كان يُفرغ أقدم الحملات)
-      allApps = await dbGetAppsForCampaigns(campIds);
-    }
     campaignApps = {};
     myCampaigns.forEach(c => { campaignApps[c.id] = []; });
-    allApps.forEach(a => {
-      if (a.status === 'campaign_full') return; // تفاوض متوقف لاكتمال الحملة — لا يظهر في الشيت
-      if (a.is_reserve === true) return; // احتياط مخفي — جاهز في الخلفية، لا يظهر للشركة
+
+    // دالة تعبئة (تتجاهل المكتملة والاحتياط المخفي)
+    const _fill = (apps) => apps.forEach(a => {
+      if (a.status === 'campaign_full') return; // تفاوض متوقف لاكتمال الحملة
+      if (a.is_reserve === true) return;         // احتياط مخفي
       (campaignApps[a.campaign_id] = campaignApps[a.campaign_id] || []).push(a);
     });
+
+    // ⚡ تحميل سريع: نعرض الحملة المختارة أولاً (عروضها فقط) فتظهر الصفحة فورًا،
+    //    ثم نُحمّل باقي الحملات في الخلفية. يقلّل الانتظار من ~1774 عرضًا إلى عروض حملة واحدة.
+    if (campIds.length) {
+      if (!selectedCampaignId || !campIds.includes(selectedCampaignId)) selectedCampaignId = campIds[0];
+      const firstApps = await dbGetAppsForCampaigns([selectedCampaignId]);
+      _fill(firstApps);
+      renderCampaigns(); // عرض فوري للحملة المختارة
+
+      // باقي الحملات في الخلفية
+      const restIds = campIds.filter(id => id !== selectedCampaignId);
+      if (restIds.length) {
+        // ⚠️ يمرّ عبر dbGetAppsForCampaigns لتفادي قصّ PostgREST عند 1000 صف
+        _fill(await dbGetAppsForCampaigns(restIds));
+      }
+    }
 
     // قادم من لوحة الشركة بحملة فيديو جديدة؟ افتح صندوق المرفقات مباشرة
     try {
