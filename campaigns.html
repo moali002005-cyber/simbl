@@ -381,6 +381,46 @@ body {
   .pill-item, .pill-add { padding: 8px 14px; font-size: 12px; }
 }
 
+/* ============ Campaign Dropdown (قائمة الحملات المنسدلة) ============ */
+.camp-dd { position: relative; flex: 1; min-width: 240px; max-width: 460px; }
+.camp-dd-trigger {
+  width: 100%; background: #fff; color: var(--ink); border: 1px solid rgba(19,185,178,0.28);
+  border-radius: 14px; padding: 12px 16px; font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 10px; transition: border-color .15s, box-shadow .2s;
+}
+.camp-dd-trigger:hover { border-color: rgba(19,185,178,0.5); }
+.camp-dd.open .camp-dd-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(19,185,178,0.12); }
+.camp-dd-current { flex: 1; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.camp-dd-chev { flex: none; color: var(--ink-soft); font-size: 12px; transition: transform .2s; }
+.camp-dd.open .camp-dd-chev { transform: rotate(180deg); }
+.camp-dd-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; left: 0; z-index: 60;
+  background: #fff; border: 1px solid rgba(19,185,178,0.2); border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(10,10,10,0.14); overflow: hidden; display: none;
+}
+.camp-dd.open .camp-dd-menu { display: block; animation: dd-in .16s ease; }
+@keyframes dd-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.camp-dd-search {
+  width: 100%; border: none; border-bottom: 1px solid var(--line); padding: 12px 16px;
+  font-family: var(--font-body); font-size: 13.5px; background: var(--cream-darker); color: var(--ink); outline: none;
+}
+.camp-dd-list { max-height: 320px; overflow-y: auto; }
+.camp-dd-opt {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: right;
+  padding: 11px 16px; border: none; background: none; cursor: pointer; font-family: var(--font-body);
+  font-size: 13.5px; color: var(--ink-muted); border-bottom: 1px solid rgba(10,10,10,0.04); transition: background .12s;
+}
+.camp-dd-opt:last-child { border-bottom: none; }
+.camp-dd-opt:hover { background: rgba(19,185,178,0.05); color: var(--ink); }
+.camp-dd-opt.active { background: rgba(19,185,178,0.08); color: var(--accent-ink); font-weight: 600; }
+.camp-dd-opt .opt-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.camp-dd-opt .tab-count, .camp-dd-trigger .tab-count { background: rgba(10,10,10,0.05); color: var(--ink-soft); padding: 1px 8px; border-radius: 100px; font-size: 10px; font-weight: 600; font-family: var(--font-display); }
+.camp-dd-empty { padding: 18px 16px; text-align: center; color: var(--ink-soft); font-size: 13px; }
+@media (max-width: 640px) {
+  .camp-dd { min-width: 0; max-width: none; }
+  .camp-dd-trigger { padding: 10px 13px; font-size: 13px; }
+}
+
 .campaign-row {
   background: #fff; border: 1px solid var(--line);
   border-radius: 16px; padding: 24px;
@@ -3022,22 +3062,38 @@ function renderCampaigns() {
     selectedCampaignId = myCampaigns[0].id;
   }
 
-  // ================== رسم الـ Pills ==================
+  // ================== رسم قائمة الحملات المنسدلة ==================
+  const statusOf = (c) => {
+    const apps = campaignApps[c.id] || [];
+    const hasAwaitingApproval = apps.some(a => a.status === 'closed' && !a.brand_approved);
+    const hasActiveNegotiation = apps.some(a => a.status === 'pending' || a.status === 'active');
+    if (isCampaignComplete(c)) return '<span class="tab-done">✓ مكتملة</span>';
+    if (hasAwaitingApproval) return '<span class="tab-dot warn"></span>';
+    if (hasActiveNegotiation) return '<span class="tab-dot live"></span>';
+    return '';
+  };
+  const countOf = (c) => {
+    const n = (campaignApps[c.id] || []).length;
+    return n > 0 ? `<span class="tab-count">${toArabic(n)}</span>` : '';
+  };
+  const sel = myCampaigns.find(c => c.id === selectedCampaignId) || myCampaigns[0];
+  const options = myCampaigns.map(c =>
+    `<button class="camp-dd-opt ${c.id === selectedCampaignId ? 'active' : ''}" data-title="${escHtml(c.title).replace(/"/g,'&quot;')}" onclick="selectCampaign('${c.id}')">` +
+      `<span class="opt-title">${escHtml(c.title)}</span>${countOf(c)}${statusOf(c)}` +
+    `</button>`
+  ).join('');
   pillsContainer.innerHTML = `
+    <div class="camp-dd" id="camp-dd">
+      <button type="button" class="camp-dd-trigger" onclick="toggleCampDD(event)">
+        <span class="camp-dd-current">${escHtml(sel.title)}</span>${countOf(sel)}${statusOf(sel)}
+        <span class="camp-dd-chev">▾</span>
+      </button>
+      <div class="camp-dd-menu">
+        <input type="text" class="camp-dd-search" id="camp-dd-search" placeholder="ابحث عن حملة..." oninput="filterCampDD(this.value)" onclick="event.stopPropagation()">
+        <div class="camp-dd-list" id="camp-dd-list">${options}</div>
+      </div>
+    </div>
     <button class="pill-add" onclick="openCampaignModal()">+ حملة جديدة</button>
-    ${myCampaigns.map(c => {
-      const apps = campaignApps[c.id] || [];
-      const hasAwaitingApproval = apps.some(a => a.status === 'closed' && !a.brand_approved);
-      const hasActiveNegotiation = apps.some(a => a.status === 'pending' || a.status === 'active');
-      let dot = '';
-      if (isCampaignComplete(c)) dot = '<span class="tab-done">✓ مكتملة</span>';
-      else if (hasAwaitingApproval) dot = '<span class="tab-dot warn"></span>';
-      else if (hasActiveNegotiation) dot = '<span class="tab-dot live"></span>';
-      const totalApps = apps.length;
-      const isActive = c.id === selectedCampaignId;
-      const countBadge = totalApps > 0 ? `<span class="tab-count">${toArabic(totalApps)}</span>` : '';
-      return `<button class="pill-item ${isActive ? 'active' : ''}" onclick="selectCampaign('${c.id}')">${escHtml(c.title)}${countBadge}${dot}</button>`;
-    }).join('')}
   `;
 
   // ================== رسم الإعلان المختار فقط ==================
@@ -3052,11 +3108,50 @@ function renderCampaigns() {
 function selectCampaign(campaignId) {
   selectedCampaignId = campaignId;
   expandedAppId = null;
+  closeCampDD();
   renderCampaigns();
   // مرّر الصفحة لأعلى تفاصيل الإعلان (سلس)
   const list = document.getElementById('campaigns-list');
   if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+/* ============ قائمة الحملات المنسدلة ============ */
+function toggleCampDD(e) {
+  if (e) e.stopPropagation();
+  const dd = document.getElementById('camp-dd');
+  if (!dd) return;
+  const willOpen = !dd.classList.contains('open');
+  dd.classList.toggle('open', willOpen);
+  if (willOpen) {
+    const s = document.getElementById('camp-dd-search');
+    if (s) { s.value = ''; filterCampDD(''); setTimeout(() => s.focus(), 30); }
+  }
+}
+function closeCampDD() {
+  const dd = document.getElementById('camp-dd');
+  if (dd) dd.classList.remove('open');
+}
+function filterCampDD(q) {
+  q = (q || '').trim().toLowerCase();
+  const list = document.getElementById('camp-dd-list');
+  if (!list) return;
+  let shown = 0;
+  list.querySelectorAll('.camp-dd-opt').forEach(opt => {
+    const t = (opt.getAttribute('data-title') || '').toLowerCase();
+    const match = !q || t.indexOf(q) !== -1;
+    opt.style.display = match ? '' : 'none';
+    if (match) shown++;
+  });
+  let empty = list.querySelector('.camp-dd-empty');
+  if (shown === 0) {
+    if (!empty) { empty = document.createElement('div'); empty.className = 'camp-dd-empty'; empty.textContent = 'لا توجد حملة بهذا الاسم'; list.appendChild(empty); }
+  } else if (empty) { empty.remove(); }
+}
+// إغلاق القائمة عند الضغط خارجها
+document.addEventListener('click', function (e) {
+  const dd = document.getElementById('camp-dd');
+  if (dd && dd.classList.contains('open') && !dd.contains(e.target)) closeCampDD();
+});
 
 function toggleAppExpand(appId) {
   const willExpand = (expandedAppId !== appId);
