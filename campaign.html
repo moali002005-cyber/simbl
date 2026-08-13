@@ -507,6 +507,7 @@ async function init() {
 
   const params = new URLSearchParams(window.location.search);
   const applicationId = params.get('app');
+  if (params.get('tab') === 'direct') activeTab = 'direct';
 
   if (!applicationId) {
     document.getElementById('content').innerHTML = '<div class="loading">رابط غير صحيح. <a href="/" style="color:var(--accent-ink)">العودة للرئيسية</a></div>';

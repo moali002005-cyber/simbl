@@ -505,6 +505,21 @@ body {
   transition: .15s;
 }
 .app-swap-btn:hover { background: #FDECEA; }
+.app-chat-btn {
+  flex-shrink: 0;
+  border-radius: 20px;
+  border: 1px solid rgba(19,185,178,0.4);
+  background: #fff;
+  color: var(--accent-ink, #0c4f4b);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .15s;
+}
+.app-chat-btn:hover { background: rgba(19,185,178,0.09); border-color: var(--accent, #13B9B2); }
 
 .campaign-meta { display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted); flex-wrap: wrap; margin-top: 12px; }
 .campaign-meta strong { color: var(--ink); font-weight: 500; }
@@ -3441,6 +3456,11 @@ function clearReasonChips() {
   document.querySelectorAll('#reject-reasons .rchip').forEach(c => c.classList.remove('active'));
 }
 
+// فتح المحادثة المباشرة مع المعلن مباشرة من الجدول
+function openDirectChat(applicationId) {
+  window.location.href = '/campaign.html?app=' + applicationId + '&tab=direct';
+}
+
 function openRejectModal(applicationId) {
   if(!hasPerm('deals')){ showToast('ما عندك صلاحية رفض/استبدال المعلنين','error'); return; }
   rejectingAppId = applicationId;
@@ -3907,7 +3927,7 @@ function renderDealRow(a, idx, campaignType, fulfillmentMode) {
   return `
     <tr id="ac-${a.id}">
       <td class="mx-idx">${toArabic(idx + 1)}</td>
-      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);flex:1;min-width:0;">${nameHtml}</span>${awaitingApproval ? '' : `<button class="app-swap-btn" title="استبدال هذا المعلن بالتالي من قائمة الانتظار" onclick="event.stopPropagation(); openRejectModal('${a.id}')">↔ استبدال</button>`}</div></td>
+      <td class="mx-name"><div style="display:flex;align-items:center;gap:8px;"><span class="mx-av">${escHtml(initial)}</span><span style="font-weight:600;color:var(--ink);flex:1;min-width:0;">${nameHtml}</span><button class="app-chat-btn" title="محادثة مباشرة مع المعلن" onclick="event.stopPropagation(); openDirectChat('${a.id}')">💬 محادثة</button>${awaitingApproval ? '' : `<button class="app-swap-btn" title="استبدال هذا المعلن بالتالي من قائمة الانتظار" onclick="event.stopPropagation(); openRejectModal('${a.id}')">↔ استبدال</button>`}</div></td>
       ${cells}
     </tr>
     ${detail}
