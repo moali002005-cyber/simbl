@@ -291,8 +291,8 @@ function duesCopy(el) {
   if (typeof duesEditing !== 'undefined' && duesEditing) return;   // (احتياط) وضع تعديل عام
   const txt = el.getAttribute('data-copy') || el.textContent || '';
   const done = () => {
-    el.classList.add('copied');
-    setTimeout(() => el.classList.remove('copied'), 700);
+    try{document.querySelectorAll('.copied').forEach(function(x){x.classList.remove('copied');});}catch(_){}el.classList.add('copied');
+    window.__lastCopy=el.getAttribute('data-copy');
     try { showToast('تم نسخ: ' + txt); } catch (e) {}
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -514,8 +514,8 @@ function duesRowFilled(a, camp, idx, totals) {
 function duesCopyRow(el) {
   const txt = el.getAttribute('data-copy') || '';
   const done = () => {
-    el.classList.add('copied');
-    setTimeout(() => el.classList.remove('copied'), 700);
+    try{document.querySelectorAll('.copied').forEach(function(x){x.classList.remove('copied');});}catch(_){}el.classList.add('copied');
+    window.__lastCopy=el.getAttribute('data-copy');
     try { showToast('تم نسخ الصف كامل ✓'); } catch (e) {}
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -868,7 +868,8 @@ function exportLinksPDF(onlyCampId) {
     + '<div class="bar"><b>شيت الروابط جاهز'
     +   '<small>يفتح حوار الطباعة — اختر الوجهة «حفظ كـ PDF» ثم حفظ</small></b>'
     +   '<button id="pbtn">🖨️ حفظ كـ PDF</button></div>'
-    + '<div class="doc">' + sections + '</div></body></html>';
+    + '<div class="doc">' + sections + '</div><script id="copy-persist">(function(){function reapply(){var k=window.__lastCopy;if(!k)return;var els=document.querySelectorAll("[data-copy]");for(var i=0;i<els.length;i++){if(els[i].getAttribute("data-copy")===k)els[i].classList.add("copied");}}try{var mo=new MutationObserver(function(){reapply();});function start(){if(document.body)mo.observe(document.body,{childList:true,subtree:true});reapply();}if(document.body)start();document.addEventListener("DOMContentLoaded",start);}catch(_){}})();</script>
+</body></html>';
 
   var w = window.open('', '_blank');
   if (!w) { showToast('المتصفح منع فتح النافذة — اسمح بالنوافذ المنبثقة وأعد المحاولة', 'error'); return; }
