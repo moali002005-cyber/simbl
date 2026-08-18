@@ -1083,6 +1083,19 @@ init();
   </div>
 </div>
 <style id="copysel-css">.copysel,td.copysel,.cell.copysel,.dues-link.copysel,.xl-rowh.copysel{background-color:#fff3b0 !important;box-shadow:0 0 0 2px #f4d33a inset !important;border-radius:6px}</style>
-<script id="copysel-js">(function(){var LSK="dues_copysel_keys",KEYS,mo=null,applying=false;try{KEYS=new Set(JSON.parse(localStorage.getItem(LSK)||"[]"));}catch(e){KEYS=new Set();}function save(){try{localStorage.setItem(LSK,JSON.stringify(Array.from(KEYS)));}catch(e){}}function apply(){if(applying)return;applying=true;try{if(mo)mo.disconnect();var el=document.querySelectorAll("[data-copy]");for(var i=0;i<el.length;i++){var v=el[i].getAttribute("data-copy");if(v!=null&&KEYS.has(v))el[i].classList.add("copysel");}}catch(x){}finally{try{if(mo&&document.body)mo.observe(document.body,{childList:true,subtree:true});}catch(y){}applying=false;}}document.addEventListener("click",function(ev){try{var t=ev.target&&ev.target.closest?ev.target.closest("[data-copy]"):null;if(!t)return;var oc=t.getAttribute("onclick")||"";if(oc.indexOf("duesCopy")<0)return;var v=t.getAttribute("data-copy");if(v==null)return;KEYS.add(v);save();setTimeout(apply,0);}catch(x){}},true);try{mo=new MutationObserver(function(){setTimeout(apply,0);});function st(){if(document.body)mo.observe(document.body,{childList:true,subtree:true});}if(document.body)st();document.addEventListener("DOMContentLoaded",function(){st();apply();});}catch(x){}})();</script>
+<script id="copysel-js">
+(function(){
+  var LSK="dues_copysel_keys2",KEYS,mo=null,applying=false;
+  try{localStorage.removeItem("dues_copysel_keys");}catch(e){}
+  try{KEYS=new Set(JSON.parse(localStorage.getItem(LSK)||"[]"));}catch(e){KEYS=new Set();}
+  function save(){try{localStorage.setItem(LSK,JSON.stringify(Array.from(KEYS)));}catch(e){}}
+  function isEmpty(c){var v=c.getAttribute("data-copy");return v==null||!(""+v).trim();}
+  function keyFor(c){var tr=c.closest?c.closest("tr"):null;if(!tr)return null;var idEl=tr.querySelector("[data-appid]");var rid=idEl?idEl.getAttribute("data-appid"):("r"+tr.rowIndex);var all=tr.querySelectorAll("[data-copy]");var idx=Array.prototype.indexOf.call(all,c);if(idx<0)return null;return rid+":"+idx;}
+  function apply(){if(applying)return;applying=true;try{if(mo)mo.disconnect();var el=document.querySelectorAll("[data-copy]");for(var i=0;i<el.length;i++){var k=keyFor(el[i]);if(k&&!isEmpty(el[i])&&KEYS.has(k))el[i].classList.add("copysel");else el[i].classList.remove("copysel");}}catch(x){}finally{try{if(mo&&document.body)mo.observe(document.body,{childList:true,subtree:true});}catch(y){}applying=false;}}
+  document.addEventListener("click",function(ev){try{var c=ev.target&&ev.target.closest?ev.target.closest("[data-copy]"):null;if(!c)return;var oc=c.getAttribute("onclick")||"";if(oc.indexOf("duesCopy")<0)return;if(isEmpty(c))return;var k=keyFor(c);if(!k)return;KEYS.add(k);save();setTimeout(apply,0);}catch(x){}},true);
+  try{mo=new MutationObserver(function(){setTimeout(apply,0);});function st(){if(document.body)mo.observe(document.body,{childList:true,subtree:true});}if(document.body)st();document.addEventListener("DOMContentLoaded",function(){st();apply();});}catch(x){}
+  setTimeout(apply,0);
+})();
+</script>
 </body>
 </html>
