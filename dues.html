@@ -502,7 +502,7 @@ function duesRowFilled(a, camp, idx, totals) {
   const holderCell = '<td class="cell dues-editable" data-appid="' + a.id + '" data-field="holder" data-copy="' + escHtml(holderRaw) + '" onclick="duesCopy(this)">' + escHtml(holderRaw || '') + '</td>';
   const amountCell = '<td class="cell xl-amount" data-copy="' + amountNum + '" onclick="duesCopy(this)">' + amountDisp + '</td>';
   const statusCell = '<td class="cell" data-copy="' + escHtml(statusPlain) + '" onclick="duesCopy(this)">' + statusHtml + '</td>';
-  const fixBtn = (stg >= 9) ? '<button class="dues-fix" onclick="requestFix(\'' + a.id + '\')">↩︎ طلب تصحيح</button>' : '';
+  const fixBtn = (stg >= 1) ? '<button class="dues-fix" onclick="requestFix(\'' + a.id + '\')">↩︎ طلب تصحيح</button>' : '';
   const actionCell = '<td><div style="display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap;">' + (action || '') + fixBtn + ((action || fixBtn) ? '' : '<span class="dim">—</span>') + '</div></td>';
 
   const rowTSV = [nameRaw, phoneRaw || '—', acctLink || '—', dateCopy || '—', pub || '—', promo || '—', ibanRaw || '—', bankName || '—', holderRaw || '—', amountNum, statusPlain].join('\t');
