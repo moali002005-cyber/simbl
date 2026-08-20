@@ -932,7 +932,7 @@ async function setBrandPaid(applicationId) {
 }
 
 let _fixAppId = null, _fixStage = null;
-const FIX_STAGE_LABEL = { 3: 'الاستلام', 5: 'المحتوى / الفيديو', 7: 'رابط النشر / كود الترويج', 8: 'البيانات البنكية' };
+const FIX_STAGE_LABEL = { 1: 'معلومات الشحن (العنوان)', 3: 'الاستلام', 5: 'المحتوى / الفيديو', 7: 'رابط النشر / كود الترويج', 8: 'البيانات البنكية' };
 function requestFix(applicationId) {
   _fixAppId = applicationId; _fixStage = null;
   document.querySelectorAll('.fix-opt').forEach(b => b.classList.remove('sel'));
@@ -1066,6 +1066,7 @@ init();
     <h3 style="margin:0 0 6px;">طلب تصحيح من المعلن</h3>
     <p style="color:#6f867f;font-size:13px;margin:0 0 12px;">اختر المرحلة اللي فيها الخطأ — يرجع المعلن لها فقط، يصحّح، ويكمل الباقي تلقائيًا.</p>
     <div id="fix-opts" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <button type="button" class="fix-opt" onclick="chooseFixStage(1,this)">📦 معلومات الشحن</button>
       <button type="button" class="fix-opt" onclick="chooseFixStage(3,this)">📍 الاستلام</button>
       <button type="button" class="fix-opt" onclick="chooseFixStage(5,this)">🎬 المحتوى / الفيديو</button>
       <button type="button" class="fix-opt" onclick="chooseFixStage(7,this)">🔗 رابط النشر / كود الترويج</button>
