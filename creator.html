@@ -1855,7 +1855,7 @@ function renderCreatorDealCard(c, a) {
   const campFilled = !!(c && campaignIsFull(c)); // مقفولة أو اكتمل عدد المعتمدين المطلوب
   const didntWin = campFilled && !isApproved;    // اكتملت الحملة وهو ليس من المعتمدين → خرج (يشمل الاحتياط والمنتظر)
   const _pendFix = pendingFixStage(a); // لو فيه طلب تصحيح معلّق، نعرض تلك المرحلة بدل "مكتمل"
-  const stageNow = (_pendFix != null) ? _pendFix : ((a.stage === 4) ? 5 : (a.stage || 1)); // البريف (4) مُلغى — نعرضه كمرحلة المحتوى (5)
+  const stageNow = (_pendFix != null) ? _pendFix : (((campaignForApp(a).campaign_type === 'video') && (a.stage || 1) < 5) ? 5 : ((a.stage === 4) ? 5 : (a.stage || 1))); // البريف (4) مُلغى — نعرضه كمرحلة المحتوى (5)
   const price = (a.final_price || a.price || 0);
   const briefText = getBriefText(a);
   const briefBtnHtml = briefText ? `<button class="brief-pill" onclick="event.stopPropagation(); openBriefModal('${a.id}')">📋 البريف</button>` : '';
@@ -2217,7 +2217,7 @@ function renderOfferCard(c, a) {
       </div>`;
   } else if (isApproved) {
     const _esFix = pendingFixStage(a);
-    const _es = (_esFix != null) ? _esFix : (a.stage || 1);
+    const _es = (_esFix != null) ? _esFix : (((campaignForApp(a).campaign_type === 'video') && (a.stage || 1) < 5) ? 5 : (a.stage || 1));
     expandedInner = renderStageHistory(a.stage_data, _es, _es >= 9, a)
       + renderStageAction(a.id, _es, 'creator');
   }
@@ -2772,6 +2772,9 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   if (_cc.fulfillment_mode === 'code' && _cc.campaign_type !== 'visit' && currentStage < 5 && viewerRole === 'creator') {
     return renderCodeCard(_capp, _cc);
   }
+  // حملة الفيديو الجاهز: لا عنوان/شحن/استلام — أي معلن قبل مرحلة المحتوى يقفز مباشرة لتجهيز الفيديو (5)
+  if (_cc.campaign_type === 'video' && currentStage >= 1 && currentStage < 5) { currentStage = 5;
+  }
   if (currentStage >= 9) {
     const app = myApplications.find(a => a.id === applicationId);
     return renderPaymentCard(app);
@@ -2846,7 +2849,8 @@ async function submitStageForm(applicationId) {
   // تصحيح مرحلة: القاعدة تمنع رجوع stage، فنعتمد على العلامة — نعمل على المرحلة اللي عليها طلب تصحيح
   const _fixStg = pendingFixStage(app);
   const _fixPending = (_fixStg != null);
-  const oldStage = _fixPending ? _fixStg : ((app.stage === 4) ? 5 : (app.stage || 1)); // البريف مُلغى — نعامله كالمحتوى
+  const _vidCamp = campaignForApp(app).campaign_type === 'video';
+  const oldStage = _fixPending ? _fixStg : ((_vidCamp && (app.stage || 1) < 5) ? 5 : ((app.stage === 4) ? 5 : (app.stage || 1))); // البريف مُلغى — نعامله كالمحتوى
   let newStage;
   if (_fixPending) { newStage = app.stage || 9; } // تصحيح صفقة قائمة: لا نحرّك المرحلة (تبقى كما هي)
   else { newStage = oldStage + 1; if (newStage === 4) newStage = 5; } // تخطِّ البريف: الاستلام (3) ← المحتوى (5)
