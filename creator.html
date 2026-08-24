@@ -2992,18 +2992,18 @@ async function enterNegotiation(campaignId, btn) {
     const campIsOsma = campaign.brand_id === OSMA_BRAND_ID
       || ((campaign.users && campaign.users.company_name) || '').includes(OSMA_NAME);
     if (campIsOsma) {
-      const windowAgo = Date.now() - 15 * 24 * 60 * 60 * 1000;
+      const windowAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
       const recentOsmaDeal = (myApplications || []).find(a => {
         if (a.status !== 'closed') return false;                       // المقبولون فقط — غيرهم أحرار
         const when = new Date(a.closed_at || a.created_at || 0).getTime();
-        if (!when || when <= windowAgo) return false;                  // قبوله أقدم من 15 يوم → مسموح
+        if (!when || when <= windowAgo) return false;                  // قبوله أقدم من 3 أيام → مسموح
         const appBrandName = (a.campaigns && a.campaigns.users && a.campaigns.users.company_name) || '';
         if (appBrandName.includes(OSMA_NAME)) return true;
         const appCamp = (typeof allCampaigns !== 'undefined' ? allCampaigns : []).find(c => c.id === a.campaign_id);
         return !!(appCamp && appCamp.brand_id === OSMA_BRAND_ID);
       });
       if (recentOsmaDeal) {
-        showToast('انقبلت بصفقة مع هذي الشركة خلال آخر ١٥ يوم — افسح المجال لغيرك، وتقدر تقدّم من جديد بعد انتهاء المدة 🌿', 'error');
+        showToast('انقبلت بصفقة مع هذي الشركة خلال آخر ٣ أيام — افسح المجال لغيرك، وتقدر تقدّم من جديد بعد انتهاء المدة 🌿', 'error');
         return;
       }
     }
