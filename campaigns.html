@@ -4036,6 +4036,10 @@ function renderSingleCampaign(c) {
                 <span class="ai-ic">✎</span>
                 <span>تعديل الحملة</span>
               </button>
+              <button class="action-item" onclick="openRebookModal('${c.id}')">
+                <span class="ai-ic">🔁</span>
+                <span>حملة جديدة بنفس المعلنين</span>
+              </button>
               <button class="action-item action-danger" onclick="askDelete('${c.id}')">
                 <span class="ai-ic">×</span>
                 <span>حذف الحملة</span>
@@ -5066,5 +5070,56 @@ init();
         .visit-day span{display:inline-block;padding:8px 12px;border-radius:10px;border:1.5px solid #e7edeb;font-size:12.5px;font-weight:600;color:#33413c;background:#fff;transition:.15s;white-space:nowrap;}
         .visit-day input:checked + span{border-color:#12b5a3;background:#e3f6f1;color:#0b7d73;}
 </style>
+<div id="rebook-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,20,18,.55);z-index:999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:18px;max-width:520px;width:100%;padding:26px 24px;box-shadow:0 24px 60px rgba(0,0,0,.25);max-height:92vh;overflow:auto;">
+    <h3 style="margin:0 0 6px;font-size:18px;">🔁 حملة جديدة بنفس المعلنين</h3>
+    <p style="margin:0 0 16px;color:#5c6b66;font-size:13.5px;line-height:1.8;">بننشئ حملة جديدة وندعو كل المعلنين المعتمدين في الحملة الأصلية، كل واحد بنفس سعره السابق. المعلن يشوف العرض في لوحته ويوافق أو يعتذر، ومن يوافق يبدأ من «تجهيز المحتوى» مباشرة — بدون عنوان أو شحن لأن المنتجات وصلته.</p>
+    <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;">اسم الحملة / الباقة الجديدة</label>
+    <input id="rb-title" type="text" style="width:100%;box-sizing:border-box;border:1.5px solid #dfe7e4;border-radius:12px;padding:11px 14px;font-family:inherit;font-size:14px;margin-bottom:14px;">
+    <label style="display:block;font-weight:700;font-size:13px;margin-bottom:6px;">الرسالة / البريف الجديد</label>
+    <textarea id="rb-brief" rows="6" style="width:100%;box-sizing:border-box;border:1.5px solid #dfe7e4;border-radius:12px;padding:11px 14px;font-family:inherit;font-size:14px;margin-bottom:18px;"></textarea>
+    <div style="display:flex;gap:10px;">
+      <button id="rb-go" onclick="submitRebook()" style="background:#12b5a3;color:#fff;border:0;border-radius:100px;padding:11px 22px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;">إنشاء الحملة وإرسال الدعوات</button>
+      <button onclick="closeRebookModal()" style="background:#fff;color:#333;border:1.5px solid #dfe7e4;border-radius:100px;padding:11px 18px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;">إلغاء</button>
+    </div>
+  </div>
+</div>
+<script id="rebook-js">
+var _rbCampId = null;
+function openRebookModal(id){
+  _rbCampId = id;
+  var ov = document.getElementById('rebook-overlay');
+  var t = document.getElementById('rb-title'); if (t) t.value = '';
+  var b = document.getElementById('rb-brief'); if (b) b.value = '';
+  ov.style.display = 'flex';
+}
+function closeRebookModal(){ document.getElementById('rebook-overlay').style.display = 'none'; }
+async function submitRebook(){
+  var title = document.getElementById('rb-title').value.trim();
+  var brief = document.getElementById('rb-brief').value.trim();
+  if (!title || !brief) { showToast('اكتب اسم الحملة الجديد والرسالة الجديدة', 'error'); return; }
+  var btn = document.getElementById('rb-go');
+  btn.disabled = true; var orig = btn.textContent; btn.textContent = 'جاري الإنشاء...';
+  try {
+    var res = await supabaseClient.rpc('simbl_rebook_campaign', { p_old: _rbCampId, p_title: title, p_brief: brief });
+    if (res.error) throw res.error;
+    var d = res.data || {};
+    var n = d.invited || 0;
+    var ids = d.creator_ids || [];
+    if (ids.length) {
+      fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + supabaseClient.supabaseKey },
+        body: JSON.stringify({ title: 'عرض جديد لك 🎬', body: 'دعوة لحملة «' + title + '» بنفس سعرك السابق وبدون شحن — افتح لوحتك للقبول.', url: '/creator.html', target_users: ids })
+      }).catch(console.error);
+    }
+    closeRebookModal();
+    showToast('أُنشئت الحملة وأُرسلت الدعوات إلى ' + n + ' معلن');
+    setTimeout(function(){ location.reload(); }, 1400);
+  } catch (e) {
+    showToast('تعذّر إنشاء الحملة: ' + (e.message || e), 'error');
+  } finally { btn.disabled = false; btn.textContent = orig; }
+}
+</script>
 </body>
 </html>
