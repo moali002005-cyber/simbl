@@ -2175,6 +2175,8 @@ function isCreatorTurn(stage) {
 }
 
 function renderOfferCard(c, a) {
+  if (a && a.stage_data && a.stage_data._invite && a.status === 'pending' && a.brand_approved !== true) { return renderInviteCard(c, a); }
+
   const brandName = c.brand || a.campaigns?.users?.company_name || 'شركة';
   const brandInitial = brandName[0] || '؟';
   const campaignTitle = c.title || a.campaigns?.title || 'إعلان';
@@ -3550,5 +3552,40 @@ init();
   </div>
 </div>
 
+<script id="rebook-invite-js">
+function _rbEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function renderInviteCard(c, a){
+  var title = _rbEsc((c && c.title) || (a.campaigns && a.campaigns.title) || 'حملة جديدة');
+  var brandName = _rbEsc((c && c.brand) || 'الشركة');
+  var price = a.final_price || a.price || 0;
+  var brief = '';
+  try { brief = getBriefText(a) || (c && c.description) || ''; } catch(e) {}
+  var briefHtml = brief ? '<div style="background:#fff;border:1px solid #dfe7e4;border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.8;margin-bottom:12px;white-space:pre-wrap;">' + _rbEsc(brief) + '</div>' : '';
+  return '<div class="offer-card" style="border:2px solid #12b5a3;border-radius:16px;padding:18px;margin-bottom:14px;background:#f2fbf9;">'
+    + '<div style="font-weight:800;font-size:15px;margin-bottom:6px;">🎬 عرض مباشر لك — فيديو جديد من ' + brandName + '</div>'
+    + '<div style="font-size:13.5px;line-height:1.8;margin-bottom:10px;">دعوة لحملة «' + title + '» بنفس سعرك السابق (<b>' + price + ' ر.س</b>) وبدون أي شحن — المنتجات وصلتك من التعاون الماضي. بعد موافقتك تبدأ من «تجهيز المحتوى» مباشرة.</div>'
+    + briefHtml
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;">'
+    + '<button onclick="acceptInvite(\'' + a.id + '\')" style="background:#12b5a3;color:#fff;border:0;border-radius:100px;padding:11px 22px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;">✅ أوافق — أبدأ التصوير</button>'
+    + '<button onclick="declineInvite(\'' + a.id + '\')" style="background:#fff;color:#b3423a;border:1.5px solid #e5c9c6;border-radius:100px;padding:11px 18px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;">أعتذر عن المشاركة</button>'
+    + '</div></div>';
+}
+async function acceptInvite(id){
+  try {
+    var r = await supabaseClient.rpc('simbl_accept_rebook', { p_app: id });
+    if (r.error) throw r.error;
+    showToast('تم قبول العرض! بدأت الحملة — جهّز المحتوى 🎬');
+    setTimeout(function(){ location.reload(); }, 1200);
+  } catch(e) { showToast('تعذّر قبول العرض: ' + (e.message || e), 'error'); }
+}
+async function declineInvite(id){
+  try {
+    var r = await supabaseClient.rpc('simbl_decline_rebook', { p_app: id });
+    if (r.error) throw r.error;
+    showToast('تم تسجيل اعتذارك عن العرض');
+    setTimeout(function(){ location.reload(); }, 1200);
+  } catch(e) { showToast('تعذّر: ' + (e.message || e), 'error'); }
+}
+</script>
 </body>
 </html>
