@@ -1758,7 +1758,8 @@ const HOME_FLOW = [{s:1,n:'العنوان'},{s:2,n:'الشحن'},{s:3,n:'الا�
 const VISIT_FLOW = [{s:5,n:'بانتظار التصوير'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
 const CODE_FLOW = [{s:1,n:'الكود والطلب'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
 const VIDEO_FLOW = [{s:5,n:'تجهيز الفيديو'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
-function flowFor(type, mode){ if (type === 'video') return VIDEO_FLOW; if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
+const PICKUP_FLOW = [{s:1,n:'الاستلام من الفرع'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+function flowFor(type, mode){ if (type === 'video') return VIDEO_FLOW; if (type !== 'visit' && mode === 'pickup') return PICKUP_FLOW; if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
 
 // المرحلة اللي عليها طلب تصحيح معلّق (لم يُنجَز/يُراجَع) — مستقل عن رقم مرحلة الصفقة
 // (القاعدة تمنع رجوع stage للخلف، فنعتمد على العلامة نفسها لعرض خطوة التصحيح حتى لو الصفقة "مكتملة")
@@ -2627,6 +2628,53 @@ function campaignForApp(app) {
   return allCampaigns.find(x => x.id === app.campaign_id) || app.campaigns || {};
 }
 
+function renderPickupCard(app, c) {
+  const addr = c.pickup_address || 'سيوافيك الفرع بالعنوان قريبًا';
+  const hours = c.pickup_hours || '';
+  const mapBtn = c.pickup_map_url
+    ? `<a href="${escHtml(c.pickup_map_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="sa-btn" style="padding:7px 14px;font-size:12.5px;">🗺️ افتح الخريطة</a>`
+    : '';
+  return `
+    <div class="stage-card">
+      <div style="background:#f0faf8;border:1.5px dashed #12b5a3;border-radius:12px;padding:12px 14px;margin:10px 0 4px;">
+        <div style="font-size:12.5px;font-weight:700;color:#0b7d73;margin-bottom:6px;">🏬 استلام من الفرع</div>
+        <div style="font-size:14px;color:#0F1420;line-height:1.9;">${escHtml(addr)}</div>
+        ${hours ? `<div style="font-size:13px;color:#5b6472;margin-top:6px;">🕓 ${escHtml(hours)}</div>` : ''}
+        ${mapBtn ? `<div style="margin-top:10px;">${mapBtn}</div>` : ''}
+      </div>
+      <div class="hint" style="margin:8px 0 12px;">روح الفرع في الأوقات المذكورة واستلم المنتج، وبعدها أكّد الاستلام عشان تبدأ مرحلة المحتوى.</div>
+      <div>
+        <button class="sa-btn primary" onclick="event.stopPropagation(); confirmPickupReceived('${app.id}')">✓ استلمت المنتج من الفرع</button>
+      </div>
+    </div>`;
+}
+
+async function confirmPickupReceived(applicationId) {
+  const app = myApplications.find(a => a.id === applicationId);
+  if (!app) return;
+  const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
+  existing[1] = { ...(existing[1] || {}), pickup_flow: true, received: 'yes', _at: new Date().toISOString() };
+  try {
+    const { data: updated, error } = await supabaseClient
+      .from('applications')
+      .update({ stage: 5, stage_data: existing })
+      .eq('id', applicationId)
+      .select('*, campaigns(brand_id, title)');
+    if (error) throw error;
+    if (!updated || updated.length === 0) throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
+    const brandId = updated[0]?.campaigns?.brand_id;
+    const campaignTitle = updated[0]?.campaigns?.title || 'صفقة';
+    if (brandId) {
+      createNotification(brandId, 'workflow_update', '🏬 المعلن استلم المنتج من الفرع', `${campaignTitle}: بدأ تجهيز المحتوى`);
+    }
+    await loadData();
+    showToast('تم التأكيد ✓ — ننتقل لمرحلة المحتوى 🎬');
+  } catch (err) {
+    console.error('Pickup confirm error:', err);
+    showToast('حصل خطأ: ' + (err.message || 'حاول مرة أخرى'), 'error');
+  }
+}
+
 function renderCodeCard(app, c) {
   const code = (window.MY_CODES || {})[app.id];
   const codeHtml = code
@@ -2702,6 +2750,9 @@ function renderStageAction(applicationId, currentStage, viewerRole) {
   const _cc = campaignForApp(_capp);
   if (_cc.fulfillment_mode === 'code' && _cc.campaign_type !== 'visit' && currentStage < 5 && viewerRole === 'creator') {
     return renderCodeCard(_capp, _cc);
+  }
+  if (_cc.fulfillment_mode === 'pickup' && _cc.campaign_type !== 'visit' && currentStage < 5 && viewerRole === 'creator') {
+    return renderPickupCard(_capp, _cc);
   }
   // حملة الفيديو الجاهز: لا عنوان/شحن/استلام — أي معلن قبل مرحلة المحتوى يقفز مباشرة لتجهيز الفيديو (5)
   if (_cc.campaign_type === 'video' && currentStage >= 1 && currentStage < 5) { currentStage = 5;
