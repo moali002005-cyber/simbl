@@ -1653,15 +1653,26 @@ async function simblExitImpersonation(){
       </div>
 
       <div class="field" id="fulfillment-field">
-        <label>طريقة تسليم المنتج</label>
-        <div class="ctype-seg">
-          <label><input type="radio" name="fulfillment_mode" value="shipping" checked onchange="toggleFulfillment()"><span>📦 شحن للمعلن</span></label>
-          <label><input type="radio" name="fulfillment_mode" value="code" onchange="toggleFulfillment()"><span>🎟️ كود خصم</span></label>
+          <label>طريقة تسليم المنتج</label>
+          <div class="ctype-seg">
+            <label><input type="radio" name="fulfillment_mode" value="shipping" checked onchange="toggleFulfillment()"><span>📦 شحن للمعلن</span></label>
+            <label><input type="radio" name="fulfillment_mode" value="code" onchange="toggleFulfillment()"><span>🎟️ كود خصم</span></label>
+            <label><input type="radio" name="fulfillment_mode" value="pickup" onchange="toggleFulfillment()"><span>🏬 استلام من الفرع</span></label>
+          </div>
+          <div class="hint" id="fulfillment-hint">كود الخصم: كل معلن معتمد يستلم كوداً خاصاً يطلب فيه المنتج من متجرك بـ0 ريال — بدون شحن يدوي منك.</div>
         </div>
-        <div class="hint">كود الخصم: كل معلن معتمد يستلم كوداً خاصاً يطلب فيه المنتج من متجرك بـ0 ريال — بدون شحن يدوي منك.</div>
-      </div>
 
-      <div class="field" id="product-url-field" style="display:none;">
+        <div class="field" id="pickup-field" style="display:none;">
+          <label>عنوان الفرع</label>
+          <input type="text" name="pickup_address" placeholder="مثال: الرياض — حي الملقا، شارع أنس بن مالك، فرع رقم ٣">
+          <div class="hint">اكتب العنوان بوضوح عشان المعلن يوصل بسهولة.</div>
+          <label style="margin-top:12px;display:block;">أوقات الاستلام</label>
+          <input type="text" name="pickup_hours" placeholder="مثال: السبت – الخميس، ١٠ صباحاً – ١٠ مساءً">
+          <label style="margin-top:12px;display:block;">رابط الموقع على الخريطة (اختياري)</label>
+          <input type="url" name="pickup_map_url" placeholder="https://maps.app.goo.gl/..." dir="ltr">
+        </div>
+
+        <div class="field" id="product-url-field" style="display:none;">
         <label>رابط المنتج</label>
         <input type="url" name="product_url" placeholder="https://yourstore.com/product" dir="ltr">
         <div class="hint">الرابط اللي يفتح صفحة المنتج ليضيفه المعلن للسلة ويطبّق كوده.</div>
@@ -2154,13 +2165,25 @@ function toggleCampaignType() {
 
 function toggleFulfillment() {
   const sel = document.querySelector('[name="fulfillment_mode"]:checked');
-  const isCode = sel && sel.value === 'code';
+  const mode = sel ? sel.value : 'shipping';
+  const isCode = mode === 'code';
+  const isPickup = mode === 'pickup';
   const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
   show('product-url-field', isCode);
   show('codes-field', isCode);
+  show('pickup-field', isPickup);
   const pu = document.querySelector('[name="product_url"]');
   if (pu) pu.required = isCode;
+  const pa = document.querySelector('[name="pickup_address"]');
+  if (pa) pa.required = isPickup;
+  const ph = document.querySelector('[name="pickup_hours"]');
+  if (ph) ph.required = isPickup;
+  const hint = document.getElementById('fulfillment-hint');
+  if (hint) hint.textContent = isPickup
+    ? 'استلام من الفرع: المعلن يجي فرعك ويستلم المنتج بنفسه — بدون شحن ولا كود.'
+    : 'كود الخصم: كل معلن معتمد يستلم كوداً خاصاً يطلب فيه المنتج من متجرك بـ0 ريال — بدون شحن يدوي منك.';
 }
+
 
 // إدخال دفعة أكواد لمخزون الحملة
 async function saveCampaignCodes(campaignId, rawText) {
@@ -3509,6 +3532,9 @@ function setModalMode(mode, campaign) {
     const _fmR = form.querySelector('[name="fulfillment_mode"][value="' + _fm + '"]');
     if (_fmR) _fmR.checked = true;
     const _pu = form.querySelector('[name="product_url"]'); if (_pu) _pu.value = campaign.product_url || '';
+    const _pa = form.querySelector('[name="pickup_address"]'); if (_pa) _pa.value = campaign.pickup_address || '';
+    const _ph = form.querySelector('[name="pickup_hours"]'); if (_ph) _ph.value = campaign.pickup_hours || '';
+    const _pm = form.querySelector('[name="pickup_map_url"]'); if (_pm) _pm.value = campaign.pickup_map_url || '';
     const _cl = form.querySelector('[name="codes_list"]'); if (_cl) _cl.value = '';
     window._vidFiles = []; renderPickedVideos();
     toggleCampaignType();
@@ -3765,6 +3791,9 @@ async function submitCampaign(event) {
     payment_max_days: parseInt(fd.get('payment_max_days')) || 30,
     fulfillment_mode: ((fd.get('campaign_type') || 'home') !== 'home') ? 'shipping' : (fd.get('fulfillment_mode') || 'shipping'),
     product_url: (fd.get('product_url') || '').trim() || null,
+    pickup_address: (fd.get('pickup_address') || '').trim() || null,
+    pickup_hours: (fd.get('pickup_hours') || '').trim() || null,
+    pickup_map_url: (fd.get('pickup_map_url') || '').trim() || null,
     tags: [industry]
   };
   const _codesRaw = fd.get('codes_list') || '';
