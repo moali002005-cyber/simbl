@@ -1545,7 +1545,9 @@ $('#drawer-ov').addEventListener('click',e=>{ if(e.target===$('#drawer-ov')) clo
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
 
 // live auto-refresh every 60s (only while dashboard is visible)
-setInterval(()=>{ if($('#dash').style.display!=='none') loadAll(true); }, 60000);
+setInterval(()=>{ if(document.hidden) return; if($('dash').style.display!=='none') loadAll(true); }, 180000);
+/* حدّث فورًا عند الرجوع للتبويب حتى تبقى الأرقام طازجة وقت النظر إليها فقط */
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && $('dash') && $('dash').style.display!=='none') loadAll(true); });
 </script>
 </body>
 </html>
