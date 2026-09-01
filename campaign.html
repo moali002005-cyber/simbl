@@ -568,10 +568,19 @@ async function init() {
 
     // واصل التحديث إذا لم تكتمل الصفقة (status أو الاعتماد)
     if (!dealClosed || !approvedClose) {
-      pollInterval = setInterval(checkNewMessages, 5000);
+      pollInterval = setInterval(function(){ if (!document.hidden) checkNewMessages(); }, 5000);
     }
     // المحادثة المباشرة تعمل دائماً (حتى بعد إقفال الصفقة)
-    directPoll = setInterval(checkDirectMessages, 4000);
+    directPoll = setInterval(function(){ if (!document.hidden) checkDirectMessages(); }, 4000);
+    // نلحق ما فات فور رجوع التبويب للمقدمة، فلا يتأخر شيء على المستخدم
+    if (!window.__simblVizHooked) {
+      window.__simblVizHooked = true;
+      document.addEventListener('visibilitychange', function(){
+        if (document.hidden) return;
+        if (pollInterval) checkNewMessages();
+        if (directPoll) checkDirectMessages();
+      });
+    }
   } catch (err) {
     console.error(err);
     document.getElementById('content').innerHTML = '<div class="loading">حصل خطأ. حدث الصفحة.</div>';
