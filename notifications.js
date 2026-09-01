@@ -626,5 +626,9 @@ async function initNotifications(bellContainerId) {
   await loadNotifications();
   // تحديث كل دقيقة
   if (notifPollInterval) clearInterval(notifPollInterval);
-  notifPollInterval = setInterval(loadNotifications, 60000);
+  notifPollInterval = setInterval(function(){ if (!document.hidden) loadNotifications(); }, 60000);
+  if (!window.__simblNotifVizHooked) {
+    window.__simblNotifVizHooked = true;
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden) loadNotifications(); });
+  }
 }
