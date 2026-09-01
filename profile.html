@@ -2141,7 +2141,7 @@ async function startAutoNegotiation(application, campaign) {
 
     fetch('/api/negotiate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await apiAuthHeaders(),
       body: JSON.stringify({
         campaign: campaignData,
         application: applicationPayload,
