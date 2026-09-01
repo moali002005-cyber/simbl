@@ -3797,7 +3797,8 @@ function codesChipHtml(cid) {
          (danger ? ` <span style="color:#b32d2d;font-weight:700;">— أضف أكواداً من «تعديل الحملة» قبل أي اعتماد جديد</span>` : '');
 }
 const CODE_FLOW = [{s:1,n:'الكود والطلب'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
-function flowFor(type, mode){ if (type === 'video') return VIDEO_FLOW; if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
+const PICKUP_FLOW = [{s:1,n:'الاستلام من الفرع'},{s:5,n:'المحتوى'},{s:6,n:'الموافقة'},{s:7,n:'النشر'},{s:8,n:'البنكية'},{s:9,n:'مكتمل'}];
+function flowFor(type, mode){ if (type === 'video') return VIDEO_FLOW; if (type !== 'visit' && mode === 'pickup') return PICKUP_FLOW; if (type !== 'visit' && mode === 'code') return CODE_FLOW; return type === 'visit' ? VISIT_FLOW : HOME_FLOW; }
 let expandedCellStage = null;
 
 function openCell(appId, stage) {
