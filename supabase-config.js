@@ -150,6 +150,18 @@ async function simblEnsureFreshSession() {
   } catch (e) { /* نكمّل حتى لو فشل الفحص */ }
 }
 
+// ترويسات طلبات /api — ترفق توكن الجلسة عشان السيرفر يتحقق من هوية المُرسِل بنفسه
+// بدلاً من أن يثق بما يأتي في جسم الطلب.
+async function apiAuthHeaders() {
+  var h = { 'Content-Type': 'application/json' };
+  try {
+    var s = await supabaseClient.auth.getSession();
+    var t = s && s.data && s.data.session && s.data.session.access_token;
+    if (t) h['Authorization'] = 'Bearer ' + t;
+  } catch (e) {}
+  return h;
+}
+
 async function dbSignup(userData) {
   const { data, error } = await supabaseClient
     .from('users')
@@ -507,3 +519,5 @@ async function tryRestoreSession() {
   }
   return false;
 }
+
+window.apiAuthHeaders = apiAuthHeaders;
