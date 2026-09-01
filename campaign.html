@@ -879,7 +879,7 @@ async function startNegotiation() {
   try {
     const res = await fetch('/api/negotiate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await apiAuthHeaders(),
       body: JSON.stringify({ campaign, application, history: [] })
     });
 
@@ -920,7 +920,7 @@ async function sendCreatorMessage() {
     const historyBeforeNew = messages.slice(0, -1);
     const res = await fetch('/api/negotiate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await apiAuthHeaders(),
       body: JSON.stringify({
         campaign,
         application,
