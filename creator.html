@@ -2845,6 +2845,48 @@ async function submitStageForm(applicationId) {
     if (value && value.toString().trim()) data[key] = value.toString().trim();
   }
 
+  // ===== تحقّق البيانات البنكية (المرحلة 8) — نفس قاعدة جدول المستحقات عند الشركة =====
+  if (oldStage === 8) {
+    const SA_BANKS = {
+      '10': 'البنك الأهلي السعودي', '15': 'مصرف الإنماء', '20': 'بنك الرياض',
+      '30': 'البنك العربي الوطني', '40': 'بنك الجزيرة', '45': 'بنك البلاد',
+      '50': 'البنك السعودي البريطاني (ساب)', '55': 'البنك السعودي الفرنسي',
+      '60': 'البنك العربي الوطني', '65': 'البنك السعودي للاستثمار',
+      '76': 'بنك الإمارات دبي الوطني', '80': 'مصرف الراجحي', '90': 'بنك الخليج الدولي'
+    };
+    // نظّف: مسافات، شرطات، محارف الاتجاه، وحوّل الأرقام العربية إلى إنجليزية
+    let ib = '';
+    const rawIb = String(data.iban || '').toUpperCase();
+    for (let i = 0; i < rawIb.length; i++) {
+      const cc = rawIb.charCodeAt(i);
+      if (cc >= 1632 && cc <= 1641) { ib += String(cc - 1632); continue; }   // ٠-٩
+      if (cc >= 1776 && cc <= 1785) { ib += String(cc - 1776); continue; }   // ۰-۹
+      if (cc === 32 || cc === 45 || cc === 8206 || cc === 8207 || cc === 9) continue;
+      ib += rawIb.charAt(i);
+    }
+    let ibOk = (ib.length === 24 && ib.slice(0, 2) === 'SA');
+    if (ibOk) {
+      for (let i = 2; i < 24; i++) {
+        const cc = ib.charCodeAt(i);
+        if (cc < 48 || cc > 57) { ibOk = false; break; }
+      }
+    }
+    if (!ibOk) {
+      showToast('رقم الآيبان غير صحيح — لازم يبدأ بـ SA ثم 22 رقم (24 خانة). انسخه من تطبيق بنكك عشان ما يتأخر تحويلك.', 'error', 6000);
+      return;
+    }
+    data.iban = ib;
+    if (!String(data.account_holder || '').trim()) {
+      showToast('اكتب اسم صاحب الحساب كما هو مسجّل في البنك.', 'error');
+      return;
+    }
+    // اسم البنك يُستنتج من رمز البنك داخل الآيبان لو المعلن ما كتبه
+    if (!String(data.bank_name || '').trim()) {
+      const bcode = ib.slice(4, 6);
+      if (SA_BANKS[bcode]) data.bank_name = SA_BANKS[bcode];
+    }
+  }
+
   // ادمج مع stage_data الحالي (نحافظ على أثر التصحيح الموجود عند الدمج)
   const existing = (typeof app.stage_data === 'object' && app.stage_data) ? { ...app.stage_data } : {};
   existing[oldStage] = { ...(existing[oldStage] || {}), ...data, _at: new Date().toISOString() };
