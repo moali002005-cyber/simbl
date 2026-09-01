@@ -3419,6 +3419,14 @@ async function approveDeal(applicationId) {
   const { app, campaign } = findAppById(applicationId);
   if (!app) return;
 
+  // ===== سقف حجم الحملة: لا يُعتمد أكثر من العدد المطلوب =====
+  // الفرض الحقيقي في قاعدة البيانات (مشغّل trg_enforce_approved_capacity)؛ هذا للرسالة الواضحة فقط.
+  const _target = campaignTarget(campaign);
+  if (_target > 0 && approvedDealCount(campaign.id) >= _target && app.brand_approved !== true) {
+    showToast('اكتمل عدد المعلنين المطلوب (' + _target + '). لاعتماد المزيد عدّل حجم الحملة أولًا.', 'error');
+    return;
+  }
+
   try {
     // حملة الزيارة تبدأ من مرحلة 5 (بانتظار تصوير المعلن)؛ المنزلية تبدأ من 1 (الافتراضي)
     // الزيارة والفيديو الجاهز يبدآن من مرحلة 5 مباشرة (ما فيه عنوان/شحن)
@@ -3429,7 +3437,10 @@ async function approveDeal(applicationId) {
       .update(patch)
       .eq('id', applicationId)
       .select();
-    if (error) throw error;
+    if (error) {
+      if ((error.message || '').indexOf('اكتمل عدد المعلنين') >= 0) { showToast(error.message, 'error'); return; }
+      throw error;
+    }
     if (!data || data.length === 0) {
       throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
     }
