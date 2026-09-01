@@ -839,7 +839,7 @@ async function init(){
   try{ initNotifications('bell'); }catch(e){}
   $('#gate').style.display='none'; $('#dash').style.display='block';
   await loadData();
-  setInterval(()=>{ if($('#dash').style.display!=='none') loadData(true); },60000);
+  setInterval(()=>{ if(document.hidden) return; if($('#dash').style.display!=='none') loadData(true); },60000);
 }
 
 $('#btn-refresh').addEventListener('click',()=>loadData());
