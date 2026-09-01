@@ -322,7 +322,7 @@ async function init() {
     await loadOrCreateWorkflow();
     render();
 
-    pollInterval = setInterval(loadAndRender, 30000);
+    pollInterval = setInterval(function(){ if (!document.hidden) loadAndRender(); }, 30000);
   } catch (err) {
     console.error(err);
     document.getElementById('content').innerHTML = '<div class="loading">حصل خطأ. حدث الصفحة.</div>';
