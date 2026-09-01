@@ -959,7 +959,10 @@ async function approveDeal() {
       .update(patch)
       .eq('id', application.id)
       .select();
-    if (error) throw error;
+    if (error) {
+      if ((error.message || '').indexOf('اكتمل عدد المعلنين') >= 0) { alert(error.message); return; }
+      throw error;
+    }
     if (!data || data.length === 0) {
       throw new Error('لم يتم التحديث. تحقق من سياسات الحماية.');
     }
