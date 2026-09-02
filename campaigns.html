@@ -2681,7 +2681,7 @@ async function loadData() {
     //    ثم نُحمّل باقي الحملات في الخلفية. يقلّل الانتظار من ~1774 عرضًا إلى عروض حملة واحدة.
     if (campIds.length) {
       if (!selectedCampaignId || !campIds.includes(selectedCampaignId)) selectedCampaignId = campIds[0];
-      const firstApps = await dbGetAppsForCampaigns([selectedCampaignId]);
+      const firstApps = await dbGetAppsForCampaigns([selectedCampaignId], null, { skipParked: true });
       _fill(firstApps);
       renderCampaigns(); // عرض فوري للحملة المختارة
 
@@ -2689,7 +2689,7 @@ async function loadData() {
       const restIds = campIds.filter(id => id !== selectedCampaignId);
       if (restIds.length) {
         // ⚠️ يمرّ عبر dbGetAppsForCampaigns لتفادي قصّ PostgREST عند 1000 صف
-        _fill(await dbGetAppsForCampaigns(restIds));
+        _fill(await dbGetAppsForCampaigns(restIds, null, { skipParked: true }));
       }
     }
 
