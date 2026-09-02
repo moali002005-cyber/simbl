@@ -96,9 +96,17 @@ async function ensurePushSubscription(userId) {
       return;
     }
 
-    // فيه اشتراك حيّ → تأكّد إنه محفوظ ومربوط بالمستخدم الحالي (upsert خفيف)
+    // فيه اشتراك حيّ → لا نكتب في القاعدة إلا لو تغيّر فعلًا أو مضى يوم.
+    // كان يُكتب عند كل فتح صفحة وكل رجوع للتبويب، فتولّدت مئات الطلبات في الدقيقة من أجهزة الآيفون.
     const subData = subscription.toJSON();
-    await supabaseClient
+    const SAVED_KEY = 'simbl_push_saved';
+    const DAY_MS = 86400000;
+    try {
+      const prev = JSON.parse(localStorage.getItem(SAVED_KEY) || 'null');
+      if (prev && prev.e === subData.endpoint && prev.u === userId &&
+          (Date.now() - (prev.t || 0)) < DAY_MS) return;
+    } catch (e) {}
+    const { error: upErr } = await supabaseClient
       .from('push_subscriptions')
       .upsert({
         user_id: userId,
@@ -107,6 +115,9 @@ async function ensurePushSubscription(userId) {
         auth: subData.keys.auth,
         user_agent: navigator.userAgent
       }, { onConflict: 'endpoint' });
+    if (!upErr) {
+      try { localStorage.setItem(SAVED_KEY, JSON.stringify({ e: subData.endpoint, u: userId, t: Date.now() })); } catch (e) {}
+    }
   } catch (err) {
     console.warn('ensurePushSubscription:', err);
   }
@@ -258,8 +269,12 @@ function showReminderBanner(userId) {
 })();
 
 // إعادة فحص الاشتراك لمّا يرجع المستخدم للتطبيق (تبويب نشط) — يصلّح أي اشتراك انتهى
+let __pushVisCheckAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
+  // خانق: العودة للتبويب تتكرّر كثيرًا على الجوال — نفحص مرة كل ٣٠ دقيقة بدل كل مرة
+  if (Date.now() - __pushVisCheckAt < 1800000) return;
+  __pushVisCheckAt = Date.now();
   const user = JSON.parse(localStorage.getItem('simbl_current_user') || 'null');
   if (user && user.id && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     ensurePushSubscription(user.id);
