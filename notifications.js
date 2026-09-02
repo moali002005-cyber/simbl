@@ -629,6 +629,13 @@ async function initNotifications(bellContainerId) {
   notifPollInterval = setInterval(function(){ if (!document.hidden) loadNotifications(); }, 60000);
   if (!window.__simblNotifVizHooked) {
     window.__simblNotifVizHooked = true;
-    document.addEventListener('visibilitychange', function(){ if (!document.hidden) loadNotifications(); });
+    var __notifVizAt = 0;
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) return;
+      // خانق: العودة للتبويب تتكرّر بكثافة على الجوال — والمؤقّت الدوري يغطّي التحديث أصلًا
+      if (Date.now() - __notifVizAt < 45000) return;
+      __notifVizAt = Date.now();
+      loadNotifications();
+    });
   }
 }
