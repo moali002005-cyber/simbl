@@ -274,15 +274,17 @@ async function simblFetchAll(build, pageSize) {
   return out;
 }
 // جلب كل عروض مجموعة حملات بلا قصّ — المصدر الموحّد لكل الصفحات
-async function dbGetAppsForCampaigns(campIds, selectStr) {
+async function dbGetAppsForCampaigns(campIds, selectStr, opts) {
   if (!campIds || !campIds.length) return [];
   const sel = selectStr || '*, users!applications_creator_id_fkey(name, platform, handle, followers, category, website)';
-  return await simblFetchAll(() => supabaseClient
-    .from('applications')
-    .select(sel)
-    .in('campaign_id', campIds)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: true }));
+  // skipParked: العروض الموقوفة لاكتمال الحملة (campaign_full) والاحتياط المخفي (is_reserve)
+  // تُهمَل في الواجهة فور وصولها، فاستبعادها من الشبكة يوفّر أغلب الحمل بلا أي فرق في العرض.
+  const skipParked = !!(opts && opts.skipParked);
+  return await simblFetchAll(() => {
+    let q = supabaseClient.from('applications').select(sel).in('campaign_id', campIds);
+    if (skipParked) q = q.neq('status', 'campaign_full').neq('is_reserve', true);
+    return q.order('created_at', { ascending: false }).order('id', { ascending: true });
+  });
 }
 window.simblFetchAll = simblFetchAll;
 window.dbGetAppsForCampaigns = dbGetAppsForCampaigns;
