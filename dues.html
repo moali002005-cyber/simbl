@@ -1098,5 +1098,25 @@ init();
   setTimeout(apply,0);
 })();
 </script>
+<script>
+/* عمود «تم الترويج» — يُحفظ في applications.promoted */
+(function(){var L='تم الترويج',P='كود الترويج',C={};
+function hi(t){var R=t.querySelectorAll('thead tr');for(var r=0;r<R.length;r++)for(var c=0;c<R[r].children.length;c++)if(R[r].children[c].textContent.trim()===P)return{r:r,i:c};return null}
+function aid(tr,i){var c=tr.children[i];if(c&&c.dataset.appid)return c.dataset.appid;for(var k=0;k<tr.children.length;k++)if(tr.children[k].dataset&&tr.children[k].dataset.appid)return tr.children[k].dataset.appid;return null}
+function pt(td,v){var y=td.firstChild,n=td.lastChild;if(!y||!n)return;y.style.background=v===true?'#16a34a':'#fff';y.style.color=v===true?'#fff':'#64748b';n.style.background=v===false?'#e11d48':'#fff';n.style.color=v===false?'#fff':'#64748b'}
+function sv(id,v,td){if(!window.supabaseClient)return;td.style.opacity='.5';window.supabaseClient.from('applications').update({promoted:v,promoted_at:v?new Date().toISOString():null}).eq('id',id).then(function(r){td.style.opacity='1';if(r&&r.error){alert('تعذّر الحفظ — حدّث الصفحة وحاول مرة ثانية');return}C[id]=v;pt(td,v)})}
+function mk(id){var td=document.createElement('td');td.className='cell promoted-cell';td.style.cssText='white-space:nowrap;text-align:center';
+[['1','صح'],['0','لا']].forEach(function(a){var b=document.createElement('button');b.type='button';b.textContent=a[1];b.style.cssText='margin:0 2px;padding:3px 10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:12px;cursor:pointer;background:#fff;color:#64748b';b.onclick=function(e){e.stopPropagation();e.preventDefault();if(id)sv(id,a[0]==='1',td)};td.appendChild(b)});
+if(!id)td.style.opacity='.35';return td}
+function go(t){if(t.dataset.promotedCol)return;var h=hi(t);if(!h)return;t.dataset.promotedCol='1';
+var H=t.querySelectorAll('thead tr');for(var r=0;r<H.length;r++){var f=H[r].children[h.i];if(!f)continue;var e=document.createElement(f.tagName);e.className=f.className;e.textContent=r===h.r?L:'';f.parentNode.insertBefore(e,f.nextSibling)}
+var T=[].slice.call(t.querySelectorAll('tbody tr')),I=T.map(function(x){return aid(x,h.i)}),cells=[];
+T.forEach(function(tr,n){var f=tr.children[h.i];if(!f)return;var td=mk(I[n]);f.parentNode.insertBefore(td,f.nextSibling);cells[n]=td});
+var need=I.filter(function(x){return x});
+if(need.length&&window.supabaseClient)window.supabaseClient.from('applications').select('id,promoted').in('id',need).then(function(r){if(!r||!r.data)return;r.data.forEach(function(w){C[w.id]=!!w.promoted});T.forEach(function(tr,n){if(cells[n]&&I[n]&&C[I[n]]!==undefined)pt(cells[n],C[I[n]])})})}
+function sw(){[].slice.call(document.querySelectorAll('table')).forEach(function(t){try{go(t)}catch(e){}})}
+new MutationObserver(sw).observe(document.documentElement,{childList:true,subtree:true});
+if(document.readyState!=='loading')sw();else document.addEventListener('DOMContentLoaded',sw)})();
+</script>
 </body>
 </html>
