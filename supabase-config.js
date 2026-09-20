@@ -25,9 +25,10 @@ function simblLocationMatch(creator, campaign) {
   const norm = v => (v == null ? '' : String(v).trim().toLowerCase());
   if (!campaign || !campaign.country) return true;                                 // لا دولة → الجميع
   if (!creator || norm(creator.country) !== norm(campaign.country)) return false;  // لازم نفس الدولة
-  const campCities = simblCityList(campaign.city);
-  if (!campCities.length || campCities.includes('all')) return true;               // كل مدن الدولة
-  return campCities.includes(norm(creator.city));                                  // ضمن المدن المستهدفة
+  if (simblCityList(campaign.city).includes('all')) return true;                   // كل مدن الدولة
+  const campCities = simblExpandCities(campaign.city);
+  if (!campCities.length) return true;
+  return campCities.includes(norm(creator.city));                                  // ضمن المدن/المنطقة المستهدفة
 }
 
 // مدن الحملة: قيمة واحدة أو عدة مدن مفصولة بفواصل ("dammam,khobar")
@@ -35,9 +36,25 @@ function simblCityList(v) {
   return String(v == null ? '' : v).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 }
 
+// مجموعات المناطق: قيمة وحدة تغطي كل مدن المنطقة — تُفكّ لمدنها وقت المطابقة
+const SIMBL_CITY_GROUPS = {
+  eastern: ['dammam', 'khobar', 'dhahran', 'qatif', 'jubail', 'ahsa', 'hofuf']
+};
+
+// يفكّ أي مجموعة إلى مدنها، ويترك المدن المفردة كما هي (بلا تكرار)
+function simblExpandCities(v) {
+  const out = [];
+  simblCityList(v).forEach(c => {
+    if (SIMBL_CITY_GROUPS[c]) SIMBL_CITY_GROUPS[c].forEach(x => out.push(x));
+    else out.push(c);
+  });
+  return out.filter((x, i, a) => a.indexOf(x) === i);
+}
+
 // أسماء المدن بالعربي — مصدر موحّد لكل الصفحات
 const SIMBL_CITY_LABELS = {
   all: 'كل المناطق',
+  eastern: 'المنطقة الشرقية',
   riyadh: 'الرياض', jeddah: 'جدة', makkah: 'مكة المكرمة', madinah: 'المدينة المنورة',
   dammam: 'الدمام', khobar: 'الخبر', dhahran: 'الظهران', ahsa: 'الأحساء', hofuf: 'الهفوف',
   taif: 'الطائف', buraidah: 'بريدة', unaizah: 'عنيزة', qassim: 'القصيم', tabuk: 'تبوك',
