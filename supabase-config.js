@@ -25,9 +25,35 @@ function simblLocationMatch(creator, campaign) {
   const norm = v => (v == null ? '' : String(v).trim().toLowerCase());
   if (!campaign || !campaign.country) return true;                                 // لا دولة → الجميع
   if (!creator || norm(creator.country) !== norm(campaign.country)) return false;  // لازم نفس الدولة
-  const campCity = norm(campaign.city);
-  if (!campCity || campCity === 'all') return true;                                // كل مدن الدولة
-  return norm(creator.city) === campCity;                                          // تطابق المدينة الصارم
+  const campCities = simblCityList(campaign.city);
+  if (!campCities.length || campCities.includes('all')) return true;               // كل مدن الدولة
+  return campCities.includes(norm(creator.city));                                  // ضمن المدن المستهدفة
+}
+
+// مدن الحملة: قيمة واحدة أو عدة مدن مفصولة بفواصل ("dammam,khobar")
+function simblCityList(v) {
+  return String(v == null ? '' : v).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+
+// أسماء المدن بالعربي — مصدر موحّد لكل الصفحات
+const SIMBL_CITY_LABELS = {
+  all: 'كل المناطق',
+  riyadh: 'الرياض', jeddah: 'جدة', makkah: 'مكة المكرمة', madinah: 'المدينة المنورة',
+  dammam: 'الدمام', khobar: 'الخبر', dhahran: 'الظهران', ahsa: 'الأحساء', hofuf: 'الهفوف',
+  taif: 'الطائف', buraidah: 'بريدة', unaizah: 'عنيزة', qassim: 'القصيم', tabuk: 'تبوك',
+  hail: 'حائل', abha: 'أبها', khamis: 'خميس مشيط', jazan: 'جازان', najran: 'نجران',
+  yanbu: 'ينبع', jubail: 'الجبيل', qatif: 'القطيف', sakaka: 'سكاكا', arar: 'عرعر',
+  albaha: 'الباحة', other: 'مدينة أخرى',
+  dubai: 'دبي', abudhabi: 'أبوظبي', sharjah: 'الشارقة', ajman: 'عجمان',
+  rak: 'رأس الخيمة', fujairah: 'الفجيرة', uaq: 'أم القيوين', alain: 'العين',
+  doha: 'الدوحة', rayyan: 'الريان', wakrah: 'الوكرة', khor: 'الخور',
+  kuwait_city: 'مدينة الكويت', hawalli: 'حولي', ahmadi: 'الأحمدي', farwaniya: 'الفروانية', jahra: 'الجهراء',
+  manama: 'المنامة', muharraq: 'المحرق', riffa: 'الرفاع', hamad: 'مدينة حمد'
+};
+
+// نص العرض: يدعم المدينة الواحدة والعدة مدن
+function simblCityText(v) {
+  return simblCityList(v).map(c => SIMBL_CITY_LABELS[c] || c).join('، ');
 }
 
 // ===== استهداف المنصة + نطاق المتابعين (استهداف صارم) =====
@@ -87,9 +113,11 @@ function simblLockReason(creator, campaign) {
   const norm = v => (v == null ? '' : String(v).trim().toLowerCase());
   if (!simblLocationMatch(creator, campaign)) {
     const COUNTRY = { sa:'السعودية', ae:'الإمارات', qa:'قطر', kw:'الكويت', bh:'البحرين' };
+    const _cc = simblCityList(campaign && campaign.city);
     if (campaign && campaign.country && norm(creator && creator.country) === norm(campaign.country)
-        && campaign.city && norm(campaign.city) !== 'all') {
-      return 'هذي الحملة لمعلني مدينة محدّدة';
+        && _cc.length && !_cc.includes('all')) {
+      const _names = simblCityText(campaign.city);
+      return _cc.length === 1 ? ('هذي الحملة لمعلني ' + _names) : ('هذي الحملة لمعلني: ' + _names);
     }
     const cc = campaign && campaign.country ? (COUNTRY[norm(campaign.country)] || campaign.country) : '';
     return cc ? ('هذي الحملة لمعلني ' + cc) : 'هذي الحملة لمنطقة مختلفة';

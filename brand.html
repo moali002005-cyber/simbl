@@ -1858,10 +1858,9 @@ SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textar
 
       <div class="field">
         <label>مدينة المعلن المستهدف</label>
-        <select name="city" id="campaign-form-city" disabled>
-          <option value="">اختر الدولة أولاً</option>
-        </select>
-        <div class="hint">اختر «كل المناطق» لتشمل كل مدن الدولة المختارة</div>
+        <div class="platform-grid" id="city-grid"></div>
+        <input type="hidden" name="city" id="campaign-form-city">
+        <div class="hint" id="city-hint">اختر الدولة أولاً</div>
       </div>
 
       <div class="field" style="grid-column: span 2;">
@@ -2085,19 +2084,47 @@ const SIMBL_COUNTRY_CITIES = {
 // تعبئة قائمة المدن حسب الدولة المختارة (selected: لضبط القيمة وقت التعديل)
 function simblPopulateCities(selected) {
   const countrySel = document.querySelector('#campaign-form-country');
-  const citySel = document.querySelector('#campaign-form-city');
-  if (!countrySel || !citySel) return;
+  const grid  = document.querySelector('#city-grid');
+  const input = document.querySelector('#campaign-form-city');
+  const hint  = document.querySelector('#city-hint');
+  if (!countrySel || !grid || !input) return;
   const cc = countrySel.value;
   if (!cc) {
-    citySel.innerHTML = '<option value="">اختر الدولة أولاً</option>';
-    citySel.disabled = true;
+    grid.innerHTML = '';
+    input.value = '';
+    if (hint) hint.textContent = 'اختر الدولة أولاً';
     return;
   }
-  citySel.disabled = false;
   const list = SIMBL_COUNTRY_CITIES[cc] || [];
-  citySel.innerHTML = ['<option value="">اختر المدينة</option>']
-    .concat(list.map(([v, lbl]) => '<option value="' + v + '">' + lbl + '</option>')).join('');
-  if (selected != null) citySel.value = selected;
+  grid.innerHTML = list.map(([v, lbl]) =>
+    '<button type="button" class="platform-chip" data-value="' + v + '" onclick="selectCity(this)"><span>' + lbl + '</span></button>'
+  ).join('');
+  if (hint) hint.textContent = 'تقدر تختار أكثر من مدينة — أو «كل المناطق» لتشمل الدولة كاملة';
+  const sel = String(selected == null ? '' : selected).split(',').map(s => s.trim()).filter(Boolean);
+  grid.querySelectorAll('.platform-chip').forEach(c => c.classList.toggle('active', sel.includes(c.dataset.value)));
+  simblSyncCityInput();
+}
+// «كل المناطق» حصرية: اختيارها يلغي بقية المدن، واختيار مدينة يلغيها
+function selectCity(btn) {
+  const grid = document.getElementById('city-grid');
+  if (!grid || !btn) return;
+  const isAll = btn.dataset.value === 'all';
+  btn.classList.toggle('active');
+  if (btn.classList.contains('active')) {
+    if (isAll) {
+      grid.querySelectorAll('.platform-chip').forEach(c => { if (c !== btn) c.classList.remove('active'); });
+    } else {
+      const allChip = grid.querySelector('.platform-chip[data-value="all"]');
+      if (allChip) allChip.classList.remove('active');
+    }
+  }
+  simblSyncCityInput();
+}
+function simblSyncCityInput() {
+  const grid  = document.getElementById('city-grid');
+  const input = document.getElementById('campaign-form-city');
+  if (!grid || !input) return;
+  input.value = Array.from(grid.querySelectorAll('.platform-chip.active')).map(c => c.dataset.value).join(',');
 }
 function publishTimingText(c) {
   if (!c) return '-';
@@ -2910,7 +2937,7 @@ function renderSingleCampaign(c) {
               ${c.creator_tiers ? `<span><strong>تصنيف المؤثرين:</strong> ${String(c.creator_tiers).split(',').map(t => ({micro:'Micro (UGC)',medium:'Medium',mega:'Mega'}[t.trim()] || t.trim())).filter(Boolean).join('، ')}</span>` : ''}
               ${c.campaign_size ? `<span><strong>حجم الحملة:</strong> ${toArabic(c.campaign_size)} معلن</span>` : ''}
               ${c.country ? `<span><strong>الدولة:</strong> ${COUNTRY_LABELS[c.country] || c.country}</span>` : ''}
-              ${c.city ? `<span><strong>المدينة:</strong> ${CITY_LABELS[c.city] || c.city}</span>` : ''}
+              ${c.city ? `<span><strong>المدينة:</strong> ${simblCityText(c.city)}</span>` : ''}
             </div>
           </div>
           <div class="campaign-actions">
@@ -3761,7 +3788,7 @@ async function submitCampaign(event) {
   const selCountry = fd.get('country') || '';
   const selCity = fd.get('city') || '';
   if (selCountry && !selCity) {
-    showToast('اختر مدينة المعلن أو «كل المناطق».', 'error');
+    showToast('اختر مدينة المعلن (أو أكثر) أو «كل المناطق».', 'error');
     return;
   }
 

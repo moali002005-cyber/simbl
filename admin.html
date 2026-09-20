@@ -1355,7 +1355,7 @@ function renderCampaigns(){
     const hideLabel=c.status==='hidden'?'إظهار':'إخفاء';
     const act='<button onclick="adminToggleHide(\''+c.id+'\')" style="padding:5px 10px;border:1px solid #d9d9d9;background:#fff;border-radius:7px;font-size:12px;cursor:pointer;margin-inline-start:4px;">'+hideLabel+'</button>'
             +'<button onclick="adminDeleteCampaign(\''+c.id+'\')" style="padding:5px 10px;border:1px solid #e6bcbc;background:#fff;color:#c93030;border-radius:7px;font-size:12px;cursor:pointer;">حذف</button>';
-    return '<tr><td>'+esc(c.title||'—')+'</td><td class="dim">'+esc(brandOfCampaign(c))+'</td><td>'+stBadge+'</td><td class="mono">'+num(n)+'</td><td class="mono">'+num(cl)+'</td><td class="dim">'+esc(c.budget||'—')+'</td><td class="dim">'+esc(CITY[c.city]||c.city||'—')+'</td><td class="dim">'+fmtDate(c.created_at)+'</td><td>'+act+'</td></tr>';
+    return '<tr><td>'+esc(c.title||'—')+'</td><td class="dim">'+esc(brandOfCampaign(c))+'</td><td>'+stBadge+'</td><td class="mono">'+num(n)+'</td><td class="mono">'+num(cl)+'</td><td class="dim">'+esc(c.budget||'—')+'</td><td class="dim">'+esc(String(c.city||'').split(',').map(x=>CITY[x.trim()]||x.trim()).filter(Boolean).join('، ')||'—')+'</td><td class="dim">'+fmtDate(c.created_at)+'</td><td>'+act+'</td></tr>';
   }).join('') : '<tr><td colspan="9" class="empty">لا نتائج</td></tr>';
 }
 

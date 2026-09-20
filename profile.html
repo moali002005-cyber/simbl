@@ -1527,7 +1527,7 @@ function renderBrowseCard(c) {
         ${c.publish_timing ? `<span class="meta-item">⏱ ${publishTimingText(c)}</span>` : ''}
         ${c.platform ? `<span class="meta-item">◇ ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
         ${c.follower_range ? `<span class="meta-item">◯ ${followerRangeText(c)}</span>` : ''}
-        ${c.city ? `<span class="meta-item">📍 ${CITY_LABELS[c.city] || c.city}</span>` : ''}
+        ${c.city ? `<span class="meta-item">📍 ${simblCityText(c.city)}</span>` : ''}
         ${pledge ? `<span class="pay-pledge">💸 ${pledge}</span>` : ''}
       </div>
     </div>
