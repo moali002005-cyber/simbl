@@ -2415,6 +2415,8 @@ function toggleHistory(id) {
 // ===== بريف الحملة: زر سريع جنب اسم الحملة يفتح البريف وينسخه =====
 function getBriefText(a) {
   if (!a) return '';
+  // بريف مخصّص لهالمعلن (مثل حملة بعملة دولة ثانية) — يتقدّم على بريف الحملة العام
+  try { let _s = a.stage_data; if (typeof _s === 'string') _s = JSON.parse(_s); if (_s && _s.brief_override && String(_s.brief_override).trim()) return String(_s.brief_override); } catch (e) {}
   // البريف الحقيقي = وصف الحملة (يُكتب عند إطلاق الحملة في حقل description)
   const c = a.campaigns || {};
   const desc = c.description || c.brief || a.description || '';
