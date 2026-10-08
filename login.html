@@ -295,8 +295,41 @@ input::placeholder { color: var(--ink-faint); }
             </button>
           </div>
         </div>
+        <div class="field-hint" style="margin:-6px 0 14px;text-align:start"><button type="button" class="muted-link" onclick="startReset()">نسيت كلمة السر؟</button></div>
         <button type="submit" class="btn-submit" id="pw-btn" data-i18n="login_btn">دخول</button>
       </form>
+    </div>
+
+    <!-- استعادة كلمة السر: إيميل ← كود ← كلمة سر جديدة -->
+    <div class="pane" id="pane-reset">
+      <form onsubmit="sendResetCode(event)" id="reset-email-form">
+        <div class="field">
+          <label>البريد الإلكتروني المسجّل</label>
+          <input type="email" id="reset-email" required placeholder="example@email.com" autocomplete="email">
+          <div class="field-hint">نرسل لك كود مكوّن من 6 أرقام، وبعده تختار كلمة سر جديدة.</div>
+        </div>
+        <button type="submit" class="btn-submit" id="reset-send-btn">إرسال الكود</button>
+      </form>
+      <form onsubmit="verifyResetCode(event)" id="reset-code-form" style="display:none">
+        <div class="field">
+          <label>الكود المرسل إلى <span id="reset-email-label" style="color:var(--accent-ink)"></span></label>
+          <input type="text" id="reset-code" required placeholder="••••••" inputmode="numeric" maxlength="6" autocomplete="one-time-code" style="text-align:center; letter-spacing:8px; font-size:20px">
+          <div class="field-hint">ما وصلك الكود؟ تأكد من مجلد الرسائل غير المرغوبة، أو <button type="button" class="muted-link" onclick="resendResetCode()">أعد الإرسال</button></div>
+        </div>
+        <button type="submit" class="btn-submit" id="reset-verify-btn">تأكيد الكود</button>
+      </form>
+      <form onsubmit="saveNewPassword(event)" id="reset-pass-form" style="display:none">
+        <div class="field">
+          <label>كلمة السر الجديدة</label>
+          <input type="password" id="reset-pass1" required minlength="6" placeholder="6 أحرف على الأقل" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>تأكيد كلمة السر</label>
+          <input type="password" id="reset-pass2" required minlength="6" placeholder="أعد كتابة كلمة السر" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn-submit" id="reset-save-btn">حفظ والدخول</button>
+      </form>
+      <p class="field-hint" style="text-align:center;margin-top:14px"><button type="button" class="muted-link" onclick="endReset()">← رجوع لتسجيل الدخول</button></p>
     </div>
 
     <!-- طريقة كود الإيميل (OTP) -->
@@ -470,6 +503,108 @@ async function sendOtp(event) {
 }
 
 function resendOtp() { if (otpEmail) sendOtp(); }
+
+// ===== استعادة كلمة السر =====
+let resetEmail = '';
+function startReset() {
+  hideError();
+  const pre = (document.getElementById('pw-email').value || '').trim();
+  document.querySelector('.tabs').style.display = 'none';
+  document.getElementById('pane-password').classList.remove('active');
+  document.getElementById('pane-otp').classList.remove('active');
+  document.getElementById('pane-reset').classList.add('active');
+  document.getElementById('reset-email-form').style.display = 'block';
+  document.getElementById('reset-code-form').style.display = 'none';
+  document.getElementById('reset-pass-form').style.display = 'none';
+  const inp = document.getElementById('reset-email');
+  if (pre && !inp.value) inp.value = pre;
+  inp.focus();
+}
+function endReset() {
+  hideError();
+  document.getElementById('pane-reset').classList.remove('active');
+  document.querySelector('.tabs').style.display = '';
+  switchTab('password');
+}
+async function sendResetCode(event) {
+  if (event) event.preventDefault();
+  hideError();
+  resetEmail = document.getElementById('reset-email').value.trim().toLowerCase();
+  const btn = document.getElementById('reset-send-btn');
+  btn.disabled = true; btn.textContent = 'جاري الإرسال...';
+  try {
+    const { error } = await supabaseClient.auth.signInWithOtp({ email: resetEmail, options: { shouldCreateUser: false } });
+    if (error) {
+      const m = (error.message || '').toLowerCase();
+      if (m.includes('not') && (m.includes('found') || m.includes('exist') || m.includes('signups'))) {
+        showError('لا يوجد حساب بهذا البريد. تأكد من البريد اللي سجّلت فيه.');
+      } else if (m.includes('rate') || m.includes('seconds') || m.includes('too many')) {
+        showError('طلبت الكود أكثر من مرة. انتظر دقيقة وحاول مرة ثانية.');
+      } else {
+        showError('تعذّر إرسال الكود. تأكد من البريد وحاول مرة أخرى.');
+      }
+      btn.disabled = false; btn.textContent = 'إرسال الكود';
+      return;
+    }
+    document.getElementById('reset-email-label').textContent = resetEmail;
+    document.getElementById('reset-email-form').style.display = 'none';
+    document.getElementById('reset-code-form').style.display = 'block';
+    document.getElementById('reset-code').focus();
+    btn.disabled = false; btn.textContent = 'إرسال الكود';
+  } catch (err) {
+    console.error(err);
+    showError('حصل خطأ. حاول مرة أخرى.');
+    btn.disabled = false; btn.textContent = 'إرسال الكود';
+  }
+}
+function resendResetCode() { if (resetEmail) sendResetCode(); }
+async function verifyResetCode(event) {
+  event.preventDefault();
+  hideError();
+  const token = document.getElementById('reset-code').value.trim();
+  const btn = document.getElementById('reset-verify-btn');
+  btn.disabled = true; btn.textContent = 'جاري التحقق...';
+  try {
+    const { error } = await supabaseClient.auth.verifyOtp({ email: resetEmail, token, type: 'email' });
+    if (error) {
+      showError('الكود غير صحيح أو منتهي. أعد المحاولة.');
+      btn.disabled = false; btn.textContent = 'تأكيد الكود';
+      return;
+    }
+    document.getElementById('reset-code-form').style.display = 'none';
+    document.getElementById('reset-pass-form').style.display = 'block';
+    document.getElementById('reset-pass1').focus();
+  } catch (err) {
+    console.error(err);
+    showError('حصل خطأ. حاول مرة أخرى.');
+    btn.disabled = false; btn.textContent = 'تأكيد الكود';
+  }
+}
+async function saveNewPassword(event) {
+  event.preventDefault();
+  hideError();
+  const p1 = document.getElementById('reset-pass1').value;
+  const p2 = document.getElementById('reset-pass2').value;
+  if (p1.length < 6) { showError('كلمة السر لازم تكون 6 أحرف على الأقل.'); return; }
+  if (p1 !== p2) { showError('كلمتا السر غير متطابقتين.'); return; }
+  const btn = document.getElementById('reset-save-btn');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+  try {
+    const { data, error } = await supabaseClient.auth.updateUser({ password: p1 });
+    if (error) {
+      const m = (error.message || '').toLowerCase();
+      showError(m.includes('different') || m.includes('same') ? 'اختر كلمة سر مختلفة عن القديمة.' : 'تعذّر حفظ كلمة السر. حاول مرة أخرى.');
+      btn.disabled = false; btn.textContent = 'حفظ والدخول';
+      return;
+    }
+    const sess = await supabaseClient.auth.getUser();
+    await finishLogin(resetEmail, (data && data.user) || (sess.data && sess.data.user));
+  } catch (err) {
+    console.error(err);
+    showError('حصل خطأ. حاول مرة أخرى.');
+    btn.disabled = false; btn.textContent = 'حفظ والدخول';
+  }
+}
 function resetOtp() {
   hideError();
   document.getElementById('otp-code-form').style.display = 'none';
