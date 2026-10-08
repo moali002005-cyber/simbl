@@ -231,6 +231,24 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
 .dsh-tile .tl{font-size:11.5px;color:var(--muted);margin-bottom:6px}
 .dsh-tile .tv{font-size:21px;font-weight:700;color:#0c4f4b;line-height:1}
 .dsh-tile .ts{font-size:11px;color:var(--faint);margin-top:5px}
+/* ===== خدمة العملاء ===== */
+#support-count .pending-badge{background:var(--danger);color:#fff;font-size:11px;border-radius:100px;padding:1px 7px;margin-inline-start:6px;vertical-align:middle}
+.sp-t{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;background:var(--panel)}
+.sp-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px}
+.sp-st{font-size:11.5px;font-weight:700;border-radius:100px;padding:3px 10px;white-space:nowrap}
+.sp-st.sp-open{background:rgba(154,75,6,.10);color:#8a5b00}
+.sp-st.sp-answered{background:rgba(12,163,12,.10);color:#0a7a0a}
+.sp-st.sp-closed{background:rgba(15,20,32,.06);color:var(--muted)}
+.sp-wait{font-size:11px;font-weight:600;color:#8A807B;margin-top:4px}
+.sp-wait.late{color:#c0271c}
+.sp-subj{font-weight:700;font-size:13.5px;margin:8px 0 2px;line-height:1.6}
+.sp-m{font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.sp-r{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;line-height:1.8;white-space:pre-wrap}
+.sp-r b{display:block;font-size:11px;margin-bottom:2px}
+.sp-r.sp-admin b{color:#0a7a0a}.sp-r.sp-user b{color:var(--muted)}
+.sp-rep{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.sp-rep textarea{width:100%;box-sizing:border-box;font-family:inherit;font-size:13px;padding:9px 11px;border:1px solid var(--line2);border-radius:10px;background:var(--panel);color:var(--text);resize:vertical}
+.sp-acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -295,6 +313,7 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
   <div class="tabs">
     <button class="tab active" data-tab="overview">نظرة عامة</button>
     <button class="tab" data-tab="approvals">طلبات التفعيل<span id="pending-count"></span></button>
+    <button class="tab" data-tab="support">خدمة العملاء<span id="support-count"></span></button>
     <button class="tab" data-tab="overdue">متأخرات الدفع<span id="overdue-count"></span></button>
     <button class="tab" data-tab="analytics">تحليلات</button>
     <button class="tab" data-tab="insights">رؤى</button>
@@ -439,6 +458,25 @@ pre.json{background:var(--bg);border:1px solid var(--line);border-radius:9px;pad
     </div>
   </div>
 
+  <!-- support -->
+  <div class="panel" id="panel-support">
+    <div class="section">
+      <h2>خدمة العملاء</h2>
+      <p class="dim" style="font-size:13px;margin-bottom:12px;line-height:1.7">رسائل المعلنين والشركات من داخل منصة سيمبل. الرد يظهر لهم في «رسائلي» داخل حساباتهم، ويوصلهم إشعار.</p>
+      <div class="toolbar">
+        <select class="filter" id="sp-status">
+          <option value="open">المفتوحة</option>
+          <option value="">الكل</option>
+          <option value="answered">تم الرد عليها</option>
+          <option value="closed">المغلقة</option>
+        </select>
+        <button class="btn" id="sp-refresh" type="button" style="padding:8px 14px;font-size:13px">تحديث</button>
+        <span class="count-tag" id="sp-count"></span>
+      </div>
+      <div id="support-list" style="margin-top:12px"></div>
+    </div>
+  </div>
+
   <!-- overdue payments -->
   <div class="panel" id="panel-overdue">
     <div class="section">
@@ -548,6 +586,7 @@ const gmvVal = a => Number(a && (a.final_price||a.price))||0;
 // ===== state =====
 let USERS=[], CAMPAIGNS=[], APPS=[], NEGS=[];
 let usersById={}, campsById={};
+let TICKETS=[], TREPLIES=[];
 
 // ===== boot =====
 (async function boot(){
@@ -611,12 +650,15 @@ async function loadAll(silent){
     $('#gate-body').innerHTML = '<h1>جارٍ تحميل البيانات…</h1><p>نجمع كل أرقام منصتك</p><div class="spinner"></div>';
   }
   try{
-    const [u,c,a,n] = await Promise.all([
+    const [u,c,a,n,tk,tr] = await Promise.all([
       fetchAllRpc('admin_list_users'),
       fetchAll('campaigns','*'),
       fetchAll('applications','*'),
-      fetchAll('negotiations','*')
+      fetchAll('negotiations','*'),
+      fetchAll('support_tickets','*').catch(()=>null),
+      fetchAll('support_replies','*').catch(()=>null)
     ]);
+    if(Array.isArray(tk)) TICKETS=tk; if(Array.isArray(tr)) TREPLIES=tr;
     // احتفظ بآخر بيانات صالحة إذا فشل أحد الطلبات مؤقتاً (تحديث تلقائي كل 60ث)
     if(Array.isArray(u)) USERS=u; if(Array.isArray(c)) CAMPAIGNS=c;
     if(Array.isArray(a)) APPS=a; if(Array.isArray(n)) NEGS=n;
@@ -625,6 +667,7 @@ async function loadAll(silent){
     $('#gate').style.display='none'; $('#dash').style.display='block';
     $('#err-box').style.display='none';
     renderLeaderBar(); renderOverview(); renderAnalytics(); renderInsights(); renderApprovals(); renderOverdue(); renderUsers(); renderCampaigns(); renderDeals(); renderCompanies();
+    renderSupport();
     updateUpd();
   }catch(err){
     console.error(err);
@@ -1521,7 +1564,85 @@ async function uploadCreatorPhoto(id, input){
     renderPhotos();
   }
 }
+
+// ===== خدمة العملاء =====
+const SP_CAT = { payment:'مستحقات ودفع', campaign:'حملة أو صفقة', agent:'وكيل التفاوض', account:'الحساب والتفعيل', bug:'عطل في المنصة', other:'شيء آخر' };
+const SP_ST  = { open:'مفتوحة', answered:'تم الرد عليها', closed:'مغلقة' };
+function spAgo(t){ if(!t) return ''; const d=new Date(t); if(isNaN(d)) return '';
+  const m=Math.floor((Date.now()-d.getTime())/60000); if(m<1) return 'الآن'; if(m<60) return 'قبل '+num(m)+' دقيقة';
+  const h=Math.floor(m/60); if(h<24) return 'قبل '+num(h)+' ساعة'; return 'قبل '+num(Math.floor(h/24))+' يوم'; }
+function spDur(mins){ if(mins==null) return '—'; if(mins<60) return num(Math.round(mins))+' دقيقة'; const h=mins/60; if(h<24) return num(Math.round(h))+' ساعة'; return num(Math.round(h/24))+' يوم'; }
+function spWait(t){ if(t.status!=='open') return ''; const mins=(Date.now()-new Date(t.created_at||0).getTime())/60000; if(!isFinite(mins)) return '';
+  return '<div class="sp-wait'+(mins>=240?' late':'')+'">بانتظار الرد '+spDur(mins)+'</div>'; }
+// لا نعيد رسم القائمة إذا فيه رد مكتوب لم يُرسل — حتى ما تنمسح المسودة
+function spHasDraft(){ const tas=document.querySelectorAll('#support-list textarea'); for(const t of tas){ if((t.value||'').trim()) return true; } return false; }
+async function spReload(){
+  try{
+    const [tk,tr] = await Promise.all([fetchAll('support_tickets','*'), fetchAll('support_replies','*')]);
+    TICKETS=tk||[]; TREPLIES=tr||[];
+  }catch(e){ console.error('support reload', e); }
+  renderSupport(true);
+}
+function renderSupport(force){
+  const openN = TICKETS.filter(t=>t.status==='open').length;
+  const badge = $('#support-count'); if(badge) badge.innerHTML = openN ? ('<span class="pending-badge">'+num(openN)+'</span>') : '';
+  const box = $('#support-list'); if(!box) return;
+  if(!force && spHasDraft()) return;
+  const flt = ($('#sp-status') && $('#sp-status').value) || '';
+  let list = TICKETS.slice(); if(flt) list = list.filter(t=>t.status===flt);
+  const rank = t => t.status==='open' ? 0 : (t.status==='answered' ? 1 : 2);
+  list.sort((a,b)=> (rank(a)-rank(b)) || (rank(a)===0 ? new Date(a.created_at||0)-new Date(b.created_at||0)
+                                                     : new Date(b.updated_at||b.created_at||0)-new Date(a.updated_at||a.created_at||0)));
+  const cnt = $('#sp-count');
+  if(cnt){
+    const mins = TICKETS.filter(t=>t.first_reply_at).map(t=>(new Date(t.first_reply_at)-new Date(t.created_at))/60000).sort((x,y)=>x-y);
+    const med = mins.length ? Math.round(mins[Math.floor(mins.length/2)]) : null;
+    cnt.textContent = num(list.length)+' رسالة' + (openN? ' · '+num(openN)+' بانتظار الرد' : '') + (med!=null? ' · وسيط زمن أول رد '+spDur(med) : '');
+  }
+  if(!list.length){ box.innerHTML='<div class="empty">لا توجد رسائل في هذا التصنيف.</div>'; return; }
+  const byT = {}; TREPLIES.forEach(r=>{ (byT[r.ticket_id]=byT[r.ticket_id]||[]).push(r); });
+  Object.values(byT).forEach(arr=>arr.sort((a,b)=>new Date(a.created_at||0)-new Date(b.created_at||0)));
+  box.innerHTML = list.map(t=>{
+    const u = usersById[t.user_id];
+    const who = u ? (u.company_name || u.name || '—') : '—';
+    const role = u ? (u.role==='brand'?'شركة':'معلن') : '—';
+    const contact = u ? [u.email, u.phone || u.whatsapp].filter(Boolean).join(' · ') : '';
+    const reps = (byT[t.id]||[]).map(r=>'<div class="sp-r sp-'+esc(r.from_role)+'"><b>'+(r.from_role==='admin'?'سيمبل':esc(who))+' · '+spAgo(r.created_at)+'</b>'+esc(r.body)+'</div>').join('');
+    return '<div class="sp-t" data-id="'+esc(t.id)+'">'
+      + '<div class="sp-h"><div><span class="badge b-'+(u&&u.role==='brand'?'brand':'creator')+'">'+role+'</span> <b>'+esc(who)+'</b>'
+      +   '<div class="dim" style="font-size:11.5px">'+esc(contact)+'</div></div>'
+      +   '<div style="text-align:end"><span class="sp-st sp-'+esc(t.status)+'">'+esc(SP_ST[t.status]||t.status)+'</span>'+spWait(t)
+      +   '<div class="dim" style="font-size:11.5px">'+esc(SP_CAT[t.category]||t.category)+' · '+spAgo(t.created_at)+'</div></div></div>'
+      + (t.subject ? '<div class="sp-subj">'+esc(t.subject)+'</div>' : '')
+      + '<div class="sp-m">'+esc(t.message)+'</div>'
+      + (t.page_url?'<div class="dim" style="font-size:11px;margin-top:4px">من صفحة '+esc(t.page_url)+'</div>':'')
+      + reps
+      + (t.status==='closed' ? '<div class="sp-acts"><button class="btn" data-a="reopen" style="padding:7px 14px;font-size:12.5px">إعادة فتح</button></div>'
+         : '<div class="sp-rep"><textarea placeholder="نص الرد للعميل…" rows="2"></textarea>'
+           + '<div class="sp-acts"><button class="btn btn-primary" data-a="reply">إرسال الرد</button>'
+           + '<button class="btn" data-a="close">إغلاق التذكرة</button></div></div>')
+      + '</div>';
+  }).join('');
+}
+document.addEventListener('click', async e=>{
+  const b = e.target.closest('#support-list [data-a]'); if(!b) return;
+  const wrap = b.closest('.sp-t'); const id = wrap.getAttribute('data-id'); const a = b.getAttribute('data-a');
+  if(a==='reply'){
+    const ta = wrap.querySelector('textarea'); const body=(ta.value||'').trim(); if(body.length<2) return;
+    b.disabled=true; b.textContent='جارٍ الإرسال…';
+    try{ const { error } = await sb.from('support_replies').insert([{ ticket_id:id, from_role:'admin', body }]); if(error) throw error; ta.value=''; await spReload(); }
+    catch(err){ console.error(err); alert('تعذّر إرسال الرد: '+(err.message||err)); b.disabled=false; b.textContent='إرسال الرد'; }
+  } else if(a==='close' || a==='reopen'){
+    b.disabled=true;
+    try{ const { error } = await sb.from('support_tickets').update({ status: a==='close'?'closed':'open', updated_at:new Date().toISOString() }).eq('id', id); if(error) throw error; await spReload(); }
+    catch(err){ console.error(err); alert('تعذّر التحديث: '+(err.message||err)); b.disabled=false; }
+  }
+});
+
 $('[data-tab="photos"]').addEventListener('click', loadPhotos);
+$('#sp-status').addEventListener('change', ()=>renderSupport(true));
+$('#sp-refresh').addEventListener('click', spReload);
+$('[data-tab="support"]').addEventListener('click', ()=>{ if(!spHasDraft()) spReload(); });
 $('#ph-search').addEventListener('input', renderPhotos);
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
