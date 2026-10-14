@@ -535,7 +535,7 @@ function exportDuesCSV(onlyCampId) {
   const lines = [header];
   let count = 0;
   camps.forEach(c => {
-    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true /* product-comp */ && Number(a.final_price || a.price || 0) > 0);
     let launch = '';
     const ld = c.created_at ? new Date(c.created_at) : null;
     if (ld && !isNaN(ld.getTime())) launch = ld.toLocaleDateString('en-GB');
@@ -641,7 +641,7 @@ function renderCampaignBlock(camp, deals) {
 let duesView = 'grid';   // 'grid' أو معرّف الحملة المفتوحة
 
 function duesCampStats(c) {
-  const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+  const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true /* product-comp */ && Number(a.final_price || a.price || 0) > 0);
   const creators = deals.length;
   const total = deals.reduce((s, a) => s + Number(a.final_price || a.price || 0), 0);
   return { deals, creators, total };
@@ -692,7 +692,7 @@ function renderDues() {
   if (duesView !== 'grid') {
     const c = camps.find(x => x.id === duesView);
     if (c) {
-      const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true);
+      const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true /* product-comp */ && Number(a.final_price || a.price || 0) > 0);
       host.innerHTML =
         '<div class="dues-wrap">'
         + '<div class="dues-head" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'
@@ -730,7 +730,7 @@ function exportPaySheetCSV(onlyCampId) {
   camps.forEach(c => {
     // شيت الدفع = الصفقات الجاهزة للدفع فقط (مكتملة: المرحلة ≥ 9 وبياناتها البنكية مُدخلة)،
     // نستبعد الصفقات المعتمدة اللي لسّا قيد التنفيذ حتى ما تُدفع مبكرًا ببيانات ناقصة.
-    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true && (a.stage || 1) >= 9);
+    const deals = (campaignApps[c.id] || []).filter(a => a.status === 'closed' && a.brand_approved === true /* product-comp */ && Number(a.final_price || a.price || 0) > 0 && (a.stage || 1) >= 9);
     deals.forEach(a => {
       const ov = duesOverrides[a.id] || {};
       const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
@@ -773,7 +773,7 @@ function _lnkShort(u) {                    // نص الرابط المعروض (
 // شيت الروابط = روابط الفيديو بس؛ أي صف ما فيه رابط فيديو يُستبعد.
 function _linkRowsOf(camp) {
   var deals = (campaignApps[camp.id] || []).filter(function (a) {
-    return a.status === 'closed' && a.brand_approved === true;
+    return a.status === 'closed' && a.brand_approved === true && Number(a.final_price || a.price || 0) > 0;
   });
   var rows = [];
   deals.forEach(function (a) {
