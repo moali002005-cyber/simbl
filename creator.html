@@ -1866,7 +1866,7 @@ function renderCreatorDealCard(c, a) {
     <div class="deal-card${(isCompleted || didntWin) ? ' completed' : ''}" id="ac-${a.id}">
       <div class="dc-head">
         <span class="dc-av">${escHtml(initial)}</span>
-        <div class="dc-main"><div class="dc-title">${escHtml(c.title || 'حملة')}</div><div class="dc-sub">${escHtml(brandName)}${(!isNegotiating) ? ' · ' + price.toLocaleString('en-US') + ' ر.س' : ''}</div>${briefBtnHtml}${attachBtnHtml}</div>
+        <div class="dc-main"><div class="dc-title">${escHtml(c.title || 'حملة')}</div><div class="dc-sub">${escHtml(brandName)}${(!isNegotiating) ? ' · ' + simblAmt(price) : ''}</div>${briefBtnHtml}${attachBtnHtml}</div>
         ${badge}
       </div>
       ${body}
@@ -2043,7 +2043,7 @@ function clearStageDraft(appId) {
 function renderBrowseCard(c) {
   const brandName = c.brand || 'شركة';
   const brandInitial = brandName[0] || '؟';
-  const pledge = paymentPledgeText(c);
+  const pledge = (c && c.compensation === 'product') ? '' : paymentPledgeText(c);
   const locked = c._targetMatch === false; // غير مطابق للاستهداف → للاطّلاع فقط
   const isDone = campaignIsFull(c); // مقفولة أو اكتمل عدد المعتمدين المطلوب → منتهية، لا تسجيل/انتظار جديد
   const waitlistMode = campaignWaitlistMode(c); // اكتمل عددها/فيها منتظرون → التسجيل يدخل قائمة الانتظار
@@ -2070,6 +2070,7 @@ function renderBrowseCard(c) {
         ${isDone ? '<span class="meta-item">✓ اكتمل العدد المطلوب لهذي الحملة</span>' : `
         ${c.campaign_type === 'video' ? `<span class="meta-item">🎬 فيديو جاهز من الشركة</span>` : c.campaign_type === 'visit' ? `<span class="meta-item">📍 زيارة</span>` : ''}
         ${c.publish_timing ? `<span class="meta-item">⏱ ${publishTimingText(c)}</span>` : ''}
+        ${c.compensation === 'product' ? `<span class="meta-item">🎁 مقابل منتج: ${escHtml(c.product_details || '')}</span>` : ''}
         ${c.platform ? `<span class="meta-item">◇ ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
         ${c.follower_range ? `<span class="meta-item">◯ ${followerRangeText(c)}</span>` : ''}
         ${c.city ? `<span class="meta-item">📍 ${simblCityText(c.city)}</span>` : ''}
@@ -2143,7 +2144,7 @@ function renderOfferCard(c, a) {
     expandedInner = `
       <div class="approval-gate" onclick="event.stopPropagation()">
         <div class="ag-info">
-          <div class="ag-price">السعر النهائي: <span class="num">${(a.final_price || a.price).toLocaleString('en-US')} ر.س</span></div>
+          <div class="ag-price">السعر النهائي: <span class="num">${simblAmt(a.final_price || a.price)}</span></div>
           <div class="ag-desc">${a.is_reserve ? 'أنت ضمن قائمة الاحتياط الجاهزة — اكتمل العدد حاليًا، وبمجرد ما ينفتح مكان بنرقّيك للتعميد فورًا 🌿' : 'تم التوصّل لاتفاق، بانتظار تعميد الشركة لبدء التنفيذ.'}</div>
         </div>
       </div>`;
@@ -2165,7 +2166,7 @@ function renderOfferCard(c, a) {
           ${briefBtnHtml}${attachBtnHtml}
         </div>
         <div class="ac-side">
-          ${isNegotiating ? '' : `<div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${price.toLocaleString('en-US')} ر.س</div>`}
+          ${isNegotiating ? '' : `<div class="ac-price"><span class="ac-price-lbl">${priceLabel}</span>${simblAmt(price)}</div>`}
           ${headRight}
         </div>
         ${expandable ? '<span class="ac-chev">▾</span>' : ''}
@@ -2561,6 +2562,9 @@ function renderPaymentCard(app) {
   if (!app) {
     return `<div class="stage-action complete" onclick="event.stopPropagation()"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
   }
+  if (simblIsProductDeal(app)) {
+    return `<div class="stage-action complete" onclick="event.stopPropagation()"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">حملة مقابل منتج — المنتج هو مقابل الإعلان، ولا توجد مستحقات مالية. شكرًا لك.</div></div>`;
+  }
   const status = app.payment_status || 'unpaid';
   const deadline = paymentDeadlineText(app);
   const deadlineLine = deadline ? `<div class="pay-deadline">آخر موعد متوقّع للدفع: ${deadline}</div>` : '';
@@ -2625,6 +2629,9 @@ async function loadMyCodes() {
   } catch (e) { console.warn('codes load failed:', e); }
 }
 
+// ===== حملة «إعلان مقابل منتج» =====
+function simblAmt(n){ n = Number(n) || 0; return n > 0 ? n.toLocaleString('en-US') + ' ر.س' : '🎁 مقابل منتج'; }
+function simblIsProductDeal(app){ var c = campaignForApp(app); return (c && c.compensation === 'product') || !(Number(app && (app.final_price || app.price) || 0) > 0); }
 function campaignForApp(app) {
   if (!app) return {};
   return allCampaigns.find(x => x.id === app.campaign_id) || app.campaigns || {};
@@ -2837,7 +2844,7 @@ async function submitStageForm(applicationId) {
   const oldStage = _fixPending ? _fixStg : ((_vidCamp && (app.stage || 1) < 5) ? 5 : ((app.stage === 4) ? 5 : (app.stage || 1))); // البريف مُلغى — نعامله كالمحتوى
   let newStage;
   if (_fixPending) { newStage = app.stage || 9; } // تصحيح صفقة قائمة: لا نحرّك المرحلة (تبقى كما هي)
-  else { newStage = oldStage + 1; if (newStage === 4) newStage = 5; } // تخطِّ البريف: الاستلام (3) ← المحتوى (5)
+  else { newStage = oldStage + 1; if (newStage === 4) newStage = 5; if (newStage === 8 && simblIsProductDeal(app)) newStage = 9; } // تخطِّ البريف: الاستلام (3) ← المحتوى (5)
 
   // اجمع بيانات النموذج
   const form = document.getElementById(`stage-form-${applicationId}`);
@@ -2907,6 +2914,9 @@ async function submitStageForm(applicationId) {
   // عند الوصول للمرحلة 9 (مكتمل) نسجّل وقت الإكمال — منه تُحسب مهلة الدفع
   // عند التصحيح: لا نغيّر المرحلة ولا completed_at (الصفقة تبقى كما هي) — فقط نحدّث stage_data
   const stageUpdate = _fixPending ? { stage_data: existing } : { stage: newStage, stage_data: existing };
+  if (!_fixPending && newStage >= 9 && oldStage === 7 && simblIsProductDeal(app)) {
+    stageUpdate.payment_status = 'confirmed';
+  }
   if (!_fixPending && newStage >= 9) {
     stageUpdate.completed_at = new Date().toISOString();
   }
@@ -2925,7 +2935,7 @@ async function submitStageForm(applicationId) {
     // إشعار الشركة
     const brandId = updated[0]?.campaigns?.brand_id;
     const campaignTitle = updated[0]?.campaigns?.title || 'صفقة';
-    const notif = _fixPending ? { title: 'تم التصحيح ✅', body: 'صحّح المعلن البيانات المطلوبة — جاهزة للمراجعة' } : STAGE_NOTIFICATIONS[newStage];
+    const notif = _fixPending ? { title: 'تم التصحيح ✅', body: 'صحّح المعلن البيانات المطلوبة — جاهزة للمراجعة' } : ((newStage === 9 && oldStage === 7) ? { title: '🎉 صفقة مكتملة', body: 'تم النشر، والصفقة مكتملة (حملة مقابل منتج)' } : STAGE_NOTIFICATIONS[newStage]);
     if (brandId && notif) {
       createNotification(brandId, 'workflow_update', notif.title, `${campaignTitle}: ${notif.body}`, '/brand.html').catch(console.error);
       fetch('https://rdzzzasbyzugxogbgwwn.supabase.co/functions/v1/send-push', {
