@@ -1883,10 +1883,22 @@ SIMBL-02" style="width:100%;box-sizing:border-box;font-family:inherit;"></textar
             <option value="other">أخرى</option>
           </select>
         </div>
-        <div class="field">
-          <label>الميزانية للمعلن الواحد (نطاق)</label>
+        <div class="field" id="budget-field">
+          <label>مقابل الإعلان للمعلن الواحد</label>
+          <style>#comp-seg{flex-wrap:wrap;max-width:100%;}#comp-seg span{padding:8px 14px;}</style>
+          <div class="ctype-seg" id="comp-seg" style="margin-bottom:10px;">
+            <label><input type="radio" name="compensation" value="cash" checked onchange="toggleCompensation()"><span>💵 مبلغ لكل معلن</span></label>
+            <label><input type="radio" name="compensation" value="product" onchange="toggleCompensation()"><span>🎁 إعلان مقابل منتج</span></label>
+          </div>
+          <div id="comp-cash-box">
           <input type="text" name="budget" required placeholder="مثل: 800 - 1500">
           <div class="hint">المبلغ المخصّص لكل معلن، بالريال السعودي</div>
+          </div>
+          <div id="comp-product-box" style="display:none;">
+            <label style="display:block;margin-bottom:6px;">حدد المنتج</label>
+            <textarea name="product_details" rows="2" maxlength="500" placeholder="حدد المنتج: مثل عطر العود 100 مل + علبة بخور"></textarea>
+            <div class="hint">هذا المنتج هو مقابل الإعلان — وكيل التفاوض يعرضه على المعلن بدل أي مبلغ.</div>
+          </div>
         </div>
       </div>
 
@@ -2432,6 +2444,29 @@ function toggleCampaignType() {
   toggleFulfillment();
 }
 
+// ===== حملة «إعلان مقابل منتج» =====
+function simblEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function simblAmt(n){ n = Number(n) || 0; return n > 0 ? n.toLocaleString('en-US') + ' ر.س' : '🎁 مقابل منتج'; }
+function simblCompMeta(c){
+  if (c && c.compensation === 'product') return '<span><strong>🎁 مقابل منتج:</strong> ' + simblEsc(c.product_details || '') + '</span>';
+  return '<span><strong>الميزانية للمعلن الواحد:</strong> ' + (c ? c.budget : '') + ' ر.س</span>';
+}
+function toggleCompensation(){
+  var sel = document.querySelector('[name="compensation"]:checked');
+  var isProd = !!(sel && sel.value === 'product');
+  var cash = document.getElementById('comp-cash-box'), prod = document.getElementById('comp-product-box');
+  if (cash) cash.style.display = isProd ? 'none' : '';
+  if (prod) prod.style.display = isProd ? '' : 'none';
+  var b = document.querySelector('[name="budget"]'); if (b) b.required = !isProd;
+  var p = document.querySelector('[name="product_details"]'); if (p) p.required = isProd;
+  ['payment-pledge'].forEach(function(id){ var el = document.getElementById(id); var box = el && el.closest('.field'); if (box) box.style.display = isProd ? 'none' : ''; });
+  var pd = document.querySelector('[name="payment_min_days"]'); var pdBox = pd && pd.closest('.field'); if (pdBox) pdBox.style.display = isProd ? 'none' : '';
+}
+function simblSetCompensation(mode, details){
+  var r = document.querySelector('[name="compensation"][value="' + (mode === 'product' ? 'product' : 'cash') + '"]'); if (r) r.checked = true;
+  var p = document.querySelector('[name="product_details"]'); if (p) p.value = details || '';
+  toggleCompensation();
+}
 function toggleFulfillment() {
   const sel = document.querySelector('[name="fulfillment_mode"]:checked');
   const mode = sel ? sel.value : 'shipping';
@@ -2915,7 +2950,7 @@ function renderDues() {
 
   // كل الصفقات المعتمدة (معمّدة من الشركة) عبر كل الحملات
   const deals = Object.values(campaignApps).flat()
-    .filter(a => a.status === 'closed' && a.brand_approved === true);
+    .filter(a => a.status === 'closed' && a.brand_approved === true && Number(a.final_price || a.price || 0) > 0);
 
   if (!deals.length) {
     host.innerHTML =
@@ -3916,7 +3951,7 @@ function renderCellDetail(a) {
           <div class="ag-icon">⏳</div>
           <div class="ag-info">
             <div class="ag-title">الوكيل توصّل لسعر نهائي:</div>
-            <div class="ag-price">${(a.final_price || a.price).toLocaleString('en-US')} ر.س</div>
+            <div class="ag-price">${simblAmt(a.final_price || a.price)}</div>
             <div class="ag-desc">اعتمد المعلن وابدأ التنفيذ، أو ارفضه ويترقّى التالي من قائمة الانتظار.</div>
           </div>
         </div>
@@ -3981,7 +4016,7 @@ function renderDealRow(a, idx, campaignType, fulfillmentMode) {
     });
   } else if (awaitingApproval) {
     cells = `<td colspan="${NCOL}" style="padding:4px 6px;"><div class="mx-approve-row">
-        <span class="mx-appr-price">⏳ اتفاق عند ${(a.final_price || a.price).toLocaleString('en-US')} ر.س</span>
+        <span class="mx-appr-price">⏳ اتفاق عند ${simblAmt(a.final_price || a.price)}</span>
         <span class="mx-appr-btns">
           <button class="mx-btn approve" onclick="event.stopPropagation(); approveDeal('${a.id}')">✓ اعتماد</button>
           <button class="mx-btn reject" onclick="event.stopPropagation(); openRejectModal('${a.id}')">✗ رفض</button>
@@ -4088,7 +4123,7 @@ function renderSingleCampaign(c) {
             <h3>${c.title}</h3>
             <button class="brief-trigger" onclick="openBriefModal('${c.id}')">📋 عرض البريف الإعلاني${simblBriefList(c).length ? ' <span style="opacity:.85">· 📎 ' + simblBriefList(c).length + '</span>' : ''}</button>
             <div class="campaign-meta">
-              <span><strong>الميزانية للمعلن الواحد:</strong> ${c.budget} ر.س</span>
+              ${simblCompMeta(c)}
               ${c.publish_timing ? `<span><strong>موعد النشر:</strong> ${publishTimingText(c)}</span>` : ''}
               ${c.platform ? `<span><strong>المنصة:</strong> ${PLATFORM_LABELS[c.platform] || c.platform}</span>` : ''}
               ${c.follower_range ? `<span><strong>المتابعين:</strong> ${followerRangeText(c)}</span>` : ''}
@@ -4425,6 +4460,9 @@ function paymentDeadlineTextBrand(app, campaign) {
 function renderBrandPaymentCard(app, campaign) {
   if (!app) {
     return `<div class="stage-action complete"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">تم اكتمال جميع مراحل الصفقة بنجاح.</div></div>`;
+  }
+  if (!(Number(app.final_price || app.price || 0) > 0)) {
+    return `<div class="stage-action complete"><div class="sa-title">🎉 صفقة مكتملة</div><div class="sa-desc">حملة مقابل منتج — المنتج هو مقابل الإعلان، ولا توجد مستحقات مالية على هذي الصفقة.</div></div>`;
   }
   const status = app.payment_status || 'unpaid';
   const amount = (app.final_price || app.price || 0).toLocaleString('en-US');
@@ -4770,7 +4808,8 @@ function setModalMode(mode, campaign) {
     form.querySelector('[name="title"]').value = campaign.title || '';
     form.querySelector('[name="description"]').value = campaign.description || '';
     form.querySelector('[name="industry"]').value = campaign.brand_industry || '';
-    form.querySelector('[name="budget"]').value = campaign.budget || '';
+    form.querySelector('[name="budget"]').value = (campaign.compensation === 'product') ? '' : (campaign.budget || '');
+    simblSetCompensation(campaign.compensation || 'cash', campaign.product_details || '');
     form.querySelector('[name="publish_timing"]').value = campaign.publish_timing || '';
     togglePublishDate();
     if (campaign.publish_date) form.querySelector('[name="publish_date"]').value = campaign.publish_date;
@@ -4824,6 +4863,7 @@ function setModalMode(mode, campaign) {
     submitBtn.textContent = 'نشر الحملة';
 
     form.reset();
+    simblSetCompensation('cash', '');
     window._vidFiles = []; renderPickedVideos();
     form.querySelector('[name="payment_min_days"]').value = 7;
     form.querySelector('[name="payment_max_days"]').value = 30;
@@ -4965,7 +5005,7 @@ async function submitCampaign(event) {
   }
   // تحقق من موافقة الشركة على إقرار الدفع (إجباري قبل النشر)
   const pledgeEl = form.querySelector('[name="payment_pledge"]');
-  if (!pledgeEl || !pledgeEl.checked) {
+  if (fd.get('compensation') !== 'product' && (!pledgeEl || !pledgeEl.checked)) {
     showToast('لازم توافق على إقرار الدفع قبل نشر الحملة.', 'error');
     return;
   }
@@ -4978,6 +5018,11 @@ async function submitCampaign(event) {
     return;
   }
 
+  if (fd.get('compensation') === 'product' && !String(fd.get('product_details') || '').trim()) {
+    showToast('حدد المنتج اللي بيستلمه المعلن مقابل الإعلان.', 'error');
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.textContent = editingCampaignId ? 'جاري الحفظ...' : 'جاري النشر...';
 
@@ -4985,7 +5030,9 @@ async function submitCampaign(event) {
     title: fd.get('title'),
     description: fd.get('description'),
     brand_industry: industry,
-    budget: fd.get('budget'),
+    budget: (fd.get('compensation') === 'product') ? 'مقابل منتج' : fd.get('budget'),
+    compensation: (fd.get('compensation') === 'product') ? 'product' : 'cash',
+    product_details: (fd.get('compensation') === 'product') ? (String(fd.get('product_details') || '').trim() || null) : null,
     publish_timing: fd.get('publish_timing'),
     publish_date: fd.get('publish_date') || null,
     platform: platform,
