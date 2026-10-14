@@ -175,7 +175,7 @@ async function supabaseGetCampaignSrv(campaignId) {
   if (!campaignId) return null;
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/campaigns?id=eq.${campaignId}&select=id,budget,country,city,platform,follower_range,campaign_size,creator_tiers`,
+      `${SUPABASE_URL}/rest/v1/campaigns?id=eq.${campaignId}&select=id,budget,country,city,platform,follower_range,campaign_size,creator_tiers,compensation,product_details`,
       { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
     );
     if (!res.ok) { console.error('Get campaign error:', await res.text()); return null; }
@@ -466,6 +466,8 @@ export default async function handler(req, res) {
   campaign.follower_range = realCampaign.follower_range;
   campaign.campaign_size = realCampaign.campaign_size;
   campaign.creator_tiers = realCampaign.creator_tiers;
+  campaign.compensation = realCampaign.compensation || 'cash';
+  campaign.product_details = realCampaign.product_details || '';
   application.price = realApp.price;
   application.campaign_id = realApp.campaign_id;
   if (realCreator) {
@@ -543,6 +545,9 @@ export default async function handler(req, res) {
   const budgetHigh = budgetNums.length ? Math.max(...budgetNums) : 0;
   const finalCap = budgetHigh;                        // السقف المطلق = أعلى رقم في النطاق
   const openingOffer = Math.max(50, budgetLow - 100); // العرض المبدئي قرب أدنى النطاق
+  // ============ حملة «إعلان مقابل منتج»: لا أسعار إطلاقًا — المقابل هو المنتج ============
+  const isProductComp = campaign.compensation === 'product';
+  const productText = String(campaign.product_details || '').replace(/\s+/g, ' ').trim().slice(0, 500) || 'منتج الشركة';
 
   // ============ حجم الحملة (عدد المعلنين المطلوب) ============
   const campaignId = campaign.id || application.campaign_id;
@@ -639,7 +644,43 @@ export default async function handler(req, res) {
 - كن ودود وطبيعي، استخدم لهجة خليجية بسيطة.
 ` : '';
 
-  const systemPrompt = `أنت "وكيل سيمبل" — وكيل تفاوض محترف يمثّل شركة "${campaign.brand_name || 'الشركة'}" لإقفال صفقة إعلانية مع المؤثرة بأفضل سعر للشركة.
+  const productPrompt = isProductComp ? `أنت "وكيل سيمبل" — وكيل محترف يمثّل شركة "${campaign.brand_name || 'الشركة'}" ويعرض على المؤثرة حملة إعلانية **مقابل منتج** (بدون أي مبلغ مالي).
+${voiceInstructions}
+## تفاصيل الإعلان:
+- العنوان: ${campaign.title}
+- الوصف: ${campaign.description}
+- المنصة: ${platformLabel} · ${timingDesc} · المتابعين: ${followerLabel} · المدينة: ${cityLabel}${visitLocLine}
+
+## المقابل (حرفياً):
+- هذي حملة مقابل منتج: ${productText}.
+- المؤثرة تستلم هذا المنتج مقابل المحتوى المتفق عليه. ما فيه أي مبلغ مالي.
+
+## عرض المؤثرة:
+- الاسم: ${application.creator_name} · المنصة: ${application.platform || 'غير محدد'} · المتابعين: ${application.followers ? application.followers.toLocaleString('en-US') : 'غير محدد'}
+- ملاحظتها: ${application.note || 'لا يوجد'}
+
+## قواعد صارمة:
+- ممنوع تذكر أي مبلغ أو سعر أو ميزانية بالريال إطلاقاً. قل دائماً "حملة مقابل منتج" واذكر المنتج باسمه.
+- لو طلبت فلوس أو مبلغ إضافي: اعتذر بلطف ("هذي الحملة مقابل منتج فقط، ما فيها مبلغ مالي") ووضّح قيمة المنتج والتجربة. لا تعد بأي مبلغ ولا تفاوض على فلوس أبداً.
+- لا تزيد على المنتج المذكور (لا كميات إضافية، لا أكواد خصم، لا عمولة).
+- نطاق العمل محصور: محتوى على ${platformLabel} حسب الوصف فقط. ارفض بلطف أي إضافات.
+- لا تسأل عن الشحن أو التواصل أو معلوماتها. لو سألت: "${executionReassure}"
+
+## الأسلوب:
+- شخص محترف ودود: متعاطف، حازم بهدوء، بدون تذلّل ولا مواجهة ولا فكاهة.
+- لهجة خليجية بسيطة مهذّبة. سطر-سطرين كحد أقصى لكل رد. بدون قوائم/نقاط/إيموجي.
+- استعمل اسمها وتأقلم مع جنسها من الاسم. استعمل "شرايك" (مو "شو/ايش/ما رأيك").
+
+## الرسالة الأولى فقط:
+فقرة إنسانية ودّية (3-5 أسطر، بدون قوائم/إيموجي): رحّب باسمها، اذكر إن ${campaign.brand_name || 'الشركة'} عندهم حملة مقابل منتج، المطلوب على ${platformLabel}، ${isVisit ? `موعد الزيارة (${visitWhen})` : `موعد النشر (${timingLabel})`}، والمنتج اللي بتستلمه (${productText})، واختم بدعوة لطيفة. مثال للنبرة: "أهلاً ريم، كيفك؟ ${campaign.brand_name || 'الشركة'} عندهم حملة مقابل منتج: فيديو على ${platformLabel}، وتستلمين ${productText} مقابل الإعلان. يشرّفنا تكونين معنا — شرايك؟"
+
+## الإقفال:
+أول ما توافق المؤثرة صراحةً (مثل "موافق"، "تمام"، "أوكي"، "ماشي"): **اقفل فوراً في نفس الرد**. اشكرها بسطر وأكّد إن الاتفاق مقابل المنتج، ثم اكتب في آخر ردّك حرفياً:
+[DEAL_CLOSED] مقابل منتج: ${productText} — مقابل المحتوى المتفق عليه على ${platformLabel}
+- لو رفضت بعد محاولتين إقناع لطيفة، أنهِ بأدب بدون [DEAL_CLOSED].
+- لا تخمّن موافقتها، ولا تكتب [DEAL_CLOSED] لو ما وافقت فعلاً.` : '';
+
+  const systemPrompt = isProductComp ? productPrompt : `أنت "وكيل سيمبل" — وكيل تفاوض محترف يمثّل شركة "${campaign.brand_name || 'الشركة'}" لإقفال صفقة إعلانية مع المؤثرة بأفضل سعر للشركة.
 ${voiceInstructions}
 ## تفاصيل الإعلان:
 - العنوان: ${campaign.title}
@@ -703,7 +744,9 @@ ${voiceInstructions}
   if (!history || history.length === 0) {
     messages.push({
       role: 'user',
-      content: 'ابدأ التفاوض. هذي أول رسالة: رحّب بالمعلن باسمه بطريقة إنسانية ودّية، واشرح له العرض ضمن كلام طبيعي متصل (الحملة والمطلوب، موعد النشر، المبلغ المعروض، ووقت الدفع باختصار)، واختم بدعوة لطيفة للانضمام. فقرة قصيرة بدون قوائم ولا نقاط ولا إيموجي.'
+      content: isProductComp
+        ? 'ابدأ المحادثة. هذي أول رسالة: رحّب بالمعلن باسمه بطريقة إنسانية ودّية، واشرح له إن الحملة مقابل منتج (الحملة والمطلوب، الموعد، والمنتج اللي بيستلمه) بدون ذكر أي مبلغ أو سعر، واختم بدعوة لطيفة للانضمام. فقرة قصيرة بدون قوائم ولا نقاط ولا إيموجي.'
+        : 'ابدأ التفاوض. هذي أول رسالة: رحّب بالمعلن باسمه بطريقة إنسانية ودّية، واشرح له العرض ضمن كلام طبيعي متصل (الحملة والمطلوب، موعد النشر، المبلغ المعروض، ووقت الدفع باختصار)، واختم بدعوة لطيفة للانضمام. فقرة قصيرة بدون قوائم ولا نقاط ولا إيموجي.'
     });
   } else {
     for (const msg of history) {
@@ -783,7 +826,13 @@ ${voiceInstructions}
     // لو المعلن وافق صراحةً والوكيل *نسي* وسم [DEAL_CLOSED]، نقفل تلقائيًا
     // بآخر سعر عرضه الوكيل. تمر بعدها بحماية السقف وحجم الحملة زي الإقفال العادي.
     let closedBySafetyNet = false;
-    if (!dealClosed && creatorMessage && creatorAcceptedExplicit(creatorMessage)) {
+    if (isProductComp && !dealClosed && creatorMessage && creatorAcceptedExplicit(creatorMessage)
+        && !/[؟?]|فلوس|مبلغ|ريال|سعر|كم\s/.test(creatorMessage)) {
+      dealClosed = true;
+      closedBySafetyNet = true;
+      dealDetails = `مقابل منتج: ${productText} — مقابل المحتوى المتفق عليه (إقفال تلقائي بعد تأكيد موافقة المعلن).`;
+    }
+    if (!isProductComp && !dealClosed && creatorMessage && creatorAcceptedExplicit(creatorMessage)) {
       const offered = lastAgentOfferedPrice(history, cleanReply || agentReply);
       if (offered && (!finalCap || offered <= finalCap)) {
         dealClosed = true;
@@ -801,7 +850,7 @@ ${voiceInstructions}
     let closeBlockedReason = null; // سبب حجب الإقفال (لعرض رسالة مناسبة بدل "اتفقنا")
     if (dealClosed && dealDetails) {
       const finalPrice = extractFinalPrice(dealDetails);
-      if (finalPrice && finalCap && finalPrice > finalCap) {
+      if (!isProductComp && finalPrice && finalCap && finalPrice > finalCap) {
         console.warn(`Agent attempted to close above cap: ${finalPrice} > ${finalCap}. Blocking.`);
         safeDealClosed = false;
         safeDealDetails = null;
@@ -852,9 +901,10 @@ ${voiceInstructions}
     // عند الإقفال: أضف تأكيد المبلغ + إعلام مناسب (صفقة عادية أو احتياط) بشكل حتمي.
     if (safeDealClosed && safeDealDetails) {
       const closedPrice = extractFinalPrice(safeDealDetails) || application.price;
+      const agreedTxt = isProductComp ? `تم الاتفاق على الحملة مقابل المنتج (${productText})` : `تم الاتفاق على ${closedPrice} ريال`;
       const approvalNote = closeAsReserve
-        ? `تم الاتفاق على ${closedPrice} ريال 🎉 أنت الآن ضمن قائمة الاحتياط الجاهزة لهذي الحملة — لو انفتح مكان بنرقّيك فورًا للتعميد بلا أي خطوات إضافية. نشكر تعاونك 🌿`
-        : `تم الاتفاق على ${closedPrice} ريال 🎉 صفقتك الآن بانتظار تعميد الشركة، وبنخبرك أول ما تُعتمد ونكمل باقي الخطوات معك 🌿`;
+        ? `${agreedTxt} 🎉 أنت الآن ضمن قائمة الاحتياط الجاهزة لهذي الحملة — لو انفتح مكان بنرقّيك فورًا للتعميد بلا أي خطوات إضافية. نشكر تعاونك 🌿`
+        : `${agreedTxt} 🎉 صفقتك الآن بانتظار تعميد الشركة، وبنخبرك أول ما تُعتمد ونكمل باقي الخطوات معك 🌿`;
       // لو أقفلنا عبر شبكة الأمان، رد الوكيل ممكن يكون خارج الموضوع → نستبدله بتأكيد واضح.
       replyToSend = closedBySafetyNet ? approvalNote : `${replyToSend}\n\n${approvalNote}`;
     }
@@ -870,7 +920,7 @@ ${voiceInstructions}
     }
 
     if (safeDealClosed && safeDealDetails) {
-      const finalPrice = extractFinalPrice(safeDealDetails) || application.price;
+      const finalPrice = isProductComp ? 0 : (extractFinalPrice(safeDealDetails) || application.price);
       try {
         await supabaseUpdate('applications', application.id, {
           status: 'closed',
