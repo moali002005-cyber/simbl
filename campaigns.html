@@ -4101,7 +4101,10 @@ function renderSingleCampaign(c) {
     const apps = campaignApps[c.id] || [];
     const pendingApps = apps.filter(a => a.status === 'pending');
     const waitlistApps = apps.filter(a => a.status === 'waitlisted');
-    const sheetApps = apps.filter(a => a.status !== 'waitlisted' && a.status !== 'rejected' && a.status !== 'campaign_full');
+    // الترتيب: بانتظار اعتمادك أولًا، ثم المعتمدون، ثم قيد التفاوض (مع الحفاظ على الترتيب داخل كل مجموعة)
+    const sheetRank = a => (a.status === 'closed' && a.brand_approved !== true) ? 0 : (a.status === 'closed' ? 1 : 2);
+    const sheetApps = apps.filter(a => a.status !== 'waitlisted' && a.status !== 'rejected' && a.status !== 'campaign_full')
+      .map((a, i) => ({ a, i })).sort((x, y) => (sheetRank(x.a) - sheetRank(y.a)) || (x.i - y.i)).map(o => o.a);
     const target = campaignTarget(c);
     const approved = approvedDealCount(c.id);
     const complete = isCampaignComplete(c);
