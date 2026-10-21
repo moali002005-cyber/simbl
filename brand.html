@@ -2333,7 +2333,7 @@ function selectPlatform(btn) {
   updateTierVisibility(btn.dataset.value);
 }
 // حدود السعر الإجبارية لكل تصنيف (ريال سعودي، للمعلن الواحد)
-const TIER_BUDGET = { micro: [800, 2000], medium: [2000, 7000], mega: [7000, 50000] };
+const TIER_BUDGET = { micro: [100, 2000], medium: [2000, 7000], mega: [7000, 50000] };
 const TIER_LABEL = { micro: 'Micro (UGC)', medium: 'Medium', mega: 'Mega' };
 function currentSelectedTiers() {
   const el = document.getElementById('creator-tiers-input');
