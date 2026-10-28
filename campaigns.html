@@ -3908,6 +3908,22 @@ function openCell(appId, stage) {
   }
 }
 
+// إذا تعطّل صوت المتصفح (خطأ تشغيل الصوت) يتوقف الفيديو كاملًا؛ نعيد تشغيله بدون صوت مع تنبيه
+function simblVideoAudioFallback(v) {
+  try {
+    if (!v || !v.error || v.error.code !== 3 || v.dataset.mutedRetry) return;
+    v.dataset.mutedRetry = '1';
+    const t = v.currentTime || 0;
+    v.muted = true;
+    v.load();
+    v.addEventListener('loadedmetadata', function () { try { v.currentTime = t; } catch (e) {} v.play().catch(function () {}); }, { once: true });
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:12px;color:#8a5a00;background:#fff7e6;border:1px solid #f3d9a4;border-radius:8px;padding:6px 10px;margin-top:6px;';
+    note.textContent = 'الصوت ما اشتغل في متصفحك، فشغّلنا الفيديو بدون صوت. لسماع الصوت: أعد تشغيل المتصفح أو تأكد من سماعة الجهاز.';
+    v.insertAdjacentElement('afterend', note);
+  } catch (e) { console.error('video fallback failed:', e); }
+}
+
 function renderStageDataView(a, s) {
   const sd = (typeof a.stage_data === 'object' && a.stage_data) ? a.stage_data : {};
   const data = sd[s] || {};
@@ -3919,7 +3935,7 @@ function renderStageDataView(a, s) {
     const val = data[f.name];
     let body;
     if (f.name === 'content_link' && /\/object\/public\/content\//.test(val)) {
-      body = `<video src="${escHtml(val)}" controls playsinline style="width:100%;border-radius:10px;max-height:300px;background:#000;margin-top:5px;"></video>`;
+      body = `<video src="${escHtml(val)}" controls playsinline onerror="simblVideoAudioFallback(this)" style="width:100%;border-radius:10px;max-height:300px;background:#000;margin-top:5px;"></video>`;
     } else if (f.type === 'url') {
       body = `<a href="${escHtml(val)}" target="_blank" rel="noopener">${escHtml(val)}</a>`;
     } else {
