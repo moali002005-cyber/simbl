@@ -1,5 +1,5 @@
 (function () {
-  var TEXT = 'المنصة تحت الصيانة في الوقت الحالي';
+  var TEXT = 'المنصة تحت الصيانة حالياً. سيمبل إحدى منصات مجموعة ريف، وسيتم المبادرة بسداد جميع المستحقات المتأخرة في أقرب وقت.';
   function add() {
     if (!document.body || document.getElementById('maint-banner')) return;
     var b = document.createElement('div');
